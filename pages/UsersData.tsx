@@ -277,12 +277,12 @@ const UsersData: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-slate-500 mb-1">Password Baru</label>
-                            <input className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500" placeholder="Masukkan password baru..." value={resetData.newPassword} onChange={e => setResetData({...resetData, newPassword: e.target.value})}/>
+                            <input className="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500" placeholder="Masukkan password baru..." value={resetData.newPassword} onChange={e => setResetData({...resetData, newPassword: e.target.value})}/>
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-slate-500 mb-1">Service Role Key (Wajib)</label>
                             <div className="relative">
-                                <input type={showServiceKey ? "text" : "password"} className="w-full border border-blue-300 rounded-lg p-2 pr-10 text-xs font-mono focus:ring-2 focus:ring-blue-600 bg-slate-100" placeholder="Paste Service Role Key..." value={serviceKey} onChange={e => setServiceKey(e.target.value)}/>
+                                <input type={showServiceKey ? "text" : "password"} className="w-full border border-blue-300 rounded-lg p-2 pr-10 text-xs font-mono focus:ring-2 focus:ring-blue-600 bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" placeholder="Paste Service Role Key..." value={serviceKey} onChange={e => setServiceKey(e.target.value)}/>
                                 <button type="button" onClick={() => setShowServiceKey(!showServiceKey)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">{showServiceKey ? <EyeOff size={16} /> : <Eye size={16} />}</button>
                             </div>
                             <p className="text-[10px] text-blue-600 mt-1">* Diperlukan untuk update di sistem Auth.</p>
@@ -318,7 +318,7 @@ const UsersData: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Wali Kelas</label>
-                            <select className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-100" value={editFormData.wali_kelas} onChange={e => {
+                            <select className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={editFormData.wali_kelas} onChange={e => {
     const val = e.target.value;
     let newMapel = editFormData.mengajar_mapel;
     if (val) {
@@ -357,28 +357,28 @@ const UsersData: React.FC = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1">NIPY (User ID)</label>
-                                    <div className="relative"><User className="absolute left-3 top-2.5 text-slate-400" size={16} /><input className="w-full pl-9 border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500" placeholder="199xxx" value={newUser.nip} onChange={e => setNewUser({...newUser, nip: e.target.value})}/></div>
+                                    <div className="relative"><User className="absolute left-3 top-2.5 text-slate-400" size={16} /><input className="w-full pl-9 border border-slate-300 rounded-lg p-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500" placeholder="199xxx" value={newUser.nip} onChange={e => setNewUser({...newUser, nip: e.target.value})}/></div>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1">Password</label>
-                                    <div className="relative"><Lock className="absolute left-3 top-2.5 text-slate-400" size={16} /><input type="text" className="w-full pl-9 border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500" placeholder="Password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})}/></div>
+                                    <div className="relative"><Lock className="absolute left-3 top-2.5 text-slate-400" size={16} /><input type="text" className="w-full pl-9 border border-slate-300 rounded-lg p-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500" placeholder="Password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})}/></div>
                                     <p className="text-[10px] text-slate-400 mt-1">Default: bti</p>
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">Service Role Key (Wajib)</label>
-                                <div className="relative"><input type={showServiceKey ? "text" : "password"} className="w-full border border-blue-300 rounded-lg p-2 pr-10 text-xs font-mono focus:ring-2 focus:ring-blue-500 bg-slate-100" placeholder="Paste Service Role Key..." value={serviceKey} onChange={e => setServiceKey(e.target.value)}/><button type="button" onClick={() => setShowServiceKey(!showServiceKey)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">{showServiceKey ? <EyeOff size={16} /> : <Eye size={16} />}</button></div>
+                                <div className="relative"><input type={showServiceKey ? "text" : "password"} className="w-full border border-blue-300 rounded-lg p-2 pr-10 text-xs font-mono focus:ring-2 focus:ring-blue-500 bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" placeholder="Paste Service Role Key..." value={serviceKey} onChange={e => setServiceKey(e.target.value)}/><button type="button" onClick={() => setShowServiceKey(!showServiceKey)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">{showServiceKey ? <EyeOff size={16} /> : <Eye size={16} />}</button></div>
                                 <p className="text-[10px] text-blue-500 mt-1">* Diperlukan untuk membuat user di Authentication Supabase.</p>
                             </div>
                         </div>
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Nama Lengkap</label>
-                                <input className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500" placeholder="Nama Guru..." value={newUser.fullName} onChange={e => setNewUser({...newUser, fullName: e.target.value})}/>
+                                <input className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100" placeholder="Nama Guru..." value={newUser.fullName} onChange={e => setNewUser({...newUser, fullName: e.target.value})}/>
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Role</label>
-                                <select className="w-full border border-slate-300 rounded-xl p-3 bg-slate-100 focus:ring-2 focus:ring-blue-500" value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}><option value="user">User (Guru)</option><option value="operator">Operator</option><option value="admin">Administrator</option></select>
+                                <select className="w-full border border-slate-300 rounded-xl p-3 bg-slate-100 focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}><option value="user">User (Guru)</option><option value="operator">Operator</option><option value="admin">Administrator</option></select>
                             </div>
                             <div className="relative">
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Mata Pelajaran (Multi-Select)</label>
@@ -387,7 +387,7 @@ const UsersData: React.FC = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Wali Kelas</label>
-                                <select className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 bg-slate-100" value={newUser.waliKelas} onChange={e => {
+                                <select className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={newUser.waliKelas} onChange={e => {
     const val = e.target.value;
     let newMapel = newUser.mapel;
     if (val) {

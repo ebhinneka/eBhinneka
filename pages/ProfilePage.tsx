@@ -68,54 +68,7 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    
-    const file = e.target.files[0];
-    const fileSizeLimit = 500 * 1024; // 500 KB
-
-    if (file.size > fileSizeLimit) {
-      alert("Ukuran file maksimal 500 KB");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      if (!profile) return;
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${profile.id}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      // 1. Upload to Storage
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // 2. Get Public URL
-      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      const publicUrl = data.publicUrl;
-
-      // 3. Update Profile Table
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl })
-        .eq('id', profile.id);
-
-      if (updateError) throw updateError;
-
-      setAvatarUrl(publicUrl);
-      setMsg({ type: 'success', text: 'Foto profil berhasil diupload!' });
-
-    } catch (err: any) {
-      alert('Gagal upload foto: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  
   return (
     <Layout>
       <div className="max-w-4xl mx-auto space-y-6">

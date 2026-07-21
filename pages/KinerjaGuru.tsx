@@ -124,10 +124,10 @@ const KinerjaGuru: React.FC = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div><h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"><Activity className="text-blue-600" /> Monitoring Kinerja Guru</h2><p className="text-slate-500 text-sm mt-1">Evaluasi pemenuhan jam mengajar (JP) guru.</p></div>
                 <div className="flex flex-wrap gap-2 items-center bg-slate-100 p-2 rounded-xl border border-slate-200 shadow-sm">
-                    <div className="relative"><Search className="absolute left-3 top-2.5 text-slate-400" size={16}/><input type="text" placeholder="Cari Guru..." className="pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 w-40" value={hmSearch} onChange={(e) => setHmSearch(e.target.value)}/></div>
+                    <div className="relative"><Search className="absolute left-3 top-2.5 text-slate-400" size={16}/><input type="text" placeholder="Cari Guru..." className="pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 w-40 text-slate-900 dark:text-slate-100" value={hmSearch} onChange={(e) => setHmSearch(e.target.value)}/></div>
                     <div className="h-6 w-px bg-slate-200 mx-1"></div>
-                    <select className="py-2 px-3 border border-slate-200 rounded-lg text-sm bg-slate-100 font-bold text-slate-700" value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))}>{monthNames.map((m, i) => <option key={i} value={i}>{m}</option>)}</select>
-                    <select className="py-2 px-3 border border-slate-200 rounded-lg text-sm bg-slate-100 font-bold text-slate-700" value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))}>{[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}</select>
+                    <select className="py-2 px-3 border border-slate-200 rounded-lg text-sm bg-slate-100 font-bold text-slate-700 dark:bg-slate-800 dark:border-slate-600" value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))}>{monthNames.map((m, i) => <option key={i} value={i}>{m}</option>)}</select>
+                    <select className="py-2 px-3 border border-slate-200 rounded-lg text-sm bg-slate-100 font-bold text-slate-700 dark:bg-slate-800 dark:border-slate-600" value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))}>{[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}</select>
                 </div>
             </div>
 

@@ -204,7 +204,7 @@ const RekapAbsensi: React.FC = () => {
                 <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1">Kelas</label>
                     <select 
-                        className="w-full border rounded-xl p-3 bg-gray-50 font-bold text-slate-700 focus:ring-2 focus:ring-blue-500"
+                        className="w-full border rounded-xl p-3 bg-gray-50 font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-600"
                         value={selectedClass}
                         onChange={handleClassChange}
                     >
@@ -216,7 +216,7 @@ const RekapAbsensi: React.FC = () => {
                     <label className="block text-xs font-bold text-slate-500 mb-1">Mata Pelajaran</label>
                     <input 
                         type="text"
-                        className="w-full border rounded-xl p-3 bg-gray-50 text-slate-700"
+                        className="w-full border rounded-xl p-3 bg-gray-50 text-slate-700 dark:bg-slate-800 dark:border-slate-600"
                         value={selectedSubject}
                         readOnly
                         placeholder="Otomatis sesuai kelas..."
@@ -246,7 +246,7 @@ const RekapAbsensi: React.FC = () => {
         <div className="mt-8 bg-slate-100 p-4 md:p-8 shadow-lg border border-slate-100 print:shadow-none print:border-none print:p-0 print:m-0 print:w-full animate-fade-in rounded-2xl" ref={componentRef}>
             <div className="flex justify-between items-start mb-6 border-b-2 border-black pb-4">
                 <div className="flex items-center gap-4">
-                     <img src="https://www.smpbhinnekatunggalika.sch.id/upload/imagecache/24871901smp-100x100.png" alt="Logo" className="h-12 md:h-20 w-auto" />
+                     <img src="/logo.png" alt="Logo" className="h-12 md:h-20 w-auto" />
                      <div>
                          <h1 className="text-md md:text-xl font-bold uppercase tracking-wide text-black leading-tight">SMP BHINNEKA TUNGGAL IKA</h1>
                          <h2 className="text-sm md:text-lg font-bold text-black leading-tight">Rekap Absensi Mata Pelajaran : {selectedSubject}</h2>

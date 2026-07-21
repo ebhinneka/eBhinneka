@@ -178,7 +178,7 @@ export const Layout: React.FC<{ children: React.ReactNode; showNav?: boolean; co
             {/* Logo Area */}
             <div className={`p-4 flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 ${collapsed ? 'justify-center' : ''} h-20`}>
                  <img 
-                    src="https://www.smpbhinnekatunggalika.sch.id/upload/imagecache/24871901smp-100x100.png" 
+                    src="/logo.png" 
                     alt="Logo" 
                     className="h-10 w-10 object-contain" 
                   />
@@ -282,7 +282,7 @@ export const Layout: React.FC<{ children: React.ReactNode; showNav?: boolean; co
              <div className="px-4 py-3 flex justify-between items-center">
                  <div className="flex items-center gap-3">
                      <img 
-                       src="https://www.smpbhinnekatunggalika.sch.id/upload/imagecache/24871901smp-100x100.png" 
+                       src="/logo.png" 
                        className="h-10 w-auto object-contain" 
                        alt="Logo"
                      />

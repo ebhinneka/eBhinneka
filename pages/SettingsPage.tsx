@@ -237,7 +237,7 @@ const SettingsPage: React.FC = () => {
                             <label className="block text-xs font-bold text-slate-500 mb-1">Tahun Ajaran</label>
                             
                             <input 
-                                className="w-full border rounded-lg p-3 font-medium bg-slate-100 text-slate-500 cursor-not-allowed" 
+                                className="w-full border rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-3 font-medium bg-slate-100 text-slate-500 cursor-not-allowed" 
                                 value={settings['academic_year'] || ''}
                                 readOnly
                             />
@@ -247,7 +247,7 @@ const SettingsPage: React.FC = () => {
                         <div>
                             <label className="block text-xs font-bold text-slate-500 mb-1">Semester</label>
                             <select 
-                                className="w-full border rounded-lg p-3 bg-slate-100 text-slate-500 cursor-not-allowed"
+                                className="w-full border rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-3 bg-slate-100 text-slate-500 cursor-not-allowed"
                                 value={settings['semester'] || 'Ganjil'}
                                 disabled
                             >
@@ -262,7 +262,7 @@ const SettingsPage: React.FC = () => {
                             <div className="relative">
                                 <User className="absolute left-3 top-3.5 text-blue-400" size={16}/>
                                 <select 
-                                    className="w-full border border-blue-200 rounded-lg p-3 pl-9 font-medium bg-slate-100 focus:ring-2 focus:ring-blue-500 outline-none" 
+                                    className="w-full border border-blue-200 rounded-lg p-3 pl-9 font-medium bg-slate-100 focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" 
                                     value={settings['headmaster_nip'] || ''}
                                     onChange={handleHeadmasterChange}
                                 >
@@ -294,7 +294,7 @@ const SettingsPage: React.FC = () => {
                     <div className="space-y-4">
                         <div className="flex gap-2">
                              <input 
-                                className="flex-1 border rounded-lg p-2.5 text-sm" 
+                                className="flex-1 border rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-2.5 text-sm" 
                                 value={newSubject}
                                 onChange={e => setNewSubject(e.target.value)}
                                 placeholder="Tambah Mapel Baru..."
@@ -336,7 +336,7 @@ const SettingsPage: React.FC = () => {
                             <label className="block text-xs font-bold text-slate-500 mb-2">Jenis Kedisiplinan (Pelanggaran)</label>
                             <div className="flex gap-2 mb-2">
                                 <input 
-                                    className="flex-1 border rounded-lg p-2 text-xs" 
+                                    className="flex-1 border rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-2 text-xs" 
                                     value={newDiscipline}
                                     onChange={e => setNewDiscipline(e.target.value)}
                                     placeholder="Contoh: Terlambat, Tidur..."
@@ -359,7 +359,7 @@ const SettingsPage: React.FC = () => {
                             <label className="block text-xs font-bold text-slate-500 mb-2 flex items-center gap-1"><Gavel size={12}/> Jenis Tindak Lanjut (Kedisiplinan)</label>
                             <div className="flex gap-2 mb-2">
                                 <input 
-                                    className="flex-1 border rounded-lg p-2 text-xs" 
+                                    className="flex-1 border rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-2 text-xs" 
                                     value={newFollowUp}
                                     onChange={e => setNewFollowUp(e.target.value)}
                                     placeholder="Contoh: Teguran Lisan..."
@@ -382,7 +382,7 @@ const SettingsPage: React.FC = () => {
                             <label className="block text-xs font-bold text-slate-500 mb-2">Jenis Keaktifan (Prestasi/Aktif)</label>
                             <div className="flex gap-2 mb-2">
                                 <input 
-                                    className="flex-1 border rounded-lg p-2 text-xs" 
+                                    className="flex-1 border rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-2 text-xs" 
                                     value={newActivity}
                                     onChange={e => setNewActivity(e.target.value)}
                                     placeholder="Contoh: Bertanya, Presentasi..."
@@ -414,7 +414,7 @@ const SettingsPage: React.FC = () => {
                                 <label className="block text-[10px] font-bold text-slate-500 mb-1">Tanggal</label>
                                 <input 
                                     type="date" 
-                                    className="w-full border rounded-lg p-2 text-sm"
+                                    className="w-full border rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-2 text-sm"
                                     value={newDay.date}
                                     onChange={e => setNewDay({...newDay, date: e.target.value})}
                                 />
@@ -423,7 +423,7 @@ const SettingsPage: React.FC = () => {
                                 <label className="block text-[10px] font-bold text-slate-500 mb-1">Keterangan</label>
                                 <input 
                                     type="text" 
-                                    className="w-full border rounded-lg p-2 text-sm"
+                                    className="w-full border rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-2 text-sm"
                                     placeholder="Contoh: Rapat Dinas"
                                     value={newDay.reason}
                                     onChange={e => setNewDay({...newDay, reason: e.target.value})}

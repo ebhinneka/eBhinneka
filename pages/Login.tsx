@@ -56,7 +56,7 @@ const Login: React.FC = () => {
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-transparent transition-colors duration-300"> 
       <div className="text-center mb-8">
            <img 
-             src="https://www.smpbhinnekatunggalika.sch.id/upload/imagecache/24871901smp-100x100.png" 
+             src="/logo.png" 
              alt="Logo Sekolah" 
              className="h-24 w-auto mx-auto mb-4 drop-shadow-sm" 
            />

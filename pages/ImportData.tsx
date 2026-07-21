@@ -404,7 +404,7 @@ const ImportData: React.FC = () => {
                             <div className="mb-6 bg-blue-50 border border-blue-200 p-4 rounded-xl">
                                 <label className="block text-xs font-bold text-blue-800 mb-2">Tahun Ajaran Tujuan Data (Penting):</label>
                                 <select 
-                                    className="w-full border border-blue-300 rounded-lg p-2 text-sm bg-slate-100 focus:ring-2 focus:ring-blue-500"
+                                    className="w-full border border-blue-300 rounded-lg p-2 text-sm bg-slate-100 focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600"
                                     value={targetYear}
                                     onChange={(e) => setTargetYear(e.target.value)}
                                 >
@@ -491,7 +491,7 @@ const ImportData: React.FC = () => {
                             ref={fileInputRef} 
                             onChange={handleFileChange} 
                             accept=".csv, .txt" 
-                            className="hidden" 
+                            className="hidden text-slate-900 dark:text-slate-100" 
                         />
                     </div>
                 ) : (

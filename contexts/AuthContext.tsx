@@ -121,9 +121,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const email = `${idOnly}@sekolah.id`; 
 
     let finalPassword = password;
-    if (cleanId === '234567' && password === 'admin') {
-       finalPassword = 'admin_sekolah';
-    }
 
     const result = await supabase.auth.signInWithPassword({ email, password: finalPassword });
     return result;

@@ -136,7 +136,7 @@ const LaporanJurnal: React.FC = () => {
           <div className="bg-slate-100 p-4 md:p-8 shadow-lg border border-slate-100 print:shadow-none print:border-none print:p-0 print:m-0 print:w-full animate-fade-in rounded-2xl" ref={componentRef}>
               
                <div className="flex items-center gap-4 mb-6 border-b-2 border-black pb-4">
-                     <img src="https://www.smpbhinnekatunggalika.sch.id/upload/imagecache/24871901smp-100x100.png" alt="Logo" className="h-12 md:h-20 w-auto" />
+                     <img src="/logo.png" alt="Logo" className="h-12 md:h-20 w-auto" />
                      <div>
                          <h1 className="text-md md:text-xl font-bold uppercase tracking-wide text-black leading-tight">SMP BHINNEKA TUNGGAL IKA</h1>
                          <h2 className="text-sm md:text-lg font-bold text-black leading-tight">Jurnal Guru: {profile?.full_name}</h2>

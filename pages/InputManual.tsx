@@ -343,7 +343,7 @@ const InputManual: React.FC = () => {
                     </div>
                     <h3 className="text-xl font-bold text-slate-700">Klik untuk Upload CSV</h3>
                     <p className="text-slate-400 text-sm mt-2">Mendukung format .csv universal</p>
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv, .txt" className="hidden" />
+                    <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv, .txt" className="hidden text-slate-900 dark:text-slate-100" />
                 </div>
             ) : (
                 <div className="space-y-6 animate-fade-in">

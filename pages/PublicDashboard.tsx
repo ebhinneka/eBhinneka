@@ -271,13 +271,13 @@ const PublicDashboard: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start p-4 pt-[calc(env(safe-area-inset-top)+0.5rem)] font-sans bg-transparent  transition-colors duration-300">
-      <main className="w-full max-w-md space-y-4">
+    <div className="min-h-[100dvh] flex flex-col items-center justify-center p-4 font-sans bg-transparent  transition-colors duration-300">
+      <main className="w-full max-w-md space-y-4 m-auto">
         
         {/* HEADER CARD */}
         <div className="bg-slate-100/10 backdrop-blur-2xl rounded-[2rem] p-5 flex items-center justify-between shadow-[0_8px_32px_rgba(0,0,0,0.15)] border border-slate-100/20 text-white relative overflow-hidden">
              <div className="flex items-center gap-3 relative z-10">
-                 <img src="https://www.smpbhinnekatunggalika.sch.id/upload/imagecache/24871901smp-100x100.png" alt="Logo" className="h-14 w-auto object-contain bg-slate-100/20 p-1 rounded-full shadow-inner backdrop-blur-md" />
+                 <img src="/logo.png" alt="Logo" className="h-14 w-auto object-contain bg-slate-100/20 p-1 rounded-full shadow-inner backdrop-blur-md" />
                  <div>
                     <h1 className="text-md font-extrabold text-white leading-tight drop-shadow-sm">SMP BHINNEKA <br/> TUNGGAL IKA</h1>
                     <p className="text-xs font-bold text-white/90 mt-1 drop-shadow-sm">eBhinneka</p>
