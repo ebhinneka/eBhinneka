@@ -91,7 +91,7 @@ const InputJadwal: React.FC = () => {
   const fetchTeachers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('profiles').select('*').neq('nip', null).order('full_name');
+      const { data, error } = await supabase.from('profiles').select('*').order('full_name');
       if (error) throw error;
       if (data) setTeachers(data); 
     } catch (err) { console.error("Gagal load guru", err); } finally { setLoading(false); }
@@ -128,8 +128,8 @@ const InputJadwal: React.FC = () => {
   };
 
   const handleTeacherChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const nip = e.target.value;
-    const teacher = teachers.find(t => t.nip === nip) || null;
+    const id = e.target.value;
+    const teacher = teachers.find(t => t.id === id) || null;
     setSelectedTeacher(teacher);
     setScheduleQueue([]);
     setStatus(null);
@@ -306,7 +306,7 @@ const InputJadwal: React.FC = () => {
             <div className="lg:col-span-1 space-y-6">
                 <div className="bg-slate-100 p-5 rounded-3xl shadow-sm border border-slate-100 sticky top-4">
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 ml-1">Pilih Guru Pengajar</label>
-                    <select className="w-full border border-slate-200 rounded-xl p-3.5 focus:ring-2 focus:ring-blue-600 bg-slate-100 font-bold text-slate-700 dark:bg-slate-800 dark:border-slate-600" value={selectedTeacher?.nip || ''} onChange={handleTeacherChange} disabled={loading || scheduleQueue.length > 0}><option value="">-- Cari Nama Guru --</option>{teachers.map(t => (<option key={t.id} value={t.nip}>{t.full_name}</option>))}</select>
+                    <select className="w-full border border-slate-200 rounded-xl p-3.5 focus:ring-2 focus:ring-blue-600 bg-slate-100 font-bold text-slate-700 dark:bg-slate-800 dark:border-slate-600" value={selectedTeacher?.id || ''} onChange={handleTeacherChange} disabled={loading || scheduleQueue.length > 0}><option value="">-- Cari Nama Guru --</option>{teachers.map(t => (<option key={t.id} value={t.id}>{t.full_name}</option>))}</select>
                     {scheduleQueue.length > 0 && <p className="text-[10px] text-blue-600 mt-2 font-bold px-2">* Simpan antrian sebelum ganti guru.</p>}
                 </div>
 

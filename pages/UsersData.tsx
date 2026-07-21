@@ -4,7 +4,7 @@ import { Layout } from '../components/Layout';
 import { supabase } from '../services/supabase';
 import { createClient } from '@supabase/supabase-js'; 
 import { Profile } from '../types';
-import { Search, UserCog, GraduationCap, Shield, Edit, Save, X, Loader2, ChevronDown, Check, UserPlus, KeyRound, Eye, EyeOff, Lock, User, RefreshCw } from 'lucide-react';
+import { Trash2, Plus, AlertCircle, Search, UserCog, GraduationCap, Shield, Edit, Save, X, Loader2, ChevronDown, Check, UserPlus, KeyRound, Eye, EyeOff, Lock, User, RefreshCw } from 'lucide-react';
 
 const PasswordCell = ({ password }: { password?: string }) => {
   const [show, setShow] = useState(false);
@@ -88,9 +88,7 @@ const UsersData: React.FC = () => {
       if (settingsRes.data?.value) {
           try { 
             let parsed = JSON.parse(settingsRes.data.value);
-            if (!parsed.includes('Sabtu bersama Wali Kelas')) {
-                parsed.push('Sabtu bersama Wali Kelas');
-            }
+            
             setSubjectsList(parsed); 
         } catch(e) { console.error("Parse subjects error", e); }
       }
@@ -110,31 +108,21 @@ const UsersData: React.FC = () => {
 
   const handleSaveEdit = async () => {
     if (!editingUser) return;
-
     setSaving(true);
     try {
       let finalMapel = editFormData.mengajar_mapel;
-      if (editFormData.wali_kelas && editFormData.wali_kelas.trim() !== '') {
-        const mapels = finalMapel ? finalMapel.split(',').map(m => m.trim()) : [];
-        if (!mapels.includes('Sabtu bersama Wali Kelas')) {
-           mapels.push('Sabtu bersama Wali Kelas');
-           finalMapel = mapels.join(', ');
-        }
-      }
+      const mapels = finalMapel ? finalMapel.split(',').map(m => m.trim()).filter(m => m !== '') : [];
+      finalMapel = mapels.join(', ');
       const payload = {
           mengajar_mapel: finalMapel,
           wali_kelas: editFormData.wali_kelas
       };
-
       
-      const SUPABASE_URL = 'https://nuxpvdmhclxftbgytrsq.supabase.co'; 
-      const adminClient = createClient(SUPABASE_URL, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
-      const { error: profileError } = await adminClient.from('profiles').update(payload).eq('id', editingUser.id);
-
+      const { error: profileError } = await supabase.from('profiles').update(payload).eq('id', editingUser.id);
       if (profileError) throw profileError;
 
       if (editingUser.nip) {
-         await adminClient.from('tabel_guru').update({ mapel: finalMapel, wali_kelas: editFormData.wali_kelas }).eq('nip', editingUser.nip);
+         await supabase.from('tabel_guru').update({ mapel: finalMapel, wali_kelas: editFormData.wali_kelas }).eq('nip', editingUser.nip);
       }
 
       setProfiles(prev => prev.map(p => p.id === editingUser.id ? { ...p, mengajar_mapel: finalMapel, wali_kelas: editFormData.wali_kelas } : p));
@@ -148,17 +136,12 @@ const UsersData: React.FC = () => {
       setSaving(true);
       try {
           let finalMapelNew = newUser.mapel;
-          if (newUser.waliKelas && newUser.waliKelas.trim() !== '') {
-              const mapelsNew = finalMapelNew ? finalMapelNew.split(',').map(m => m.trim()) : [];
-              if (!mapelsNew.includes('Sabtu bersama Wali Kelas')) {
-                 mapelsNew.push('Sabtu bersama Wali Kelas');
-                 finalMapelNew = mapelsNew.join(', ');
-              }
-          }
+          
+          const mapelsNew = finalMapelNew ? finalMapelNew.split(',').map(m => m.trim()).filter(m => m !== '') : [];
+          finalMapelNew = mapelsNew.join(', ');
 
           const SUPABASE_URL = 'https://nuxpvdmhclxftbgytrsq.supabase.co'; 
           const adminClient = createClient(SUPABASE_URL, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
-
           const email = `${newUser.nip}@sekolah.id`;
           const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
               email: email,
@@ -166,24 +149,21 @@ const UsersData: React.FC = () => {
               email_confirm: true,
               user_metadata: { full_name: newUser.fullName }
           });
-
           if (authError) throw new Error("Gagal membuat Auth User: " + authError.message);
           if (!authData.user) throw new Error("Gagal mendapatkan data user baru.");
           const userId = authData.user.id;
-
           const { error: profileError } = await supabase.from('profiles').insert({
               id: userId, nip: newUser.nip, full_name: newUser.fullName, role: newUser.role,
-              mengajar_mapel: typeof finalMapelNew !== 'undefined' ? finalMapelNew : newUser.mapel, wali_kelas: newUser.waliKelas, password_info: newUser.password
+              mengajar_mapel: finalMapelNew, wali_kelas: newUser.waliKelas, password_info: newUser.password
           });
-          if (profileError) throw new Error("Gagal membuat Profile: " + profileError.message);
-
-          await supabase.from('tabel_guru').upsert({ nip: newUser.nip, nama_lengkap: newUser.fullName, mapel: typeof finalMapelNew !== 'undefined' ? finalMapelNew : newUser.mapel, wali_kelas: newUser.waliKelas });
-
+          if (profileError) throw new Error("Gagal menyimpan Profile: " + profileError.message);
+          
+          await supabase.from('tabel_guru').upsert({ nip: newUser.nip, nama_lengkap: newUser.fullName, mapel: finalMapelNew, wali_kelas: newUser.waliKelas });
           alert("User berhasil ditambahkan!");
           setIsAddModalOpen(false);
-          setNewUser({ nip: '', fullName: '', password: 'bti', role: 'user', mapel: '', waliKelas: '' });
-          fetchData(); 
-      } catch (err: any) { alert(err.message); } finally { setSaving(false); }
+          setNewUser({ nip: '', fullName: '', role: 'user', mapel: '', waliKelas: '', password: 'bti' });
+          fetchData();
+      } catch (err: any) { alert('Gagal: ' + err.message); } finally { setSaving(false); }
   };
 
   const handleResetPasswordAction = async () => {
@@ -228,7 +208,7 @@ const UsersData: React.FC = () => {
           <div className="flex gap-3 w-full md:w-auto">
               <div className="relative flex-1 md:w-64">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Search className="h-4 w-4 text-slate-400" /></div>
-                <input type="text" placeholder="Cari User / NIPY..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 w-full border border-slate-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"/>
+                <input type="text" placeholder="Cari User / NIPY..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 w-full border border-slate-300 rounded-xl text-slate-900 p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"/>
               </div>
               <button onClick={() => setIsAddModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-slate-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all flex-shrink-0"><UserPlus size={18} /> Tambah User</button>
           </div>
@@ -270,7 +250,7 @@ const UsersData: React.FC = () => {
         {/* MODAL RESET PASSWORD - TOP ALIGNED */}
         {resetModalOpen && (
             <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[calc(env(safe-area-inset-top)+1rem)] sm:p-4 bg-slate-900/50 backdrop-blur-sm transition-all duration-300">
-                <div className="bg-slate-100 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100 border border-slate-100 relative animate-fade-in">
+                <div className="bg-slate-100 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100 border border-slate-100 relative animate-fade-in mt-10">
                     <div className="bg-blue-500 p-4 flex justify-between items-center text-slate-100">
                         <h3 className="font-bold flex items-center gap-2"><KeyRound size={20} /> Reset Password</h3>
                         <button onClick={() => setResetModalOpen(false)} className="hover:bg-slate-100/20 p-1 rounded-full transition-colors"><X size={20} /></button>
@@ -283,11 +263,99 @@ const UsersData: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-slate-500 mb-1">Password Baru</label>
-                            <input className="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500" placeholder="Masukkan password baru..." value={resetData.newPassword} onChange={e => setResetData({...resetData, newPassword: e.target.value})}/>
+                            <input className="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white  text-slate-900  focus:ring-2 focus:ring-blue-500" placeholder="Masukkan password baru..." value={resetData.newPassword} onChange={e => setResetData({...resetData, newPassword: e.target.value})}/>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">Service Role Key (Wajib)</label>
+                            <div className="relative">
+                                <input type={showServiceKey ? "text" : "password"} className="w-full border border-blue-300 rounded-lg p-2 pr-10 text-xs font-mono focus:ring-2 focus:ring-blue-600 bg-slate-100 text-slate-900   " placeholder="Paste Service Role Key..." value={serviceKey} onChange={e => setServiceKey(e.target.value)}/>
+                                <button type="button" onClick={() => setShowServiceKey(!showServiceKey)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">{showServiceKey ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                            </div>
+                            <p className="text-[10px] text-blue-600 mt-1">* Diperlukan untuk update di sistem Auth.</p>
+                        </div>
+                        <button onClick={handleResetPasswordAction} disabled={saving} className="w-full bg-blue-500 hover:bg-blue-500 text-slate-100 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 mt-2">{saving ? <Loader2 className="animate-spin" size={18}/> : <Save size={18} />} Simpan Password Baru</button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* MODAL EDIT AKADEMIK - TOP ALIGNED */}
+        {editingUser && (
+            <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[calc(env(safe-area-inset-top)+1rem)] sm:p-4 bg-slate-900/50 backdrop-blur-sm transition-all duration-300">
+                <div className="bg-slate-100 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100 border border-slate-100 relative animate-fade-in mt-10">
+                    <div className="bg-blue-600 p-4 flex justify-between items-center text-slate-100">
+                        <h3 className="font-bold flex items-center gap-2"><UserCog size={20} /> Edit Data Akademik</h3>
+                        <button onClick={() => setEditingUser(null)} className="hover:bg-slate-100/20 p-1 rounded-full transition-colors"><X size={20} /></button>
+                    </div>
+                    <div className="p-6 space-y-5">
+                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-4">
+                            <p className="text-xs text-blue-600 font-bold uppercase">Mengedit User:</p>
+                            <p className="font-bold text-slate-900">{editingUser.full_name}</p>
+                            <p className="text-xs text-slate-500 font-mono">{editingUser.nip}</p>
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">Mata Pelajaran</label>
+                            <div className="space-y-2">
+                                {(() => {
+                                    const rawMapels = editFormData.mengajar_mapel || "";
+                                    const rawArr = rawMapels ? rawMapels.split(',') : [];
+                                    const displayMapels = rawArr.map(m => m.trim());
+                                    
+                                    return (
+                                        <>
+                                            {displayMapels.length === 0 && <div className="text-sm text-slate-500 italic">Belum ada mata pelajaran.</div>}
+                                            {displayMapels.map((mapel, idx) => (
+                                                <div key={idx} className="flex gap-2">
+                                                    <select
+                                                        className="flex-1 border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 bg-slate-100 text-slate-900"
+                                                        value={mapel}
+                                                        onChange={(e) => {
+                                                            const newArr = [...displayMapels];
+                                                            newArr[idx] = e.target.value;
+                                                            setEditFormData({...editFormData, mengajar_mapel: newArr.join(',')});
+                                                        }}
+                                                    >
+                                                        <option value="">-- Pilih Mata Pelajaran --</option>
+                                                        {subjectsList.map(subj => <option key={subj} value={subj}>{subj}</option>)}
+                                                    </select>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newArr = displayMapels.filter((_, i) => i !== idx);
+                                                            setEditFormData({...editFormData, mengajar_mapel: newArr.join(',')});
+                                                        }}
+                                                        className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                                                    >
+                                                        <Trash2 size={20} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const newArr = [...displayMapels, ' '];
+                                                    setEditFormData({...editFormData, mengajar_mapel: newArr.join(',')});
+                                                }}
+                                                className="mt-2 text-sm text-blue-600 font-bold flex items-center gap-1 hover:text-blue-700"
+                                            >
+                                                <Plus size={16} /> Tambahkan Mata Pelajaran
+                                            </button>
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">Wali Kelas</label>
+                            <select className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-100 text-slate-900   " value={editFormData.wali_kelas} onChange={e => setEditFormData({...editFormData, wali_kelas: e.target.value})}>
+                                <option value="">-- Bukan Wali Kelas --</option>
+                                {availableClasses.map(k => <option key={k} value={k}>{k}</option>)}
+                            </select>
                         </div>
                         
                         <div className="pt-4 flex gap-3">
-
                             <button onClick={() => setEditingUser(null)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">Batal</button>
                             <button onClick={handleSaveEdit} disabled={saving} className="flex-1 bg-blue-600 hover:bg-blue-700 text-slate-100 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">{saving ? <Loader2 className="animate-spin" size={18}/> : <Save size={18} />} Simpan</button>
                         </div>
@@ -299,59 +367,109 @@ const UsersData: React.FC = () => {
         {/* MODAL ADD USER - TOP ALIGNED */}
         {isAddModalOpen && (
             <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[calc(env(safe-area-inset-top)+1rem)] sm:p-4 bg-slate-900/50 backdrop-blur-sm transition-all duration-300">
-                <div className="bg-slate-100 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100 border border-slate-100 relative animate-fade-in flex flex-col max-h-[85vh]">
+                <div className="bg-slate-100 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100 border border-slate-100 relative animate-fade-in flex flex-col max-h-[85vh] mt-10">
                     <div className="bg-blue-500 p-4 flex justify-between items-center text-slate-100 flex-shrink-0">
                         <h3 className="font-bold flex items-center gap-2"><UserPlus size={20} /> Tambah User Manual</h3>
                         <button onClick={() => setIsAddModalOpen(false)} className="hover:bg-slate-100/20 p-1 rounded-full transition-colors"><X size={20} /></button>
                     </div>
-                    <div className="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
-                        <div className="bg-sky-100 p-4 rounded-xl border border-blue-300 space-y-3">
-                            <div className="flex items-center gap-2 text-blue-500 font-bold border-b border-blue-300 pb-2 mb-2"><KeyRound size={16}/> Akun Login</div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1">NIPY (User ID)</label>
-                                    <div className="relative"><User className="absolute left-3 top-2.5 text-slate-400" size={16} /><input className="w-full pl-9 border border-slate-300 rounded-lg p-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500" placeholder="199xxx" value={newUser.nip} onChange={e => setNewUser({...newUser, nip: e.target.value})}/></div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1">Password</label>
-                                    <div className="relative"><Lock className="absolute left-3 top-2.5 text-slate-400" size={16} /><input type="text" className="w-full pl-9 border border-slate-300 rounded-lg p-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500" placeholder="Password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})}/></div>
-                                    <p className="text-[10px] text-slate-400 mt-1">Default: bti</p>
-                                </div>
+                    
+                    <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-6 flex gap-3">
+                            <AlertCircle className="text-blue-500 flex-shrink-0 mt-0.5" size={20} />
+                            <div className="text-sm text-blue-800">
+                                <p className="font-bold mb-1">Penting!</p>
+                                <p>Pastikan <strong>NIPY</strong> sesuai. Password default adalah <strong>bti</strong>.</p>
                             </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">NIPY (Username / Email prefix)</label>
+                                <input className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 text-slate-900 " placeholder="Contoh: 123456" value={newUser.nip} onChange={e => setNewUser({...newUser, nip: e.target.value})}/>
+                                <p className="text-xs text-slate-500 mt-1">Otomatis menjadi email: <span className="font-mono">{newUser.nip || '...' }@sekolah.id</span></p>
+                            </div>
+                            
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">Service Role Key (Wajib)</label>
-                                <div className="relative"><input type={showServiceKey ? "text" : "password"} className="w-full border border-blue-300 rounded-lg p-2 pr-10 text-xs font-mono focus:ring-2 focus:ring-blue-500 bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" placeholder="Paste Service Role Key..." value={serviceKey} onChange={e => setServiceKey(e.target.value)}/><button type="button" onClick={() => setShowServiceKey(!showServiceKey)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">{showServiceKey ? <EyeOff size={16} /> : <Eye size={16} />}</button></div>
+                                <div className="relative">
+                                    <input type={showServiceKey ? "text" : "password"} className="w-full border border-blue-300 rounded-lg p-2 pr-10 text-xs font-mono focus:ring-2 focus:ring-blue-500 bg-slate-100 text-slate-900   " placeholder="Paste Service Role Key..." value={serviceKey} onChange={e => setServiceKey(e.target.value)}/>
+                                    <button type="button" onClick={() => setShowServiceKey(!showServiceKey)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">{showServiceKey ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                                </div>
                                 <p className="text-[10px] text-blue-500 mt-1">* Diperlukan untuk membuat user di Authentication Supabase.</p>
                             </div>
                         </div>
-                        <div className="space-y-4">
+
+                        <div className="space-y-4 mt-4">
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Nama Lengkap</label>
-                                <input className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100" placeholder="Nama Guru..." value={newUser.fullName} onChange={e => setNewUser({...newUser, fullName: e.target.value})}/>
+                                <input className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 text-slate-900 " placeholder="Nama Guru..." value={newUser.fullName} onChange={e => setNewUser({...newUser, fullName: e.target.value})}/>
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Role</label>
-                                <select className="w-full border border-slate-300 rounded-xl p-3 bg-slate-100 focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}><option value="user">User (Guru)</option><option value="operator">Operator</option><option value="admin">Administrator</option></select>
+                                <select className="w-full border border-slate-300 rounded-xl p-3 bg-slate-100 focus:ring-2 focus:ring-blue-500 text-slate-900   " value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}>
+                                    <option value="user">User (Guru)</option>
+                                    <option value="operator">Operator</option>
+                                    <option value="admin">Administrator</option>
+                                </select>
                             </div>
-                            <div className="relative">
-                                <label className="block text-sm font-bold text-slate-700 mb-1">Mata Pelajaran (Multi-Select)</label>
-                                <button onClick={() => setIsMapelDropdownOpen(!isMapelDropdownOpen)} className="w-full text-left border border-slate-300 rounded-xl p-3 bg-slate-100 focus:ring-2 focus:ring-blue-500 flex justify-between items-center"><span className={`truncate ${!newUser.mapel ? 'text-slate-400' : 'text-slate-900'}`}>{newUser.mapel || "-- Pilih Mata Pelajaran --"}</span><ChevronDown size={16} className="text-slate-400" /></button>
-                                {isMapelDropdownOpen && (<div className="absolute z-20 w-full mt-2 bg-slate-100 border border-slate-100 rounded-xl shadow-xl max-h-60 overflow-y-auto p-1 custom-scrollbar">{subjectsList.length === 0 ? <div className="p-3 text-center text-slate-400 text-xs">Belum ada data Master Mapel.</div> : subjectsList.map((subj, idx) => { const isSelected = newUser.mapel.includes(subj); return (<div key={idx} onClick={() => toggleMapelSelection(subj, false)} className={`flex items-center justify-between p-3 rounded-lg cursor-pointer text-sm mb-1 transition-colors ${isSelected ? 'bg-sky-100 text-blue-500 font-bold' : 'hover:bg-gray-50 text-slate-700'}`}><span>{subj}</span>{isSelected && <Check size={16} className="text-blue-500"/>}</div>); })}</div>)}
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Mata Pelajaran</label>
+                                <div className="space-y-2">
+                                    {(() => {
+                                        const rawMapels = newUser.mapel || "";
+                                        const rawArr = rawMapels ? rawMapels.split(',') : [];
+                                        const displayMapels = rawArr.map(m => m.trim());
+                                        
+                                        return (
+                                            <>
+                                                {displayMapels.length === 0 && <div className="text-sm text-slate-500 italic">Belum ada mata pelajaran.</div>}
+                                                {displayMapels.map((mapel, idx) => (
+                                                    <div key={idx} className="flex gap-2">
+                                                        <select
+                                                            className="flex-1 border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 bg-slate-100 text-slate-900"
+                                                            value={mapel}
+                                                            onChange={(e) => {
+                                                                const newArr = [...displayMapels];
+                                                                newArr[idx] = e.target.value;
+                                                                setNewUser({...newUser, mapel: newArr.join(',')});
+                                                            }}
+                                                        >
+                                                            <option value="">-- Pilih Mata Pelajaran --</option>
+                                                            {subjectsList.map(subj => <option key={subj} value={subj}>{subj}</option>)}
+                                                        </select>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const newArr = displayMapels.filter((_, i) => i !== idx);
+                                                                setNewUser({...newUser, mapel: newArr.join(',')});
+                                                            }}
+                                                            className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                                                        >
+                                                            <Trash2 size={20} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const newArr = [...displayMapels, ' '];
+                                                        setNewUser({...newUser, mapel: newArr.join(',')});
+                                                    }}
+                                                    className="mt-2 text-sm text-blue-600 font-bold flex items-center gap-1 hover:text-blue-700"
+                                                >
+                                                    <Plus size={16} /> Tambahkan Mata Pelajaran
+                                                </button>
+                                            </>
+                                        );
+                                    })()}
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Wali Kelas</label>
-                                <select className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={newUser.waliKelas} onChange={e => {
-    const val = e.target.value;
-    let newMapel = newUser.mapel;
-    if (val) {
-        const mapels = newMapel ? newMapel.split(',').map(m => m.trim()) : [];
-        if (!mapels.includes('Sabtu bersama Wali Kelas')) {
-            mapels.push('Sabtu bersama Wali Kelas');
-            newMapel = mapels.join(', ');
-        }
-    }
-    setNewUser({...newUser, waliKelas: val, mapel: newMapel});
-}}><option value="">-- Bukan Wali Kelas --</option>{availableClasses.map(k => <option key={k} value={k}>{k}</option>)}</select>
+                                <select className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 bg-slate-100 text-slate-900   " value={newUser.waliKelas} onChange={e => setNewUser({...newUser, waliKelas: e.target.value})}>
+                                    <option value="">-- Bukan Wali Kelas --</option>
+                                    {availableClasses.map(k => <option key={k} value={k}>{k}</option>)}
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -365,5 +483,4 @@ const UsersData: React.FC = () => {
     </Layout>
   );
 };
-
 export default UsersData;

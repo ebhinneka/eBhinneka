@@ -218,7 +218,7 @@ const ImportData: React.FC = () => {
 
             // 2. Persiapkan Data
             const teachersData = previewData.map((row: any) => ({
-                nip: String(row['NIPY'] || row['nip']),
+                nip: String(row['NIPY'] || row['NIP'] || row['nip'] || row['nipy'] || ''),
                 nama_lengkap: row['Nama Lengkap'] || row['nama'] || row['Nama'],
                 mapel: row['Mata Pelajaran'] || row['mapel'] || row['Mapel'],
                 wali_kelas: row['Wali Kelas'] || row['wali'] || row['Wali']
@@ -293,7 +293,7 @@ const ImportData: React.FC = () => {
             const schedulesToInsert = [];
             
             for (const row of previewData) {
-                const nip = String(row['NIPY Guru'] || row['nip guru'] || row['NIPY'] || '');
+                const nip = String(row['NIPY Guru'] || row['NIP Guru'] || row['nip guru'] || row['NIPY'] || row['NIP'] || row['nip'] || '');
                 const rawDay = row['Hari'] || row['hari'];
                 const rawHour = row['Jam Ke'] || row['jam ke'] || row['jam'];
                 const kelas = String(row['Kelas'] || row['kelas']);
@@ -445,7 +445,7 @@ const ImportData: React.FC = () => {
                                         value={serviceRoleKey}
                                         onChange={(e) => setServiceRoleKey(e.target.value)}
                                         placeholder="Paste Supabase Service Role Key (secret) disini..."
-                                        className="w-full pl-9 pr-10 py-2 text-xs border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 font-mono"
+                                        className="w-full pl-9 pr-10 py-2 text-xs border border-blue-300 text-slate-900 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 font-mono"
                                     />
                                     <button 
                                         type="button"

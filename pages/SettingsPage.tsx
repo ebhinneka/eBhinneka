@@ -52,7 +52,6 @@ const SettingsPage: React.FC = () => {
           const { data } = await supabase
             .from('profiles')
             .select('*')
-            .neq('nip', null)
             .order('full_name');
           if (data) setTeachers(data);
       } catch (err) {
@@ -103,8 +102,8 @@ const SettingsPage: React.FC = () => {
   };
 
   const handleHeadmasterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const selectedNip = e.target.value;
-      const selectedTeacher = teachers.find(t => t.nip === selectedNip);
+      const id = e.target.value;
+      const selectedTeacher = teachers.find(t => t.id === id);
       
       if (selectedTeacher) {
           setSettings(prev => ({
@@ -263,12 +262,12 @@ const SettingsPage: React.FC = () => {
                                 <User className="absolute left-3 top-3.5 text-blue-400" size={16}/>
                                 <select 
                                     className="w-full border border-blue-200 rounded-lg p-3 pl-9 font-medium bg-slate-100 focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" 
-                                    value={settings['headmaster_nip'] || ''}
+                                    value={teachers.find(t => (t.nip && t.nip === settings.headmaster_nip) || t.full_name === settings.headmaster)?.id || ''}
                                     onChange={handleHeadmasterChange}
                                 >
                                     <option value="">-- Pilih Kepala Sekolah --</option>
                                     {teachers.map(t => (
-                                        <option key={t.id} value={t.nip}>{t.full_name}</option>
+                                        <option key={t.id} value={t.id}>{t.full_name}</option>
                                     ))}
                                 </select>
                             </div>
