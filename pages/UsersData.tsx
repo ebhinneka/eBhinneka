@@ -109,6 +109,7 @@ const UsersData: React.FC = () => {
 
   const handleSaveEdit = async () => {
     if (!editingUser) return;
+    if (!serviceKey) { alert("Service Role Key wajib diisi untuk mengubah data akademik user lain."); return; }
     setSaving(true);
     try {
       let finalMapel = editFormData.mengajar_mapel;
@@ -124,11 +125,15 @@ const UsersData: React.FC = () => {
           wali_kelas: editFormData.wali_kelas
       };
 
-      const { error: profileError } = await supabase.from('profiles').update(payload).eq('id', editingUser.id);
+      
+      const SUPABASE_URL = 'https://aobgqejpjomgwxiosgin.supabase.co'; 
+      const adminClient = createClient(SUPABASE_URL, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+      const { error: profileError } = await adminClient.from('profiles').update(payload).eq('id', editingUser.id);
+
       if (profileError) throw profileError;
 
       if (editingUser.nip) {
-         await supabase.from('tabel_guru').update({ mapel: finalMapel, wali_kelas: editFormData.wali_kelas }).eq('nip', editingUser.nip);
+         await adminClient.from('tabel_guru').update({ mapel: finalMapel, wali_kelas: editFormData.wali_kelas }).eq('nip', editingUser.nip);
       }
 
       setProfiles(prev => prev.map(p => p.id === editingUser.id ? { ...p, mengajar_mapel: finalMapel, wali_kelas: editFormData.wali_kelas } : p));
@@ -334,7 +339,17 @@ const UsersData: React.FC = () => {
                                 {availableClasses.map(k => <option key={k} value={k}>{k}</option>)}
                             </select>
                         </div>
+                        
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">Service Role Key (Wajib)</label>
+                            <div className="relative">
+                                <input type={showServiceKey ? "text" : "password"} className="w-full border border-blue-300 rounded-lg p-2 pr-10 text-xs font-mono focus:ring-2 focus:ring-blue-600 bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" placeholder="Paste Service Role Key..." value={serviceKey} onChange={e => setServiceKey(e.target.value)}/>
+                                <button type="button" onClick={() => setShowServiceKey(!showServiceKey)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">{showServiceKey ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                            </div>
+                            <p className="text-[10px] text-blue-600 mt-1">* Diperlukan untuk update data akademik.</p>
+                        </div>
                         <div className="pt-4 flex gap-3">
+
                             <button onClick={() => setEditingUser(null)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">Batal</button>
                             <button onClick={handleSaveEdit} disabled={saving} className="flex-1 bg-blue-600 hover:bg-blue-700 text-slate-100 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">{saving ? <Loader2 className="animate-spin" size={18}/> : <Save size={18} />} Simpan</button>
                         </div>
