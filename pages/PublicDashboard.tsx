@@ -1,0 +1,658 @@
+
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase, isSupabaseConfigured } from '../services/supabase';
+import { PublicStats } from '../types';
+import { Bell,  LogIn, Loader2, BookOpen, AlertCircle, X, School, ChevronDown, ChevronRight, Bookmark, Lock, User, ArrowRight, ShieldCheck, GraduationCap, MonitorPlay, Shield, ChevronLeft, Eye, EyeOff  } from 'lucide-react';
+import { getWIBDate, getWIBISOString, formatDateIndo, formatTimeIndo } from '../utils/dateUtils';
+
+const PublicDashboard: React.FC = () => {
+  const { academicYear, semester , semesterStart, semesterEnd } = useAuth();
+  const navigate = useNavigate();
+  const [stats, setStats] = useState<PublicStats | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginViewMode, setLoginViewMode] = useState<'selection' | 'form'>('selection');
+  const [selectedRoleLabel, setSelectedRoleLabel] = useState('');
+  const [userId, setUserId] = useState(() => localStorage.getItem('saved_nip') || '');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessSplash, setShowSuccessSplash] = useState(false);
+  const { signIn } = useAuth();
+
+  const [loading, setLoading] = useState(true);
+  const [time, setTime] = useState(getWIBDate());
+  
+  const [rawAttendance, setRawAttendance] = useState<any[]>([]);
+  const [studentClassMap, setStudentClassMap] = useState<Record<string, string>>({});
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalContent, setModalContent] = useState<{
+    title: string;
+    type: 'class' | 'absence';
+    data: any;
+  } | null>(null);
+  const [expandedClass, setExpandedClass] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(getWIBDate()), 1000);
+    fetchData();
+
+    if (isSupabaseConfigured) {
+        const channel = supabase
+            .channel('public-dashboard-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_logs' }, () => { fetchStatsClientSide(); })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'journals' }, () => { fetchStatsClientSide(); })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'homeroom_attendance' }, () => { fetchStatsClientSide(); })
+            .subscribe();
+        return () => { clearInterval(timer); supabase.removeChannel(channel); };
+    }
+    return () => clearInterval(timer);
+  }, [academicYear, semester, semesterStart, semesterEnd]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    if (!isSupabaseConfigured) { useMockData(); setLoading(false); return; }
+    await fetchStatsClientSide();
+    setLoading(false);
+  };
+
+  const useMockData = () => { 
+      setStats({
+          count7: 0, count8: 0, count9: 0,
+          classDetails: {},
+          totalJpRequired: 100, completedJp: 0,
+          absenceCount: 0, absenceDetails: {S:0, I:0, A:0},
+          absencePerClass: {}, unfilledKbm: []
+      });
+  };
+
+  const fetchStatsClientSide = async () => {
+    const todayStr = getWIBISOString();
+    const startOfDay = `${todayStr}T00:00:00+07:00`;
+
+    
+    const todayObj = new Date(todayStr);
+    const jsDay = todayObj.getDay();
+    let jpPerClass = 0;
+    if (jsDay === 1) jpPerClass = 7;
+    else if (jsDay >= 2 && jsDay <= 4) jpPerClass = 8;
+    else if (jsDay === 5) jpPerClass = 5;
+    else if (jsDay === 6) jpPerClass = 6;
+    
+    const calculatedTotalJp = jpPerClass * 24;
+
+    try {
+        const [studentsRes, journalsRes, attendanceRes, homeroomRes] = await Promise.all([
+            supabase.from('students').select('id, kelas').eq('academic_year', academicYear || '2025/2026').then(async (res) => {
+                  if (res.error && (res.error.code === '42703' || res.error.message?.includes('academic_year'))) {
+                      return supabase.from('students').select('id, kelas').eq('academic_year', academicYear || '2025/2026');
+                  }
+                  return res;
+              }),
+            supabase.from('journals').select('hours').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', startOfDay),
+            supabase.from('attendance_logs').select('student_id, student_name, status, created_at, subject').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', startOfDay),
+            supabase.from('homeroom_attendance').select('student_id, status, kelas').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('date', semesterStart ? `${semesterStart}` : '2000-01-01').lte('date', semesterEnd ? `${semesterEnd}` : '2100-01-01').eq('date', todayStr)
+        ]);
+
+        const classCounts: Record<string, number> = {};
+        const sClassMap: Record<string, string> = {}; 
+        let c7 = 0, c8 = 0, c9 = 0;
+        
+        if (studentsRes.data) {
+            studentsRes.data.forEach((s: any) => {
+                const rawKelas = s.kelas ? s.kelas.toUpperCase().trim() : '';
+                sClassMap[s.id] = rawKelas;
+                if (rawKelas) {
+                    classCounts[rawKelas] = (classCounts[rawKelas] || 0) + 1;
+                    if (rawKelas.startsWith('7')) c7++; else if (rawKelas.startsWith('8')) c8++; else if (rawKelas.startsWith('9')) c9++;
+                }
+            });
+        }
+        setStudentClassMap(sClassMap);
+
+        let completedJp = 0;
+        if (journalsRes.data) {
+            journalsRes.data.forEach((j: any) => {
+                if (typeof j.hours === 'string') {
+                    const parts = j.hours.split(',').filter((h: string) => h.trim().length > 0);
+                    completedJp += parts.length;
+                }
+            });
+        }
+
+        // --- MERGE ATTENDANCE LOGIC (Homeroom Priority) ---
+        const combinedAttendance: Record<string, {name: string, status: string, source: 'Wali' | 'Guru'}> = {};
+
+        // 1. Homeroom Attendance (Absensi Wali Kelas - Mutlak)
+        if (homeroomRes.data) {
+            homeroomRes.data.forEach((h: any) => {
+                if (['S', 'I', 'A'].includes(h.status)) {
+                    // We need name, but homeroom_attendance might not have it joined. 
+                    // However, we have student ID. We can map it if needed, or rely on logic below.
+                    combinedAttendance[h.student_id] = { 
+                        name: 'Loading...', // Name might be missing here if not joined, but handled in detail list
+                        status: h.status, 
+                        source: 'Wali' 
+                    };
+                }
+            });
+        }
+
+        // 2. Teacher Logs ( Guru Mapel) - Only if not already set by Homeroom
+        // FILTER: Exclude Salat Dhuha
+        const validTeacherLogs = (attendanceRes.data || []).filter((log: any) => {
+            const subject = log.subject ? log.subject.toLowerCase() : '';
+            return !subject.includes('dhuha');
+        });
+
+        validTeacherLogs.forEach((log: any) => {
+            if (!combinedAttendance[log.student_id]) {
+                if (['S', 'I', 'A'].includes(log.status)) {
+                    combinedAttendance[log.student_id] = { 
+                        name: log.student_name, 
+                        status: log.status, 
+                        source: 'Guru' 
+                    };
+                }
+            }
+        });
+
+        // Convert back to Array for processing
+        const finalAttendanceList = Object.entries(combinedAttendance).map(([id, val]) => ({
+            student_id: id,
+            ...val
+        }));
+
+        setRawAttendance(finalAttendanceList);
+
+        let sCount = 0, iCount = 0, aCount = 0;
+        const absencePerClass: Record<string, number> = {};
+        Object.keys(classCounts).forEach(cls => absencePerClass[cls] = 0);
+
+        finalAttendanceList.forEach((log) => {
+            if (log.status === 'S') sCount++;
+            else if (log.status === 'I') iCount++;
+            else if (log.status === 'A') aCount++;
+            
+            const cls = sClassMap[log.student_id];
+            if (cls) absencePerClass[cls] = (absencePerClass[cls] || 0) + 1;
+        });
+
+        setStats({
+            count7: c7, count8: c8, count9: c9,
+            classDetails: classCounts,
+            totalJpRequired: calculatedTotalJp, 
+            completedJp: completedJp,
+            absenceCount: sCount + iCount + aCount,
+            absenceDetails: { S: sCount, I: iCount, A: aCount },
+            absencePerClass: absencePerClass,
+            unfilledKbm: []
+        });
+    } catch (err) { console.error(err); }
+  };
+
+  
+  const handleRoleSelect = (role: 'guru' | 'operator' | 'admin') => {
+      if (role === 'operator') {
+          navigate('/operator-dashboard');
+      } else {
+          setSelectedRoleLabel(role === 'admin' ? 'Administrator' : 'Guru / Staf');
+          setLoginViewMode('form');
+      }
+  };
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setIsSubmitting(true);
+    try {
+      const { error } = await signIn(userId, password);
+      if (error) {
+        if (error.message === 'Failed to fetch') {
+           setLoginError('Gagal terhubung ke Database.');
+        } else if (error.message.includes('Invalid login')) {
+           setLoginError('NIPY atau Password salah.');
+        } else {
+           setLoginError(error.message);
+        }
+      } else {
+        localStorage.setItem('saved_nip', userId);
+        setShowSuccessSplash(true);
+        setTimeout(() => navigate('/dashboard'), 1500);
+      }
+    } catch (err) {
+      setLoginError('Terjadi kesalahan sistem.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleClassClick = (grade: string) => {
+      if (!stats) return;
+      const details = Object.entries(stats.classDetails).filter(([cls]) => cls.startsWith(grade)).sort(); 
+      setModalContent({ title: `Rincian Murid Kelas ${grade}`, type: 'class', data: details });
+      setModalOpen(true);
+  };
+
+  const handleAbsenceClick = () => {
+      if (!stats) return;
+      setExpandedClass(null);
+      setModalContent({ title: 'Rincian Ketidakhadiran Hari Ini', type: 'absence', data: stats });
+      setModalOpen(true);
+  };
+
+  const getAbsentStudentsForClass = (cls: string) => {
+      // Find students in rawAttendance that belong to this class
+      // Note: rawAttendance now contains merged data
+      const absentStudents = rawAttendance.filter(log => studentClassMap[log.student_id] === cls);
+      
+      // Need to fetch real names if missing from Homeroom source
+      // In a real app, I'd pre-fetch names map. For now, rely on teacher logs or generic.
+      return absentStudents.map(s => ({
+          name: s.name === 'Loading...' ? 'Siswa (Data Wali)' : s.name, 
+          status: s.status,
+          source: s.source
+      }));
+  };
+
+  const ClassCard = ({ label, count, colorClass, iconColorClass, onClick }: any) => (
+      <button 
+        onClick={onClick}
+        className="app-card p-5 flex flex-col items-center justify-center text-center transition-transform active:scale-95 h-36"
+      >
+          <div className={`mb-2 text-3xl ${iconColorClass}`}>
+              <School size={32} strokeWidth={1.5} />
+          </div>
+          <h2 className={`text-4xl font-extrabold ${colorClass} mb-1 tracking-tight`}>{count}</h2>
+          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">{label}</p>
+      </button>
+  );
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-start p-4 pt-[calc(env(safe-area-inset-top)+0.5rem)] font-sans bg-transparent  transition-colors duration-300">
+      <main className="w-full max-w-md space-y-4">
+        
+        {/* HEADER CARD */}
+        <div className="bg-slate-100/10 backdrop-blur-2xl rounded-[2rem] p-5 flex items-center justify-between shadow-[0_8px_32px_rgba(0,0,0,0.15)] border border-slate-100/20 text-white relative overflow-hidden">
+             <div className="flex items-center gap-3 relative z-10">
+                 <img src="https://www.smpbhinnekatunggalika.sch.id/upload/imagecache/24871901smp-100x100.png" alt="Logo" className="h-14 w-auto object-contain bg-slate-100/20 p-1 rounded-full shadow-inner backdrop-blur-md" />
+                 <div>
+                    <h1 className="text-md font-extrabold text-white leading-tight drop-shadow-sm">SMP BHINNEKA <br/> TUNGGAL IKA</h1>
+                    <p className="text-xs font-bold text-white/90 mt-1 drop-shadow-sm">eBhinneka</p>
+                 </div>
+             </div>
+             <div className="text-right relative z-10">
+                <p className="text-xs font-medium text-white/90 mb-0.5">{formatDateIndo(time)}</p>
+                <p className="text-3xl font-extrabold text-white font-mono tracking-tight leading-none drop-shadow-md">{formatTimeIndo(time)} <span className="text-xs font-bold">WIB</span></p>
+             </div>
+        </div>
+
+        {loading ? (
+            <div className="app-card p-10 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
+                <Loader2 className="animate-spin mb-3 text-blue-500" size={32} />
+                <p className="text-xs font-bold">Memuat Data...</p>
+            </div> 
+        ) : stats ? (
+          <>
+            {/* ROW 1 */}
+            <div className="flex justify-center mb-4">
+                <div className="app-card border-none text-slate-800 px-6 py-2 rounded-full shadow-sm text-sm font-bold text-slate-700 dark:text-slate-300">
+                    Tahun Ajaran: {academicYear} | Semester: {semester}
+                </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+               <ClassCard label="Kelas 7" count={stats.count7} colorClass="text-blue-600 dark:text-blue-400" iconColorClass="text-blue-400 dark:text-blue-500" onClick={() => handleClassClick('7')} />
+               <ClassCard label="Kelas 8" count={stats.count8} colorClass="text-blue-500 dark:text-blue-500" iconColorClass="text-blue-500 dark:text-blue-500" onClick={() => handleClassClick('8')} />
+               <ClassCard label="Kelas 9" count={stats.count9} colorClass="text-blue-500 dark:text-blue-500" iconColorClass="text-blue-500 dark:text-blue-500" onClick={() => handleClassClick('9')} />
+            </div>
+
+            {/* ROW 2 */}
+            <div className="grid grid-cols-2 gap-3">
+                <div className="app-card p-6 flex flex-col items-center justify-center text-center h-44">
+                     <div className="mb-3 text-blue-600 dark:text-blue-500">
+                        <BookOpen size={40} strokeWidth={1.5} />
+                     </div>
+                     <div className="flex items-baseline gap-1 mb-1">
+                        <span className="text-4xl font-extrabold text-blue-600 dark:text-blue-500">{stats.completedJp}</span>
+                        <span className="text-lg font-bold text-slate-400 dark:text-slate-500">/ {stats.totalJpRequired} JP</span>
+                     </div>
+                     <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mt-1">KBM Terlaksana</p>
+                </div>
+
+                <button 
+                    onClick={handleAbsenceClick}
+                    className="app-card p-6 flex flex-col items-center justify-center text-center h-44 transition-transform active:scale-95 group"
+                >
+                     <div className="mb-3 text-blue-500 dark:text-blue-400 group-hover:scale-110 transition-transform">
+                        <AlertCircle size={40} strokeWidth={1.5} />
+                     </div>
+                     <span className="text-4xl font-extrabold text-blue-500 dark:text-blue-400 mb-1">{stats.absenceCount}</span>
+                     <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mt-1 leading-tight">Ketidakhadiran <br/> Murid</p>
+                </button>
+            </div>
+
+            {/* PROGRESS BAR */}
+            <div className="app-card p-6">
+                <h3 className="font-bold text-slate-600 dark:text-slate-300 text-xs uppercase mb-3 text-center">Progress KBM Hari Ini</h3>
+                <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-4 mb-2 overflow-hidden shadow-inner">
+                    <div 
+                      className="bg-blue-500 h-4 rounded-full transition-all duration-700 ease-out"
+                      style={{ width: `${Math.min((stats.completedJp / stats.totalJpRequired) * 100, 100)}%` }}
+                    ></div>
+                </div>
+                <div className="text-left">
+                    <span className="text-sm font-bold text-slate-700 dark:text-white">
+                        {((stats.completedJp / stats.totalJpRequired) * 100).toFixed(1)}% Terlaksana
+                    </span>
+                </div>
+            </div>
+
+            {/* LOGIN */}
+            <div className="pt-2">
+                <div className="relative group rounded-xl overflow-hidden p-[2px] shadow-xl">
+                    <div className="absolute inset-[-100%] z-0 animate-[spin_4s_linear_infinite]" style={{ background: 'conic-gradient(from 0deg, transparent 0 340deg, #ffffff 360deg)' }}></div>
+                    <button 
+                            onClick={() => setShowLoginModal(true)} 
+                            className="relative z-10 w-full bg-[#2563eb] hover:bg-blue-700 text-white font-extrabold text-lg py-4 rounded-[10px] flex items-center justify-center gap-2 transition-all"
+                        >
+                            <LogIn size={24} className="stroke-[2.5]" /> 
+                            <span>Login Sebagai</span>
+                        </button>
+                </div>
+            </div>
+          </>
+        ) : <p className="text-center text-slate-400 text-sm mt-10">Gagal memuat data.</p>}
+      </main>
+
+      {/* MODAL - FIXED VIEWPORT (Z-9999) */}
+      {modalOpen && modalContent && (
+          <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center sm:p-4 bg-black/40 backdrop-blur-sm animate-fade-in w-screen h-[100dvh]" onClick={() => setModalOpen(false)}>
+              <div className="app-card w-full md:w-full md:max-w-sm flex flex-col max-h-[85vh] overflow-hidden bg-slate-100 dark:bg-slate-900 rounded-t-3xl md:rounded-3xl shadow-2xl mb-0 md:mb-auto transition-transform transform scale-100" onClick={e => e.stopPropagation()}>
+                  
+                  {/* Modal Header */}
+                  <div className="flex justify-between items-center px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex-shrink-0">
+                      <h3 className="font-extrabold text-slate-800 dark:text-white text-lg leading-tight">{modalContent.title}</h3>
+                      <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 p-1 bg-gray-50 dark:bg-slate-700 rounded-full">
+                          <X size={20} />
+                      </button>
+                  </div>
+
+                  {/* Modal Body */}
+                  <div className="overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-100 dark:bg-slate-900 pb-10 md:pb-6">
+                      
+                      {modalContent.type === 'class' ? (
+                          <div className="grid grid-cols-3 gap-3">
+                              {modalContent.data.map(([cls, count]: any) => (
+                                  <div key={cls} className="bg-slate-100 dark:bg-slate-700/50 p-3 rounded-2xl text-center border border-slate-100 dark:border-slate-600 shadow-sm hover:border-blue-200 transition-colors">
+                                      <div className="font-extrabold text-slate-700 dark:text-white text-xl">{cls}</div>
+                                      <div className="text-[10px] text-slate-400 dark:text-slate-400 font-bold uppercase mt-1">{count} Murid</div>
+                                  </div>
+                              ))}
+                          </div>
+                      ) : (
+                        <>
+                            <div className="grid grid-cols-3 gap-3">
+                                <div className="flex flex-col items-center justify-center p-3 bg-sky-100 dark:bg-blue-500/30 rounded-2xl border border-blue-300 dark:border-blue-500/50">
+                                    <span className="text-blue-500 dark:text-blue-500 font-bold text-[10px] uppercase mb-1">Sakit</span>
+                                    <span className="text-3xl font-extrabold text-blue-500 dark:text-blue-500">{modalContent.data.absenceDetails.S}</span>
+                                </div>
+                                <div className="flex flex-col items-center justify-center p-3 bg-blue-50 dark:bg-blue-900/30 rounded-2xl border border-blue-100 dark:border-blue-800/50">
+                                    <span className="text-blue-700 dark:text-blue-400 font-bold text-[10px] uppercase mb-1">Izin</span>
+                                    <span className="text-3xl font-extrabold text-blue-600 dark:text-blue-400">{modalContent.data.absenceDetails.I}</span>
+                                </div>
+                                <div className="flex flex-col items-center justify-center p-3 bg-sky-100 dark:bg-blue-600/30 rounded-2xl border border-blue-300 dark:border-blue-600/50">
+                                    <span className="text-blue-600 dark:text-blue-500 font-bold text-[10px] uppercase mb-1">Alpa</span>
+                                    <span className="text-3xl font-extrabold text-blue-600 dark:text-blue-500">{modalContent.data.absenceDetails.A}</span>
+                                </div>
+                            </div>
+
+                            <div className="p-3 bg-slate-50 dark:bg-slate-700/30 border border-slate-100 dark:border-slate-600 rounded-xl text-center">
+                                <span className="text-[10px] text-blue-100/70 font-bold uppercase">*Termasuk input dari Wali Kelas & Guru Mapel.</span>
+                            </div>
+
+                            <hr className="border-slate-100 dark:border-slate-700" />
+
+                            <div>
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Bookmark size={16} className="text-blue-500 fill-blue-500"/>
+                                    <h4 className="font-bold text-slate-700 dark:text-white text-sm">Rincian Per Kelas</h4>
+                                </div>
+                                
+                                <div className="space-y-3">
+                                    {Object.keys(modalContent.data.classDetails).sort().map(cls => {
+                                        const totalStudents = modalContent.data.classDetails[cls] || 0;
+                                        const absentCount = modalContent.data.absencePerClass[cls] || 0;
+                                        const presentCount = totalStudents - absentCount;
+                                        const isExpanded = expandedClass === cls;
+
+                                        return (
+                                            <div key={cls} className="border border-slate-100 dark:border-slate-700 rounded-2xl overflow-hidden transition-all hover:shadow-sm">
+                                                <button 
+                                                    onClick={() => setExpandedClass(isExpanded ? null : cls)} 
+                                                    className="w-full flex items-center p-3 bg-slate-100 dark:bg-slate-700/30"
+                                                >
+                                                    <div className="w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-900 border border-slate-100 dark:border-slate-600 rounded-xl font-bold text-slate-700 dark:text-white text-sm shadow-sm">
+                                                        {cls}
+                                                    </div>
+                                                    <div className="flex-1 px-4 text-left">
+                                                        <div className="flex items-center gap-2 text-xs font-bold">
+                                                            <span className="text-blue-500 dark:text-blue-500">{presentCount} Hadir</span>
+                                                            <span className="text-slate-300 dark:text-slate-600">|</span>
+                                                            <span className={absentCount > 0 ? "text-blue-500 dark:text-blue-500" : "text-slate-400 dark:text-slate-500"}>
+                                                                {absentCount} Tidak Hadir
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-slate-300 dark:text-slate-600">
+                                                        {isExpanded ? <ChevronDown size={18}/> : <ChevronRight size={18}/>}
+                                                    </div>
+                                                </button>
+
+                                                {isExpanded && absentCount > 0 && (
+                                                    <div className="bg-gray-50 dark:bg-slate-900 p-3 border-t border-slate-100 dark:border-slate-700 space-y-2 animate-fade-in">
+                                                        {getAbsentStudentsForClass(cls).map((s: any, idx: number) => (
+                                                            <div key={idx} className="flex justify-between items-center bg-slate-100 dark:bg-slate-700 p-3 rounded-xl border border-slate-100 dark:border-slate-600 text-xs shadow-sm">
+                                                                <span className="font-bold text-slate-700 dark:text-white">{s.name}</span>
+                                                                <div className="flex items-center gap-2">
+                                                                    {s.source === 'Wali' && <span className="text-[9px] bg-sky-100 text-blue-600 px-1 rounded border border-blue-300">Wali</span>}
+                                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${s.status === 'S' ? 'bg-blue-300 text-blue-500 dark:bg-blue-500 dark:text-white/70' : s.status === 'I' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100' : 'bg-blue-300 text-blue-600 dark:bg-blue-600 dark:text-white/70'}`}>
+                                                                        {s.status === 'S' ? 'Sakit' : s.status === 'I' ? 'Izin' : 'Alpa'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {isExpanded && absentCount === 0 && (
+                                                    <div className="bg-sky-100 dark:bg-blue-500/20 p-3 text-center text-xs text-blue-500 dark:text-blue-500 font-bold border-t border-blue-300 dark:border-blue-500/30">
+                                                        Semua murid hadir.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </>
+                      )}
+                  </div>
+              </div>
+          </div>
+      )}
+    
+      {/* LOGIN MODAL */}
+      {showLoginModal && (
+        <div className="fixed inset-0 z-[99999] flex justify-center items-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in" onClick={() => setShowLoginModal(false)}>
+           <div className="bg-transparent w-full max-w-lg flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
+               {loginViewMode === 'selection' ? (
+                  <div className="w-full grid gap-4 animate-fade-in bg-[#2563eb] p-8 rounded-[2rem] shadow-2xl border border-blue-400">
+                      <div className="flex justify-between items-center mb-2">
+                          <h2 className="text-xl font-extrabold text-white">Masuk Sebagai</h2>
+                          <button onClick={() => setShowLoginModal(false)} className="text-white/70 hover:text-white p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"><X size={24}/></button>
+                      </div>
+                      
+                      <button 
+                        onClick={() => handleRoleSelect('guru')}
+                        className="bg-slate-100/10 hover:bg-slate-100/20 backdrop-blur-xl border border-slate-100/30 p-5 rounded-3xl shadow-xl flex items-center gap-5 transition-all group"
+                      >
+                          <div className="w-16 h-16 rounded-full bg-slate-100/20 text-white shadow-inner flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                              <GraduationCap size={32} />
+                          </div>
+                          <div className="text-left">
+                              <h3 className="text-lg font-extrabold text-white">Guru / Tenaga Pendidik</h3>
+                              <p className="text-xs text-white/90 font-bold opacity-90">Masuk untuk mengisi jurnal & absensi.</p>
+                          </div>
+                          <div className="ml-auto text-white/70 group-hover:text-white">
+                              <ArrowRight size={24} />
+                          </div>
+                      </button>
+
+                      <button 
+                        onClick={() => handleRoleSelect('operator')}
+                        className="bg-slate-100/10 hover:bg-slate-100/20 backdrop-blur-xl border border-slate-100/30 p-5 rounded-3xl shadow-xl flex items-center gap-5 transition-all group"
+                      >
+                          <div className="w-16 h-16 rounded-full bg-slate-100/20 text-white shadow-inner flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                              <MonitorPlay size={32} />
+                          </div>
+                          <div className="text-left">
+                              <h3 className="text-lg font-extrabold text-white">Operator Monitor</h3>
+                              <p className="text-xs text-white/90 font-bold opacity-90">Dashboard monitoring jadwal real-time.</p>
+                          </div>
+                          <div className="ml-auto text-white/70 group-hover:text-white">
+                              <ArrowRight size={24} />
+                          </div>
+                      </button>
+
+                      <button 
+                        onClick={() => handleRoleSelect('admin')}
+                        className="bg-slate-100/10 hover:bg-slate-100/20 backdrop-blur-xl border border-slate-100/30 p-5 rounded-3xl shadow-xl flex items-center gap-5 transition-all group"
+                      >
+                          <div className="w-16 h-16 rounded-full bg-slate-100/20 text-white shadow-inner flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                              <Shield size={32} />
+                          </div>
+                          <div className="text-left">
+                              <h3 className="text-lg font-extrabold text-white">Administrator</h3>
+                              <p className="text-xs text-white/90 font-bold opacity-90">Pengaturan sistem dan data master.</p>
+                          </div>
+                          <div className="ml-auto text-white/70 group-hover:text-white">
+                              <ArrowRight size={24} />
+                          </div>
+                      </button>
+                  </div>
+               ) : (
+                  <div className="w-full max-w-sm bg-[#2563eb] rounded-[2rem] shadow-2xl border border-blue-400 overflow-hidden relative animate-fade-in transition-colors">
+                      <div className="p-8">
+                          <div className="flex justify-between items-start mb-6">
+                              <button 
+                                onClick={() => setLoginViewMode('selection')}
+                                className="text-white/90 hover:text-white dark:hover:text-slate-200 hover:bg-slate-100/20 p-2 rounded-full transition-colors -ml-2"
+                                title="Kembali"
+                              >
+                                  <ChevronLeft size={24} />
+                              </button>
+                              <button onClick={() => setShowLoginModal(false)} className="text-white/90 hover:text-white p-2 rounded-full hover:bg-slate-100/20 transition-colors -mr-2"><X size={24}/></button>
+                          </div>
+                          
+                          <div className="flex flex-col items-center justify-center gap-1 mb-6 -mt-4">
+                              <div className="p-3 bg-slate-100/20 text-white shadow-inner rounded-full mb-2">
+                                  <ShieldCheck size={28} />
+                              </div>
+                              <h2 className="text-lg font-bold text-white">Login {selectedRoleLabel}</h2>
+                              <p className="text-xs text-white/90 font-bold">Silakan masukkan kredensial Anda.</p>
+                          </div>
+
+                          <form onSubmit={handleLoginSubmit} className="space-y-5">
+                            <div>
+                              <label className="block text-sm font-bold text-white mb-2">User ID (NIPY)</label>
+                              <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                  <User className="h-5 w-5 text-slate-400" />
+                                </div>
+                                <input
+                                  name="nip"
+                                  id="nip"
+                                  autoComplete="username"
+                                  type="text"
+                                  value={userId}
+                                  onChange={(e) => setUserId(e.target.value)}
+                                  className="pl-12 block w-full bg-slate-100/10 backdrop-blur-md border border-slate-100/30 rounded-xl focus:ring-2 focus:ring-slate-100 focus:border-slate-100 p-3.5 text-white text-sm font-bold transition-all placeholder:text-white/70/70 placeholder:font-normal"
+                                  placeholder="Contoh: 19870101..."
+                                  required
+                                  autoFocus
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-bold text-white mb-2">Password</label>
+                              <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                  <Lock className="h-5 w-5 text-slate-400" />
+                                </div>
+                                <input
+                                  name="password"
+                                  id="password"
+                                  autoComplete="current-password"
+                                  type={showPassword ? "text" : "password"}
+                                  value={password}
+                                  onChange={(e) => setPassword(e.target.value)}
+                                  className="pl-12 pr-12 block w-full bg-slate-100/10 backdrop-blur-md border border-slate-100/30 rounded-xl focus:ring-2 focus:ring-slate-100 focus:border-slate-100 p-3.5 text-white text-sm font-bold transition-all placeholder:text-white/70/70 placeholder:font-normal"
+                                  placeholder="Masukkan Password"
+                                  required
+                                />
+                                <button 
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer z-10"
+                                    tabIndex={-1}
+                                    title={showPassword ? "Sembunyikan" : "Lihat Password"}
+                                >
+                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
+                              </div>
+                            </div>
+
+                            {loginError && (
+                              <div className="flex items-center gap-3 text-blue-600 dark:text-blue-500 text-xs font-bold bg-sky-100 dark:bg-blue-600/20 p-3 rounded-xl border border-blue-300 dark:border-blue-600/50">
+                                <AlertCircle size={18} className="flex-shrink-0" />
+                                <span>{loginError}</span>
+                              </div>
+                            )}
+
+                            <button
+                              type="submit"
+                              disabled={isSubmitting}
+                              className="w-full bg-white hover:bg-slate-100 text-[#2563eb] font-extrabold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-lg border border-white mt-4 active:scale-95"
+                            >
+                              {isSubmitting ? 'Memproses...' : (
+                                <>
+                                  Masuk Aplikasi <ArrowRight size={20} />
+                                </>
+                              )}
+                            </button>
+                          </form>
+                      </div>
+                  </div>
+               )}
+           </div>
+        </div>
+      )}
+
+    
+      {showSuccessSplash && (
+        <div className="fixed inset-0 z-[999999] bg-slate-900 flex items-center justify-center">
+            <div className="relative animate-shrink-to-top-right">
+                <Bell size={120} className="text-[#fb923c] animate-pulse drop-shadow-[0_0_15px_rgba(251,146,60,0.5)]" />
+                <span className="absolute top-0 right-2 z-20 min-w-[36px] h-[36px] flex items-center justify-center text-[18px] font-bold text-white border-4 border-slate-900 rounded-full px-[3px] bg-[#fb923c]">
+                    3
+                </span>
+            </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default PublicDashboard;

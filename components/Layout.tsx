@@ -1,0 +1,510 @@
+
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { getWIBISOString } from '../utils/dateUtils';
+import { Bell, CheckCircle2, XCircle, X } from 'lucide-react';
+import { supabase } from '../services/supabase';
+import { LogOut, LayoutDashboard, Grid, User, ChevronRight, MonitorPlay, Moon, Sun, Siren, Activity, Sunset, ArrowUp, AlertCircle, Settings, Database, Users, GraduationCap, Upload, Edit3, Calendar } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+
+// CHANGED: Default collapsed is now true for all pages
+export const Layout: React.FC<{ children: React.ReactNode; showNav?: boolean; collapsed?: boolean }> = ({ children, showNav = true, collapsed = true }) => {
+  const { signOut, profile, isOperator, isAdmin, academicYear, semester, activeScheduleVersion } = useAuth();
+    const navigate = useNavigate();
+  const location = useLocation();
+  
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+      const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // NEW: State for Scroll-to-Top Button
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [hasUnfilled, setHasUnfilled] = useState(false);
+  const [showNotifModal, setShowNotifModal] = useState(false);
+  
+
+
+  // Logic to identify Headmaster
+  const isHeadmaster = profile?.mengajar_mapel === 'Kepala Sekolah';
+  // Logic to identify Dhuha Teacher
+  const isDhuhaTeacher = profile?.mengajar_mapel?.toLowerCase().includes('dhuha');
+
+  useEffect(() => {
+    
+
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // NEW: Scroll Event Listener
+  useEffect(() => {
+    const handleScroll = () => {
+        // Show button if scrolled down more than 300px
+        if (window.scrollY > 300) {
+            setShowScrollTop(true);
+        } else {
+            setShowScrollTop(false);
+        }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // NEW: Scroll to Top Function
+  const scrollToTop = () => {
+      window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+      });
+  };
+
+  
+  useEffect(() => {
+        if (profile && !isAdmin && !isOperator && !isHeadmaster) {
+            const fetchNotifs = async () => {
+                try {
+                    const dateObj = new Date();
+                    const jsDay = dateObj.getDay();
+                    const dbDay = jsDay === 0 ? 7 : jsDay;
+                    const todayStr = getWIBISOString();
+                    const todayStart = `${todayStr}T00:00:00+07:00`;
+                    const todayEnd = `${todayStr}T23:59:59+07:00`;
+
+                    let { data: scheds, error: schedErr } = await supabase.from('schedules').select('*')
+                        .eq('teacher_id', profile.id)
+                        .eq('day_of_week', dbDay)
+                        .eq('academic_year', academicYear || '2025/2026')
+                        .eq('semester', semester || 'Ganjil')
+                        .eq('schedule_version', activeScheduleVersion || 'Utama');
+                        
+                    if (schedErr && (schedErr.code === '42703' || schedErr.message?.includes('academic_year') || schedErr.message?.includes('schedule_version'))) {
+                        const fallback = await supabase.from('schedules').select('*').eq('teacher_id', profile.id).eq('day_of_week', dbDay).eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Genap');
+                        if (fallback.error) {
+                             // If even academic_year doesn't exist
+                             const ultraFallback = await supabase.from('schedules').select('*').eq('teacher_id', profile.id).eq('day_of_week', dbDay);
+                             scheds = (ultraFallback.data || []).filter(s => s.academic_year === academicYear && s.semester === semester);
+                        } else {
+                             scheds = fallback.data;
+                        }
+                    }
+
+                    const { data: journals } = await supabase.from('journals').select('id, kelas, subject, created_at')
+                        .eq('teacher_id', profile.id)
+                        .eq('academic_year', academicYear || '2025/2026')
+                        .eq('semester', semester || 'Ganjil')
+                        .gte('created_at', todayStart)
+                        .lte('created_at', todayEnd);
+
+                    const jData = journals || [];
+                    const notifs = (scheds || []).map((s: any) => {
+                        const isFilled = jData.some((j: any) => j.kelas === s.kelas && s.subject.toLowerCase().includes(j.subject.toLowerCase()));
+                        return { ...s, isFilled };
+                    });
+                    
+                    notifs.sort((a,b) => parseInt(a.hour) - parseInt(b.hour));
+                    setNotifications(notifs);
+                    setHasUnfilled(notifs.some(n => !n.isFilled));
+                    
+                    
+                    
+                    
+                } catch(e) {}
+            };
+            fetchNotifs();
+        }
+  }, [profile, academicYear, semester, activeScheduleVersion]);
+
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
+    await signOut();
+    setShowLogoutModal(false);
+    navigate('/');
+  };
+
+  const NavItem = ({ path, label, icon: Icon }: any) => {
+      const isActive = location.pathname === path;
+      return (
+          <button 
+            onClick={() => navigate(path)}
+            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative ${
+                isActive 
+                ? 'bg-blue-600 text-slate-100 shadow-md' 
+                : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100'
+            } ${collapsed ? 'justify-center' : ''}`}
+            title={label} 
+          >
+              <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+              {!collapsed && <span className={`font-medium text-sm ${isActive ? 'text-slate-100' : 'text-slate-700 dark:text-slate-100'}`}>{label}</span>}
+          </button>
+      );
+  };
+
+  // --- NEW: ANIMATED BOTTOM NAV ITEM ---
+  const BottomNavItem = ({ path, label, icon: Icon }: any) => {
+      const isActive = location.pathname === path;
+      return (
+          <button 
+            onClick={() => navigate(path)}
+            className={`relative flex items-center justify-center h-12 rounded-full transition-all duration-500 ease-out overflow-hidden ${
+                isActive 
+                ? 'w-32 bg-slate-900 dark:bg-blue-600 text-slate-100 shadow-lg shadow-slate-200 dark:shadow-blue-900/50' 
+                : 'w-12 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 dark:text-slate-500'
+            }`}
+          >
+              <Icon size={24} strokeWidth={isActive ? 2.5 : 2} className={`flex-shrink-0 transition-transform duration-300 ${isActive ? '-ml-2' : ''}`} />
+              
+              <span className={`ml-2 text-xs font-bold whitespace-nowrap transition-all duration-500 ${
+                  isActive ? 'opacity-100 max-w-[100px] translate-x-0' : 'opacity-0 max-w-0 -translate-x-4 absolute'
+              }`}>
+                  {label}
+              </span>
+          </button>
+      );
+  };
+
+  const formattedDate = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(currentTime);
+  const formattedTime = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(currentTime).replace(/\./g, ':');
+
+  return (
+    <div className="min-h-screen flex bg-transparent  font-sans text-slate-100 transition-colors duration-300">
+      
+      {/* --- DESKTOP SIDEBAR (Compact Mode Default) --- */}
+      {showNav && (
+        <aside className={`hidden md:flex flex-col h-screen sticky top-0 bg-slate-100 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 z-20 transition-all duration-300 ${collapsed ? 'w-20' : 'w-72'}`}>
+            {/* Logo Area */}
+            <div className={`p-4 flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 ${collapsed ? 'justify-center' : ''} h-20`}>
+                 <img 
+                    src="https://www.smpbhinnekatunggalika.sch.id/upload/imagecache/24871901smp-100x100.png" 
+                    alt="Logo" 
+                    className="h-10 w-10 object-contain" 
+                  />
+                 {!collapsed && (
+                     <div className="animate-fade-in">
+                        <h2 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 leading-none">SMP BHINNEKA</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">eBhinneka Online</p>
+                     </div>
+                 )}
+            </div>
+
+            {/* Navigation Menu */}
+            <div className="flex-1 space-y-1 p-3 overflow-y-auto">
+                {!collapsed && <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Menu Utama</div>}
+                
+                
+                {isAdmin ? (
+                    <>
+                        <NavItem path="/dashboard" label="Beranda" icon={LayoutDashboard} />
+                        <NavItem path="/operator-dashboard" label="Monitor KBM" icon={MonitorPlay} />
+                        <NavItem path="/penyimpanan" label="Buat T.A" icon={Database} />
+                        <NavItem path="/settings" label="Pengaturan" icon={Settings} />
+                        <div className="pt-4 pb-1">
+                            {!collapsed && <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Data Master</div>}
+                        </div>
+                        <NavItem path="/users" label="Data Akun" icon={Users} />
+                        <NavItem path="/students" label="Data Siswa" icon={GraduationCap} />
+                        <NavItem path="/import-data" label="Import Data" icon={Upload} />
+                        <NavItem path="/input-manual" label="Input Manual" icon={Edit3} />
+                        <NavItem path="/input-jadwal" label="Input Jadwal" icon={Calendar} />
+                        <NavItem path="/profile" label="Profil Saya" icon={User} />
+                    </>
+                ) : isOperator ? (
+                    <>
+                        <NavItem path="/operator-dashboard" label="Dashboard KBM" icon={MonitorPlay} />
+                        <NavItem path="/profile" label="Profil Saya" icon={User} />
+                    </>
+                ) : (
+                    <>
+                        <NavItem path="/dashboard" label="Beranda" icon={LayoutDashboard} />
+                        {isHeadmaster && <NavItem path="/kinerja" label="Kinerja" icon={Activity} />}
+                        {!isHeadmaster && <NavItem path="/apps" label="KBM" icon={Grid} />}
+                        {isHeadmaster && <NavItem path="/kedisiplinan" label="Kedisiplinan" icon={Siren} />}
+                        {isDhuhaTeacher && <NavItem path="/rekap-dhuha" label="Rekap Dhuha" icon={Sunset} />}
+                        <NavItem path="/profile" label="Profil Saya" icon={User} />
+                    </>
+                )}
+            </div>
+
+            {/* Theme & Logout Area */}
+            <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className={`flex flex-col gap-4 ${collapsed ? 'items-center' : ''}`}>
+                    
+                    {/* Theme Toggle */}
+                    
+
+                    {/* User Profile Mini */}
+                    <div className={`flex items-center gap-3 overflow-hidden ${collapsed ? 'justify-center' : 'justify-between'}`}>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-600 flex-shrink-0 overflow-hidden border border-slate-100 dark:border-slate-600 shadow-sm cursor-pointer" title={profile?.full_name}>
+                                {profile?.avatar_url ? <img src={profile.avatar_url} className="w-full h-full object-cover"/> : <User size={20} className="m-2.5 text-slate-400 dark:text-slate-300"/>}
+                            </div>
+                            {!collapsed && (
+                                <div className="min-w-0">
+                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate max-w-[100px]">{profile?.full_name?.split(' ')[0]}</p>
+                                    <p className="text-xs text-blue-500 font-bold flex items-center gap-1">
+                                        <span className="w-2 h-2 rounded-full bg-blue-500"></span> Online
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                        {!collapsed && (
+                            <button 
+                                onClick={handleLogoutClick}
+                                className="p-2 text-slate-400 hover:text-blue-500 hover:bg-sky-100 dark:hover:bg-blue-600/20 rounded-lg transition-colors"
+                                title="Keluar"
+                            >
+                                <LogOut size={18} />
+                            </button>
+                        )}
+                    </div>
+                    {/* Collapsed Logout */}
+                    {collapsed && (
+                         <button 
+                            onClick={handleLogoutClick}
+                            className="p-2 text-slate-400 hover:text-blue-500 hover:bg-sky-100 dark:hover:bg-blue-600/20 rounded-lg transition-colors"
+                            title="Keluar"
+                        >
+                            <LogOut size={18} />
+                        </button>
+                    )}
+                </div>
+            </div>
+        </aside>
+      )}
+
+      {/* --- MAIN CONTENT --- */}
+      <main className="flex-1 flex flex-col h-screen overflow-y-auto custom-scrollbar relative bg-transparent  transition-colors duration-300">
+          {/* Mobile Header */}
+          <div className="md:hidden sticky top-0 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-30 shadow-sm pt-[calc(env(safe-area-inset-top)+0.25rem)]">
+             <div className="px-4 py-3 flex justify-between items-center">
+                 <div className="flex items-center gap-3">
+                     <img 
+                       src="https://www.smpbhinnekatunggalika.sch.id/upload/imagecache/24871901smp-100x100.png" 
+                       className="h-10 w-auto object-contain" 
+                       alt="Logo"
+                     />
+                     <div>
+                         <h1 className="text-[10px] font-extrabold text-slate-900 dark:text-slate-100 leading-tight">eBhinneka</h1>
+                         <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase mt-0.5 tracking-wide">
+                            Digitalisasi Administrasi dan Kinerja
+                         </p>
+                     </div>
+                 </div>
+                 <div className="flex items-center gap-2">
+                     {!isAdmin && !isOperator && !isHeadmaster && notifications.length > 0 && (
+                        <div className="relative group">
+                            {hasUnfilled && (
+                                <div className="absolute inset-0 rounded-full overflow-hidden shadow-sm">
+                                    <div className="absolute inset-[-100%] z-0 animate-[spin_4s_linear_infinite]" style={{ background: 'conic-gradient(from 0deg, transparent 0 340deg, #fb923c 360deg)' }}></div>
+                                </div>
+                            )}
+                            <button onClick={() => setShowNotifModal(true)} className="relative z-10 w-[34px] h-[34px] m-[2px] bg-slate-50 dark:bg-slate-900 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-600 transition-transform active:scale-95">
+                                <Bell size={16} />
+                            </button>
+                            {hasUnfilled && (
+                                <span className="absolute -top-1 -right-1 z-20 min-w-[16px] h-[16px] flex items-center justify-center text-[10px] font-bold text-slate-100 border-2 border-slate-50 dark:border-slate-800 rounded-full px-[3px] bg-[#fb923c]">
+                                    {notifications.filter(n => !n.isFilled).length}
+                                </span>
+                            )}
+                        </div>
+                    )}
+                    {!isAdmin && !isOperator && !isHeadmaster && notifications.length === 0 && (
+                        <button onClick={() => setShowNotifModal(true)} className="relative w-9 h-9 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-600 transition-transform active:scale-95">
+                            <Bell size={18} />
+                        </button>
+                    )}
+                     <button onClick={handleLogoutClick} className="w-9 h-9 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-300 active:bg-slate-100 border border-slate-200 dark:border-slate-600 flex-shrink-0">
+                         <LogOut size={18}/>
+                     </button>
+                 </div>
+             </div>
+             {/* Running Date & Time Bar */}
+             <div className="bg-slate-50 dark:bg-slate-900/50 px-4 py-1.5 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-[10px] font-bold text-slate-600 dark:text-slate-400">
+                 <span className="text-blue-600 dark:text-blue-500">{formattedDate}</span>
+                 <span className="font-mono text-blue-600 dark:text-blue-500">{formattedTime} WIB</span>
+             </div>
+          </div>
+
+          {/* DESKTOP TOP BAR */}
+          <div className="hidden md:flex justify-between items-center sticky top-0 z-30 bg-slate-100/80 backdrop-blur-md text-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 py-3 pt-[calc(env(safe-area-inset-top)+0.25rem)]">
+              <div className="flex items-center gap-3 text-sm font-bold">
+                  <div className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1.5 rounded-xl border border-blue-100 dark:border-blue-800/50 shadow-sm">
+                      <span className="text-blue-400 dark:text-blue-500">T.A:</span> {academicYear}
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-sky-100 dark:bg-slate-900/30 text-blue-600 dark:text-blue-500 px-3 py-1.5 rounded-xl border border-sky-100 dark:border-slate-900/50 shadow-sm">
+                      <span className="text-blue-500 dark:text-blue-600">Semester:</span> {semester}
+                  </div>
+              </div>
+              <div className="flex items-center gap-4 text-xs font-bold text-slate-500 dark:text-slate-400">
+                  {!isAdmin && !isOperator && !isHeadmaster && notifications.length > 0 && (
+                      <div className="relative group hover:scale-105 transition-transform">
+                          {hasUnfilled && (
+                              <div className="absolute inset-0 rounded-full overflow-hidden shadow-sm">
+                                  <div className="absolute inset-[-100%] z-0 animate-[spin_4s_linear_infinite]" style={{ background: 'conic-gradient(from 0deg, transparent 0 340deg, #fb923c 360deg)' }}></div>
+                              </div>
+                          )}
+                          <button onClick={() => setShowNotifModal(true)} className="relative z-10 w-[34px] h-[34px] m-[2px] bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-600 transition-transform active:scale-95">
+                              <Bell size={16} />
+                          </button>
+                          {hasUnfilled && (
+                              <span className="absolute -top-1 -right-1 z-20 min-w-[16px] h-[16px] flex items-center justify-center text-[10px] font-bold text-slate-100 border-2 border-slate-100 dark:border-slate-800 rounded-full px-[3px] bg-[#fb923c]">
+                                  {notifications.filter(n => !n.isFilled).length}
+                              </span>
+                          )}
+                      </div>
+                  )}
+                  {!isAdmin && !isOperator && !isHeadmaster && notifications.length === 0 && (
+                      <button onClick={() => setShowNotifModal(true)} className="relative w-9 h-9 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-600 transition-transform hover:scale-105 active:scale-95">
+                          <Bell size={18} />
+                      </button>
+                  )}
+                  <span className="text-blue-600 dark:text-blue-500">{formattedDate}</span>
+                  <span className="font-mono text-blue-600 dark:text-blue-500 bg-slate-100 dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">{formattedTime} WIB</span>
+                  <button onClick={handleLogoutClick} className="w-9 h-9 ml-2 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors border border-slate-200 dark:border-slate-600 flex-shrink-0">
+                      <LogOut size={18}/>
+                  </button>
+              </div>
+          </div>
+
+          {/* PAGE CONTENT */}
+          <div className="p-4 md:p-8 max-w-[1920px] w-full mx-auto pb-28 md:pb-10 page-enter text-slate-100">
+            {children}
+          </div>
+
+          {/* SCROLL TO TOP BUTTON (FLOATING) */}
+          {showScrollTop && (
+              <button 
+                  onClick={scrollToTop}
+                  className="fixed bottom-24 md:bottom-10 right-6 z-40 p-3 bg-blue-600 hover:bg-blue-700 text-slate-100 rounded-full shadow-lg transition-all animate-fade-in hover:scale-110"
+                  title="Kembali ke Atas"
+              >
+                  <ArrowUp size={24} />
+              </button>
+          )}
+      </main>
+
+      {/* --- MOBILE BOTTOM NAV (FLUTTER STYLE ANIMATED) --- */}
+      {showNav && !isOperator && !isAdmin && (
+        <div className="md:hidden fixed bottom-6 left-0 right-0 z-40 flex justify-center pointer-events-none pb-[env(safe-area-inset-bottom)]">
+            <div className="relative pointer-events-auto p-[2px] rounded-full overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.12)] max-w-[95vw] group">
+                {/* Animated Glow Border */}
+                <div className="absolute inset-[-100%] z-0 animate-[spin_4s_linear_infinite]" style={{ background: 'conic-gradient(from 0deg, transparent 0 340deg, #fb923c 360deg)' }}></div>
+                <nav className="relative z-10 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-full flex items-center p-2 gap-2 w-full h-full border border-blue-300/50 dark:border-slate-700/50">
+                <BottomNavItem path="/dashboard" label="Beranda" icon={LayoutDashboard} />
+
+                {!isHeadmaster && (
+                    <BottomNavItem path="/apps" label="KBM" icon={Grid} />
+                )}
+
+                {isHeadmaster && (
+                    <BottomNavItem path="/kinerja" label="Kinerja" icon={Activity} />
+                )}
+
+                <BottomNavItem path="/profile" label="Profil" icon={User} />
+            </nav>
+            </div>
+        </div>
+      )}
+
+      
+      {/* Mobile Nav for Admin */}
+      {showNav && isAdmin && (
+           <div className="md:hidden fixed bottom-6 left-0 right-0 z-40 flex justify-center pointer-events-none pb-[env(safe-area-inset-bottom)]">
+                <nav className="bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex items-center p-2 pointer-events-auto gap-2">
+                    <BottomNavItem path="/dashboard" label="Beranda" icon={LayoutDashboard} />
+                    <BottomNavItem path="/penyimpanan" label="Buat T.A" icon={Database} />
+                    <BottomNavItem path="/settings" label="Pengaturan" icon={Settings} />
+                    <BottomNavItem path="/profile" label="Profil" icon={User} />
+                </nav>
+           </div>
+      )}
+      {/* Mobile Nav for Operator */}
+      {showNav && isOperator && !isAdmin && (
+           <div className="md:hidden fixed bottom-6 left-0 right-0 z-40 flex justify-center pointer-events-none pb-[env(safe-area-inset-bottom)]">
+                <nav className="bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex items-center p-2 pointer-events-auto gap-2">
+                    <BottomNavItem path="/operator-dashboard" label="Monitor" icon={MonitorPlay} />
+                    <BottomNavItem path="/profile" label="Profil" icon={User} />
+                </nav>
+           </div>
+      )}
+
+      {/* LOGOUT MODAL - TOP POSITIONED (MODERN) */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-[9999] flex justify-center items-start pt-16 md:pt-10 p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in w-screen h-[100dvh]" onClick={() => setShowLogoutModal(false)}>
+           <div className="bg-slate-100 dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl p-5 transform scale-100 transition-all border border-slate-100 dark:border-slate-600 relative overflow-hidden group" onClick={(e) => e.stopPropagation()}>
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
+              
+              <div className="flex gap-4">
+                  <div className="w-12 h-12 bg-blue-300 dark:bg-blue-600/30 text-blue-600 dark:text-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <LogOut size={24} className="translate-x-0.5"/>
+                  </div>
+                  <div>
+                      <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Konfirmasi Keluar</h3>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Yakin ingin mengakhiri sesi ini?</p>
+                  </div>
+              </div>
+
+              <div className="flex gap-3 mt-6 pl-16">
+                  <button 
+                    onClick={() => setShowLogoutModal(false)}
+                    className="flex-1 py-2 rounded-lg font-bold text-sm text-slate-600 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button 
+                    onClick={confirmLogout}
+                    className="flex-1 py-2 rounded-lg font-bold text-sm text-slate-100 bg-blue-600 hover:bg-blue-600 shadow-lg shadow-blue-300 dark:shadow-none transition-colors"
+                  >
+                    Ya, Keluar
+                  </button>
+              </div>
+           </div>
+        </div>
+      )}
+
+    
+      {showNotifModal && (
+        <div className="fixed inset-0 z-[9999] flex justify-center items-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in" onClick={() => setShowNotifModal(false)}>
+           <div className="bg-slate-100/90 dark:bg-slate-900/90 backdrop-blur-xl w-full max-w-sm rounded-3xl shadow-2xl p-5 transform scale-100 transition-all border border-slate-100/50 dark:border-slate-700/50 relative overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100 dark:border-slate-700">
+                  <h3 className="text-lg font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2"><Bell size={20} className="text-blue-500"/> Jadwal Mengajar</h3>
+                  <button onClick={() => setShowNotifModal(false)} className="text-slate-400 hover:text-slate-600 bg-gray-50 hover:bg-slate-100 dark:bg-slate-700 dark:hover:bg-slate-600 p-1 rounded-full transition-colors"><X size={20}/></button>
+              </div>
+              
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+                  {notifications.length === 0 ? (
+                      <div className="text-center py-6">
+                          <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Tidak ada jadwal mengajar hari ini.</p>
+                      </div>
+                  ) : (
+                      notifications.map((n, i) => (
+                          <button 
+                              key={i} 
+                              onClick={() => { setShowNotifModal(false); navigate('/jurnal', { state: { scheduleId: n.id } }); }}
+                              className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl border border-slate-100 dark:border-slate-600 transition-colors text-left group"
+                          >
+                              <div>
+                                  <p className="text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{n.subject} - Kelas {n.kelas}</p>
+                                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Jam ke-{n.hour}</p>
+                              </div>
+                              <div>
+                                  {n.isFilled ? (
+                                      <CheckCircle2 size={24} className="text-blue-500" />
+                                  ) : (
+                                      <XCircle size={24} className="text-blue-500" />
+                                  )}
+                              </div>
+                          </button>
+                      ))
+                  )}
+              </div>
+           </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
