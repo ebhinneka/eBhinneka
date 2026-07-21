@@ -234,7 +234,7 @@ const AbsensiRapor: React.FC = () => {
              {/* Header Kop Surat */}
             <div className="flex justify-between items-start mb-6 border-b-2 border-black pb-4">
                 <div className="flex items-center gap-4">
-                     <img src="/logo.png" alt="Logo" className="h-12 md:h-20 w-auto" />
+                     <img src="https://i.imghippo.com/files/WXB3962h.png" alt="Logo" className="h-12 md:h-20 w-auto" />
                      <div>
                          <h1 className="text-md md:text-xl font-bold uppercase tracking-wide text-black leading-tight">SMP BHINNEKA TUNGGAL IKA</h1>
                          <h2 className="text-sm md:text-lg font-bold text-black leading-tight">Rekap Ketidakhadiran (Rapor)</h2>

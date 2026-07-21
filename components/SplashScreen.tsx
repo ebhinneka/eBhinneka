@@ -21,7 +21,7 @@ export const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete 
       
       <div className={`relative z-10 flex flex-col items-center transition-all duration-[3000ms] ease-out ${stage === 0 ? 'scale-50 opacity-0' : 'scale-125 opacity-100'}`}>
         <img 
-            src="/logo.png" 
+            src="https://i.imghippo.com/files/WXB3962h.png" 
             alt="Logo SMP Bhinneka" 
             className="w-40 h-40 object-contain drop-shadow-2xl"
         />

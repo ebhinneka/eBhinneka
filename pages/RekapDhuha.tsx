@@ -128,7 +128,7 @@ const RekapDhuha: React.FC = () => {
       {selectedClass && reportData.length > 0 && (
         <div className="mt-8 bg-slate-100 p-4 md:p-8 shadow-lg border border-slate-100 print:shadow-none print:border-none print:p-0 print:m-0 print:w-full animate-fade-in rounded-2xl" ref={componentRef}>
             <div className="flex justify-between items-start mb-6 border-b-2 border-black pb-4">
-                <div className="flex items-center gap-4"><img src="/logo.png" alt="Logo" className="h-12 md:h-20 w-auto" /><div><h1 className="text-md md:text-xl font-bold uppercase tracking-wide text-black leading-tight">SMP BHINNEKA TUNGGAL IKA</h1><h2 className="text-sm md:text-lg font-bold text-black leading-tight">Rekap Kehadiran Salat Dhuha</h2><p className="text-xs md:text-sm text-slate-600">Semester {settings.semester} | Tahun Ajaran {settings.academic_year}</p></div></div>
+                <div className="flex items-center gap-4"><img src="https://i.imghippo.com/files/WXB3962h.png" alt="Logo" className="h-12 md:h-20 w-auto" /><div><h1 className="text-md md:text-xl font-bold uppercase tracking-wide text-black leading-tight">SMP BHINNEKA TUNGGAL IKA</h1><h2 className="text-sm md:text-lg font-bold text-black leading-tight">Rekap Kehadiran Salat Dhuha</h2><p className="text-xs md:text-sm text-slate-600">Semester {settings.semester} | Tahun Ajaran {settings.academic_year}</p></div></div>
                 <div className="border-4 border-black p-2 min-w-[50px] md:min-w-[60px] text-center"><span className="text-lg md:text-2xl font-bold text-black block">{selectedClass}</span></div>
             </div>
             <div className="mb-4"><p className="text-sm text-black"><strong>Total Kegiatan:</strong> {totalMeetings} Pertemuan</p></div>

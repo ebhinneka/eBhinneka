@@ -207,7 +207,7 @@ const MySchedule: React.FC = () => {
           >
               {/* Kop / Header */}
               <div className="border-b-4 border-slate-800 pb-4 mb-6 flex items-center gap-6">
-                  <img src="/logo.png" className="h-24 w-auto object-contain" alt="Logo" />
+                  <img src="https://i.imghippo.com/files/WXB3962h.png" className="h-24 w-auto object-contain" alt="Logo" />
                   <div className="flex-1">
                       <h1 className="text-3xl font-extrabold uppercase tracking-widest text-slate-800">SMP BHINNEKA TUNGGAL IKA</h1>
                       <h2 className="text-xl font-bold uppercase text-slate-700 mt-1">Jadwal Kegiatan Belajar Mengajar</h2>
