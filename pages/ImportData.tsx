@@ -18,7 +18,8 @@ const ImportData: React.FC = () => {
   const [createAccounts, setCreateAccounts] = useState(true);
   const [targetYear, setTargetYear] = useState(academicYear || '2025/2026');
   const [availableYears, setAvailableYears] = useState<string[]>([]);
-  const [serviceRoleKey, setServiceRoleKey] = useState('');
+  const [serviceRoleKey, setServiceRoleKey] = useState(() => localStorage.getItem('supabaseServiceKey') || '');
+  useEffect(() => { if(serviceRoleKey) localStorage.setItem('supabaseServiceKey', serviceRoleKey); }, [serviceRoleKey]);
   const [showKey, setShowKey] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);

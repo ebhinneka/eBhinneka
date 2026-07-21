@@ -57,7 +57,8 @@ const UsersData: React.FC = () => {
       newPassword: ''
   });
 
-  const [serviceKey, setServiceKey] = useState('');
+  const [serviceKey, setServiceKey] = useState(() => localStorage.getItem('supabaseServiceKey') || '');
+  useEffect(() => { if(serviceKey) localStorage.setItem('supabaseServiceKey', serviceKey); }, [serviceKey]);
   const [showServiceKey, setShowServiceKey] = useState(false);
 
   const [saving, setSaving] = useState(false);
@@ -109,7 +110,7 @@ const UsersData: React.FC = () => {
 
   const handleSaveEdit = async () => {
     if (!editingUser) return;
-    if (!serviceKey) { alert("Service Role Key wajib diisi untuk mengubah data akademik user lain."); return; }
+
     setSaving(true);
     try {
       let finalMapel = editFormData.mengajar_mapel;
@@ -126,7 +127,7 @@ const UsersData: React.FC = () => {
       };
 
       
-      const SUPABASE_URL = 'https://aobgqejpjomgwxiosgin.supabase.co'; 
+      const SUPABASE_URL = 'https://nuxpvdmhclxftbgytrsq.supabase.co'; 
       const adminClient = createClient(SUPABASE_URL, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
       const { error: profileError } = await adminClient.from('profiles').update(payload).eq('id', editingUser.id);
 
@@ -155,7 +156,7 @@ const UsersData: React.FC = () => {
               }
           }
 
-          const SUPABASE_URL = 'https://aobgqejpjomgwxiosgin.supabase.co'; 
+          const SUPABASE_URL = 'https://nuxpvdmhclxftbgytrsq.supabase.co'; 
           const adminClient = createClient(SUPABASE_URL, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
           const email = `${newUser.nip}@sekolah.id`;
@@ -189,7 +190,7 @@ const UsersData: React.FC = () => {
       if(!resetData.newPassword || !serviceKey) { alert("Password baru dan Service Key wajib diisi."); return; }
       setSaving(true);
       try {
-          const SUPABASE_URL = 'https://aobgqejpjomgwxiosgin.supabase.co'; 
+          const SUPABASE_URL = 'https://nuxpvdmhclxftbgytrsq.supabase.co'; 
           const adminClient = createClient(SUPABASE_URL, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
           const { error: authError } = await adminClient.auth.admin.updateUserById(resetData.userId, { password: resetData.newPassword });
@@ -284,70 +285,7 @@ const UsersData: React.FC = () => {
                             <label className="block text-xs font-bold text-slate-500 mb-1">Password Baru</label>
                             <input className="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500" placeholder="Masukkan password baru..." value={resetData.newPassword} onChange={e => setResetData({...resetData, newPassword: e.target.value})}/>
                         </div>
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-1">Service Role Key (Wajib)</label>
-                            <div className="relative">
-                                <input type={showServiceKey ? "text" : "password"} className="w-full border border-blue-300 rounded-lg p-2 pr-10 text-xs font-mono focus:ring-2 focus:ring-blue-600 bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" placeholder="Paste Service Role Key..." value={serviceKey} onChange={e => setServiceKey(e.target.value)}/>
-                                <button type="button" onClick={() => setShowServiceKey(!showServiceKey)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">{showServiceKey ? <EyeOff size={16} /> : <Eye size={16} />}</button>
-                            </div>
-                            <p className="text-[10px] text-blue-600 mt-1">* Diperlukan untuk update di sistem Auth.</p>
-                        </div>
-                        <button onClick={handleResetPasswordAction} disabled={saving} className="w-full bg-blue-500 hover:bg-blue-500 text-slate-100 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 mt-2">{saving ? <Loader2 className="animate-spin" size={18}/> : <Save size={18} />} Simpan Password Baru</button>
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {/* MODAL EDIT AKADEMIK - TOP ALIGNED */}
-        {editingUser && (
-            <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[calc(env(safe-area-inset-top)+1rem)] sm:p-4 bg-slate-900/50 backdrop-blur-sm transition-all duration-300">
-                <div className="bg-slate-100 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100 border border-slate-100 relative animate-fade-in">
-                    <div className="bg-blue-600 p-4 flex justify-between items-center text-slate-100">
-                        <h3 className="font-bold flex items-center gap-2"><UserCog size={20} /> Edit Data Akademik</h3>
-                        <button onClick={() => setEditingUser(null)} className="hover:bg-slate-100/20 p-1 rounded-full transition-colors"><X size={20} /></button>
-                    </div>
-                    <div className="p-6 space-y-5">
-                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-4">
-                            <p className="text-xs text-blue-600 font-bold uppercase">Mengedit User:</p>
-                            <p className="font-bold text-slate-900">{editingUser.full_name}</p>
-                            <p className="text-xs text-slate-500 font-mono">{editingUser.nip}</p>
-                        </div>
-                        <div className="relative" ref={dropdownRef}>
-                            <label className="block text-sm font-bold text-slate-700 mb-1">Mata Pelajaran (Multi-Select)</label>
-                            <button onClick={() => setIsMapelDropdownOpen(!isMapelDropdownOpen)} className="w-full text-left border border-slate-300 rounded-xl p-3 bg-slate-100 focus:ring-2 focus:ring-blue-500 flex justify-between items-center"><span className={`truncate ${!editFormData.mengajar_mapel ? 'text-slate-400' : 'text-slate-900'}`}>{editFormData.mengajar_mapel || "-- Pilih Mata Pelajaran --"}</span><ChevronDown size={16} className="text-slate-400" /></button>
-                            {isMapelDropdownOpen && (
-                                <div className="absolute z-20 w-full mt-2 bg-slate-100 border border-slate-100 rounded-xl shadow-xl max-h-60 overflow-y-auto p-1 custom-scrollbar">
-                                    {subjectsList.length === 0 ? <div className="p-3 text-center text-slate-400 text-xs">Belum ada data Master Mapel.</div> : subjectsList.map((subj, idx) => { const isSelected = editFormData.mengajar_mapel.includes(subj); return (<div key={idx} onClick={() => toggleMapelSelection(subj, true)} className={`flex items-center justify-between p-3 rounded-lg cursor-pointer text-sm mb-1 transition-colors ${isSelected ? 'bg-blue-50 text-blue-700 font-bold' : 'hover:bg-gray-50 text-slate-700'}`}><span>{subj}</span>{isSelected && <Check size={16} className="text-blue-600"/>}</div>); })}
-                                </div>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-1">Wali Kelas</label>
-                            <select className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={editFormData.wali_kelas} onChange={e => {
-    const val = e.target.value;
-    let newMapel = editFormData.mengajar_mapel;
-    if (val) {
-        const mapels = newMapel ? newMapel.split(',').map(m => m.trim()) : [];
-        if (!mapels.includes('Sabtu bersama Wali Kelas')) {
-            mapels.push('Sabtu bersama Wali Kelas');
-            newMapel = mapels.join(', ');
-        }
-    }
-    setEditFormData({...editFormData, wali_kelas: val, mengajar_mapel: newMapel});
-}}>
-                                <option value="">-- Bukan Wali Kelas --</option>
-                                {availableClasses.map(k => <option key={k} value={k}>{k}</option>)}
-                            </select>
-                        </div>
                         
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-1">Service Role Key (Wajib)</label>
-                            <div className="relative">
-                                <input type={showServiceKey ? "text" : "password"} className="w-full border border-blue-300 rounded-lg p-2 pr-10 text-xs font-mono focus:ring-2 focus:ring-blue-600 bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" placeholder="Paste Service Role Key..." value={serviceKey} onChange={e => setServiceKey(e.target.value)}/>
-                                <button type="button" onClick={() => setShowServiceKey(!showServiceKey)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">{showServiceKey ? <EyeOff size={16} /> : <Eye size={16} />}</button>
-                            </div>
-                            <p className="text-[10px] text-blue-600 mt-1">* Diperlukan untuk update data akademik.</p>
-                        </div>
                         <div className="pt-4 flex gap-3">
 
                             <button onClick={() => setEditingUser(null)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">Batal</button>
