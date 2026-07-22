@@ -82,7 +82,7 @@ const ImportData: React.FC = () => {
     const result = Papa.parse(text, {
         header: true,
         skipEmptyLines: true,
-        delimiter: ';',
+        
         transformHeader: (h) => h.trim(),
         transform: (v) => (typeof v === 'string' ? v.trim() : v)
     });
@@ -285,6 +285,15 @@ const ImportData: React.FC = () => {
         } else if (activeTab === 'schedules') {
             const schedulesToInsert = [];
             
+            // Prefetch profiles to avoid N+1 queries
+            const { data: profilesData } = await supabase.from('profiles').select('id, nip');
+            const nipToIdMap: Record<string, string> = {};
+            if (profilesData) {
+                profilesData.forEach(p => {
+                    if (p.nip) nipToIdMap[p.nip as string] = p.id;
+                });
+            }
+
             for (const row of previewData) {
                 const nip = String(row['NIPY Guru'] || row['NIP Guru'] || row['nip guru'] || row['NIPY'] || row['NIP'] || row['nip'] || '');
                 const rawDay = row['Hari'] || row['hari'];
@@ -301,32 +310,53 @@ const ImportData: React.FC = () => {
                 const hoursArray = parseHours(rawHour);
                 const hourString = hoursArray.join(', ');
 
-                // Cari ID Guru dari profiles
+                // Cari ID Guru dari map
                 let teacherId = null;
-                if (nip) {
-                    const { data: t } = await supabase.from('profiles').select('id').eq('nip', nip).single();
-                    if(t) teacherId = t.id;
+                if (nip && nipToIdMap[nip]) {
+                    teacherId = nipToIdMap[nip];
                 }
 
-                if (hourString) {
-                    schedulesToInsert.push({
-                        day_of_week: dayNum,
-                        hour: hourString,
-                        kelas: kelas,
-                        subject: mapel,
-                        teacher_nip: nip,
-                        teacher_id: teacherId,
-                        academic_year: targetYear || academicYear || '2025/2026',
-                        semester: semester || 'Ganjil',
-                        schedule_version: activeScheduleVersion || 'Utama',
-                        
-                        
-                    });
+                if (hoursArray.length > 0) {
+                    for (const h of hoursArray) {
+                        schedulesToInsert.push({
+                            day_of_week: dayNum,
+                            hour: h,
+                            kelas: kelas,
+                            subject: mapel,
+                            teacher_nip: nip,
+                            teacher_id: teacherId,
+                            academic_year: targetYear || academicYear || '2025/2026',
+                            semester: semester || 'Ganjil',
+                            schedule_version: activeScheduleVersion || 'Utama',
+                        });
+                    }
                 }
             }
             
              if (schedulesToInsert.length > 0) {
-                const { error } = await supabase.from('schedules').insert(schedulesToInsert);
+                let { error } = await supabase.from('schedules').insert(schedulesToInsert);
+                if (error && (error.code === '42703' || error.message?.includes('academic_year') || error.message?.includes('semester') || error.message?.includes('schedule_version') || error.message?.includes('schema cache'))) {
+                    // Fallback without academic_year and semester
+                    let fallbackPayloads = schedulesToInsert.map(p => {
+                        const { schedule_version, ...rest } = p as any;
+                        return rest;
+                    });
+                    let fallbackRes = await supabase.from('schedules').insert(fallbackPayloads);
+                    if (fallbackRes.error && fallbackRes.error.code === '42703') {
+                        fallbackPayloads = fallbackPayloads.map(p => {
+                            const { academic_year, semester, ...rest } = p as any;
+                            return rest;
+                        });
+                        fallbackRes = await supabase.from('schedules').insert(fallbackPayloads);
+                    }
+                    error = fallbackRes.error;
+                }
+                
+                // Fallback 2: Maybe teacher_id is required but null?
+                if (error && (error.message?.includes('teacher_id') || error.message?.includes('null value in column "teacher_id"'))) {
+                     throw new Error("Gagal menyimpan jadwal: Pastikan NIPY Guru di file Excel sama dengan NIPY di Data Guru.");
+                }
+
                 if (error) throw error;
                 successCount = schedulesToInsert.length;
             }
