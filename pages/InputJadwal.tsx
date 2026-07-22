@@ -366,7 +366,13 @@ const InputJadwal: React.FC = () => {
                             <label className="block text-xs font-bold text-slate-500 mb-2">Jam Ke-</label>
                             <div className="flex flex-wrap gap-2">{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(j => (<button key={j} type="button" onClick={() => toggleEditJam(j)} className={`w-9 h-9 rounded-lg text-xs font-bold transition-all border ${editFormData.jam.includes(String(j)) ? 'bg-blue-600 text-slate-100 border-blue-600 shadow-md' : 'bg-slate-100 text-slate-500 border-slate-200 hover:border-blue-300'}`}>{j}</button>))}</div>
                         </div>
-                        <div><label className="block text-xs font-bold text-slate-500 mb-1.5">Mata Pelajaran</label><input type="text" className="w-full border border-slate-200 rounded-xl p-3 text-sm text-slate-900 dark:text-slate-100" value={editFormData.mapel} onChange={e => setEditFormData({...editFormData, mapel: e.target.value})}/></div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1.5">Mata Pelajaran</label>
+                            <select className="w-full border border-slate-200 rounded-xl p-3 bg-slate-100 text-sm text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={editFormData.mapel} onChange={e => setEditFormData({...editFormData, mapel: e.target.value})}>
+                                <option value="">-- Pilih Mapel --</option>
+                                {availableSubjects.map((s, i) => <option key={i} value={s}>{s}</option>)}
+                            </select>
+                        </div>
                         <div className="pt-4 flex gap-3">
                             <button onClick={() => setEditingItem(null)} className="flex-1 py-3 text-slate-500 font-bold bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Batal</button>
                             <button onClick={handleUpdateSchedule} disabled={submitting} className="flex-1 bg-blue-600 hover:bg-blue-600 text-slate-100 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">{submitting ? <Loader2 className="animate-spin" size={18}/> : <Save size={18} />} Update</button>
