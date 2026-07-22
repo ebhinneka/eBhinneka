@@ -22,12 +22,12 @@ interface ReportStudent extends Student {
 }
 
 const AbsensiRapor: React.FC = () => {
-  const { profile, academicYear, semester , semesterStart, semesterEnd } = useAuth();
+  const { profile, academicYear, semester , semesterStart, semesterEnd , availableClasses} = useAuth();
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<ReportStudent[]>([]);
   
   // Filters
-  const [classes, setClasses] = useState<string[]>([]);
+  
   const [selectedClass, setSelectedClass] = useState('');
   
   // Date Range
@@ -79,7 +79,7 @@ const AbsensiRapor: React.FC = () => {
         }
         if(data) {
             const unique = Array.from(new Set(data.map((s:any) => s.kelas))).sort();
-            setClasses(unique as string[]);
+            
             if (profile.wali_kelas) {
                 setSelectedClass(profile.wali_kelas);
             }
@@ -194,7 +194,7 @@ const AbsensiRapor: React.FC = () => {
                         onChange={e => setSelectedClass(e.target.value)}
                     >
                         <option value="">-- Pilih Kelas --</option>
-                        {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                        {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                 </div>
                 <div>

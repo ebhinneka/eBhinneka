@@ -17,6 +17,8 @@ interface AuthContextType {
   semesterStart: string;
   semesterEnd: string;
   activeScheduleVersion: string;
+  availableClasses: string[];
+  refreshClasses: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,11 +32,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [semesterStart, setSemesterStart] = useState<string>('');
   const [semesterEnd, setSemesterEnd] = useState<string>('');
   const [activeScheduleVersion, setActiveScheduleVersion] = useState<string>('Utama');
+  const [availableClasses, setAvailableClasses] = useState<string[]>([]);
+
+  
+  const refreshClasses = async () => {
+    try {
+        if (!isSupabaseConfigured) return;
+        let allData: any[] = [];
+        let from = 0;
+        let step = 1000;
+        while (true) {
+            const { data, error } = await supabase.from('students').select('kelas').range(from, from + step - 1);
+            if (error) throw error;
+            if (!data || data.length === 0) break;
+            allData = allData.concat(data);
+            if (data.length < step) break;
+            from += step;
+        }
+        const classes = [...new Set(allData.map((d: any) => d.kelas).filter(Boolean))].sort() as string[];
+        setAvailableClasses(classes);
+    } catch (err) {
+        console.error('Failed to fetch classes', err);
+    }
+  };
 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
         if (!isSupabaseConfigured) return;
+        await refreshClasses();
         const { data } = await supabase.from('app_settings').select('key, value').in('key', ['academic_year', 'semester', 'active_schedule_version', 'semester_start', 'semester_end']);
         if (data) {
            data.forEach(item => {
@@ -147,7 +173,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         semester,
         semesterStart,
         semesterEnd,
-        activeScheduleVersion
+        activeScheduleVersion,
+      availableClasses,
+      refreshClasses
     }}>
       {children}
     </AuthContext.Provider>

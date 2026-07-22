@@ -4,6 +4,7 @@ import { Layout } from '../components/Layout';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
 import { createClient } from '@supabase/supabase-js';
+import Papa from 'papaparse';
 import { Upload, FileText, CheckCircle, AlertCircle, Download, Users, Calendar, GraduationCap, X, KeyRound, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 
 const ImportData: React.FC = () => {
@@ -76,24 +77,16 @@ const ImportData: React.FC = () => {
 
   // Helper: Parse CSV Text to JSON
   const parseCSV = (text: string) => {
-    const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
-    if (lines.length === 0) return [];
-
-    // Deteksi delimiter (koma atau titik koma) berdasarkan baris pertama
-    const firstLine = lines[0];
-    const delimiter = firstLine.includes(';') ? ';' : ',';
-
-    const headers = firstLine.split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
-
-    return lines.slice(1).map(line => {
-      const values = line.split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
-      const row: any = {};
-      headers.forEach((header, index) => {
-        // Handle jika values kurang dari headers
-        row[header] = values[index] || '';
-      });
-      return row;
+    // Menggunakan papaparse dan memaksa delimiter ';' sesuai permintaan
+    // sehingga koma di dalam nama/teks (seperti gelar) tidak memisahkan kolom
+    const result = Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        delimiter: ';',
+        transformHeader: (h) => h.trim(),
+        transform: (v) => (typeof v === 'string' ? v.trim() : v)
     });
+    return result.data;
   };
 
   const downloadTemplate = () => {
@@ -252,7 +245,7 @@ const ImportData: React.FC = () => {
                         // Jika user sudah ada (Error: User already registered)
                         if (authError && authError.message.includes('already registered')) {
                              // Coba cari profile yang sudah ada berdasarkan NIPY
-                             const { data: existProfile } = await supabase.from('profiles').select('id').eq('nip', t.nip).single();
+                             const { data: existProfile } = await adminClient.from('profiles').select('id').eq('nip', t.nip).single();
                              userId = existProfile?.id;
                              
                              if (!userId) {
@@ -264,7 +257,7 @@ const ImportData: React.FC = () => {
 
                         // Upsert Profile
                         if (userId) {
-                            await supabase.from('profiles').upsert({
+                            await adminClient.from('profiles').upsert({
                                 id: userId,
                                 nip: t.nip,
                                 full_name: t.nama_lengkap,

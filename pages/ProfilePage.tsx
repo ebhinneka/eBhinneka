@@ -6,7 +6,7 @@ import { supabase } from '../services/supabase';
 import { User, Camera, Save, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 
 const ProfilePage: React.FC = () => {
-  const { profile, academicYear, semester } = useAuth();
+  const { profile, academicYear, semester, availableClasses } = useAuth();
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{type: 'success' | 'error', text: string} | null>(null);
   
@@ -164,9 +164,7 @@ const ProfilePage: React.FC = () => {
                     className="w-full border border-slate-300 dark:border-slate-600 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-100 dark:bg-slate-900 font-medium text-slate-700 dark:text-slate-100"
                   >
                     <option value="">-- Bukan Wali Kelas --</option>
-                    {['7A','7B','7C','7D','7E','7F','7G','7H','8A','8B','8C','8D','8E','8F','8G','8H','9A','9B','9C','9D','9E','9F','9G','9H'].map(k => (
-                      <option key={k} value={k}>{k}</option>
-                    ))}
+                    {availableClasses.map(k => (<option key={k} value={k}>{k}</option>))}
                   </select>
                 </div>
 

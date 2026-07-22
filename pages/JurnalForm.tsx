@@ -32,14 +32,14 @@ const smartTitleCase = (str: string) => {
 const JurnalForm: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { profile, academicYear, semester , activeScheduleVersion , semesterStart, semesterEnd } = useAuth();
+  const { profile, academicYear, semester , activeScheduleVersion , semesterStart, semesterEnd, availableClasses } = useAuth();
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [initLoading, setInitLoading] = useState(true);
   
   const [todaySchedules, setTodaySchedules] = useState<Schedule[]>([]);
-  const [allClasses, setAllClasses] = useState<string[]>([]);
+  // allClasses removed
   const [students, setStudents] = useState<Student[]>([]);
   
   const [existingJournals, setExistingJournals] = useState<Journal[]>([]);
@@ -171,7 +171,7 @@ const JurnalForm: React.FC = () => {
             if (academicYear === '2025/2026') studentData = res.data;
             else studentData = [];
         }
-        if (studentData) { const unique = Array.from(new Set(studentData.map((s: any) => s.kelas))).sort() as string[]; setAllClasses(unique); }
+        
     } catch (err) { console.error(err); } finally { setInitLoading(false); }
   };
 
@@ -480,7 +480,7 @@ const JurnalForm: React.FC = () => {
                         <div className="grid grid-cols-2 gap-4">
                             <select className="border p-3 rounded-xl bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={formData.kelas} onChange={(e) => { setFormData({...formData, kelas: e.target.value}); }}>
                                 <option value="">- Pilih Kelas -</option>
-                                {allClasses.map(c => <option key={c} value={c}>{c}</option>)}
+                                {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                             <input 
                                 type="text" 

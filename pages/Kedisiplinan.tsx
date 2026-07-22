@@ -28,13 +28,13 @@ interface DisciplineData {
 }
 
 const Kedisiplinan: React.FC = () => {
-  const { profile, academicYear, semester , semesterStart, semesterEnd } = useAuth();
+  const { profile, academicYear, semester , semesterStart, semesterEnd, availableClasses } = useAuth();
   const [loading, setLoading] = useState(false);
   
   const isHeadmaster = profile?.mengajar_mapel === 'Kepala Sekolah' || profile?.role === 'admin';
 
   // Filters
-  const [classes, setClasses] = useState<string[]>([]);
+  // classes state removed
   const [selectedClass, setSelectedClass] = useState('');
   const [startDate, setStartDate] = useState(() => {
       const d = new Date();
@@ -90,15 +90,9 @@ const Kedisiplinan: React.FC = () => {
 
   const fetchInitData = async () => {
     try {
-        const [classesRes, settingsRes] = await Promise.all([
-            supabase.from('students').select('kelas').eq('academic_year', academicYear || '2025/2026'),
-            supabase.from('app_settings').select('*')
-        ]);
+        const [settingsRes] = await Promise.all([supabase.from('app_settings').select('*')]);
 
-        if (classesRes.data) {
-            const unique = Array.from(new Set(classesRes.data.map((s:any) => s.kelas))).sort();
-            setClasses(unique as string[]);
-        }
+        
 
         if (settingsRes.data) {
             settingsRes.data.forEach(item => {
@@ -473,7 +467,7 @@ const Kedisiplinan: React.FC = () => {
                             <label className="block text-xs font-bold text-slate-500 mb-1">Pilih Kelas</label>
                             <select className="w-full md:w-1/3 border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-blue-600 font-bold text-slate-700" value={inputClass} onChange={e => setInputClass(e.target.value)}>
                                 <option value="">-- Pilih Kelas --</option>
-                                {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                                {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                         </div>
 
@@ -557,7 +551,7 @@ const Kedisiplinan: React.FC = () => {
                                             onChange={e => updateMassRow(idx, 'class', e.target.value)}
                                         >
                                             <option value="">- Kelas -</option>
-                                            {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                                            {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
                                         </select>
                                     </div>
                                     <div className="w-full md:w-2/3">
@@ -615,7 +609,7 @@ const Kedisiplinan: React.FC = () => {
                         <Filter className="absolute left-3 top-2.5 text-slate-400" size={14}/>
                         <select className="w-full pl-9 border border-slate-200 rounded-xl p-2 text-sm bg-slate-100 focus:ring-2 focus:ring-blue-600 font-bold text-slate-700 dark:bg-slate-800 dark:border-slate-600" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
                             <option value="">-- Semua Kelas --</option>
-                            {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                            {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
                 </div>

@@ -20,9 +20,9 @@ interface DhuhaSummary {
 }
 
 const RekapDhuha: React.FC = () => {
-  const { profile, academicYear, semester , semesterStart, semesterEnd } = useAuth();
+  const { profile, academicYear, semester , semesterStart, semesterEnd , availableClasses} = useAuth();
   const [loading, setLoading] = useState(false);
-  const [classes, setClasses] = useState<string[]>([]);
+  
   const [selectedClass, setSelectedClass] = useState('');
   
   const [startDate, setStartDate] = useState(() => {
@@ -67,7 +67,7 @@ const RekapDhuha: React.FC = () => {
       }
       if (studentsData) {
         const uniqueClasses = Array.from(new Set(studentsData.map((s:any) => s.kelas))).sort();
-        setClasses(uniqueClasses as string[]);
+        
       }
     } catch (err) { console.error(err); }
   };
@@ -115,7 +115,7 @@ const RekapDhuha: React.FC = () => {
         </div>
         <div className="bg-slate-100 p-6 rounded-2xl shadow-sm border border-slate-100">
             <div className="grid md:grid-cols-4 gap-4 items-end">
-                <div><label className="block text-xs font-bold text-slate-500 mb-1">Kelas</label><select className="w-full border rounded-xl p-3 bg-gray-50 font-bold text-slate-700 focus:ring-2 focus:ring-blue-600 dark:bg-slate-800 dark:border-slate-600" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}><option value="">-- Pilih Kelas --</option>{classes.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                <div><label className="block text-xs font-bold text-slate-500 mb-1">Kelas</label><select className="w-full border rounded-xl p-3 bg-gray-50 font-bold text-slate-700 focus:ring-2 focus:ring-blue-600 dark:bg-slate-800 dark:border-slate-600" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}><option value="">-- Pilih Kelas --</option>{availableClasses.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                 <div><label className="block text-xs font-bold text-slate-500 mb-1 flex items-center gap-1"><CalendarDays size={12}/> Tanggal Awal</label><input type="date" className="w-full border rounded-xl p-3 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:border-slate-600" value={startDate} onChange={e => setStartDate(e.target.value)}/></div>
                  <div><label className="block text-xs font-bold text-slate-500 mb-1 flex items-center gap-1"><CalendarDays size={12}/> Tanggal Akhir</label><input type="date" className="w-full border rounded-xl p-3 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:border-slate-600" value={endDate} onChange={e => setEndDate(e.target.value)}/></div>
                 <div><button onClick={handlePrint} disabled={!selectedClass || loading || reportData.length === 0} className="w-full bg-blue-600 hover:bg-blue-600 text-slate-100 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 transition-all"><Printer size={20} /> Cetak</button></div>

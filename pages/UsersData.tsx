@@ -4,6 +4,7 @@ import { Layout } from '../components/Layout';
 import { supabase } from '../services/supabase';
 import { createClient } from '@supabase/supabase-js'; 
 import { Profile } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 import { Trash2, Plus, AlertCircle, Search, UserCog, GraduationCap, Shield, Edit, Save, X, Loader2, ChevronDown, Check, UserPlus, KeyRound, Eye, EyeOff, Lock, User, RefreshCw } from 'lucide-react';
 
 const PasswordCell = ({ password }: { password?: string }) => {
@@ -152,7 +153,7 @@ const UsersData: React.FC = () => {
           if (authError) throw new Error("Gagal membuat Auth User: " + authError.message);
           if (!authData.user) throw new Error("Gagal mendapatkan data user baru.");
           const userId = authData.user.id;
-          const { error: profileError } = await supabase.from('profiles').insert({
+          const { error: profileError } = await adminClient.from('profiles').upsert({
               id: userId, nip: newUser.nip, full_name: newUser.fullName, role: newUser.role,
               mengajar_mapel: finalMapelNew, wali_kelas: newUser.waliKelas, password_info: newUser.password
           });
@@ -195,7 +196,7 @@ const UsersData: React.FC = () => {
   };
 
   const filteredProfiles = profiles.filter(t => t.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || t.nip?.includes(searchTerm));
-  const availableClasses = ['7A','7B','7C','7D','7E','7F','7G','7H','8A','8B','8C','8D','8E','8F','8G','8H','9A','9B','9C','9D','9E','9F','9G','9H'];
+  const { availableClasses } = useAuth();
 
   return (
     <Layout>

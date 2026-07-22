@@ -7,7 +7,7 @@ import { Student } from '../types';
 import { Search, GraduationCap, Edit, UserPlus, UserMinus, Trash2, Save, X, Loader2, Filter, ArrowRight , TrendingUp } from 'lucide-react';
 
 const StudentsData: React.FC = () => {
-  const { academicYear } = useAuth();
+  const { academicYear, availableClasses, refreshClasses } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -254,9 +254,7 @@ const StudentsData: React.FC = () => {
       s.nisn.includes(searchTerm)
   );
 
-  const availableClasses = ['7A','7B','7C','7D','7E','7F','7G','7H',
-                            '8A','8B','8C','8D','8E','8F','8G','8H',
-                            '9A','9B','9C','9D','9E','9F','9G','9H'];
+  
 
   return (
     <Layout>
@@ -360,7 +358,10 @@ const StudentsData: React.FC = () => {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Kelas</label>
-                                        <select className="w-full border border-slate-200 rounded-xl p-3 bg-slate-100 focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={formData.kelas} onChange={e => setFormData({...formData, kelas: e.target.value})}>{availableClasses.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                                        <select className="w-full border border-slate-200 rounded-xl p-3 bg-slate-100 focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={formData.kelas} onChange={e => setFormData({...formData, kelas: e.target.value})}>
+                                            <option value="">-- Pilih Kelas --</option>
+                                            {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Jenis Kelamin</label>
