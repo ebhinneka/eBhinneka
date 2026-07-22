@@ -85,12 +85,25 @@ const PublicDashboard: React.FC = () => {
 
     try {
         const [studentsRes, journalsRes, attendanceRes, homeroomRes] = await Promise.all([
-            supabase.from('students').select('id, kelas').eq('academic_year', academicYear || '2025/2026').then(async (res) => {
-                  if (res.error && (res.error.code === '42703' || res.error.message?.includes('academic_year'))) {
-                      return supabase.from('students').select('id, kelas').eq('academic_year', academicYear || '2025/2026');
-                  }
-                  return res;
-              }),
+            
+            (async () => {
+                let allData: any[] = [];
+                let from = 0;
+                let step = 1000;
+                while (true) {
+                    let res = await supabase.from('students').select('id, kelas').eq('academic_year', academicYear || '2025/2026').range(from, from + step - 1);
+                    if (res.error && (res.error.code === '42703' || res.error.message?.includes('academic_year'))) {
+                        res = await supabase.from('students').select('id, kelas').eq('academic_year', academicYear || '2025/2026').range(from, from + step - 1);
+                    }
+                    if (res.error) break;
+                    if (!res.data || res.data.length === 0) break;
+                    allData = allData.concat(res.data);
+                    if (res.data.length < step) break;
+                    from += step;
+                }
+                return { data: allData, error: null };
+            })()
+,
             supabase.from('journals').select('hours').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', startOfDay),
             supabase.from('attendance_logs').select('student_id, student_name, status, created_at, subject').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', startOfDay),
             supabase.from('homeroom_attendance').select('student_id, status, kelas').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('date', semesterStart ? `${semesterStart}` : '2000-01-01').lte('date', semesterEnd ? `${semesterEnd}` : '2100-01-01').eq('date', todayStr)
