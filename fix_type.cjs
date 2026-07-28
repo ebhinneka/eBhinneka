@@ -1,7 +1,14 @@
 const fs = require('fs');
-let content = fs.readFileSync('pages/PublicDashboard.tsx', 'utf8');
-content = content.replace(
-    "let allData = [];",
-    "let allData: any[] = [];"
+let code = fs.readFileSync('pages/UsersData.tsx', 'utf8');
+
+code = code.replace(
+  "jabatan_tambahan: editFormData.jabatan_tambahan === '-' ? null : editFormData.jabatan_tambahan",
+  "jabatan_tambahan: editFormData.jabatan_tambahan === '-' ? undefined : editFormData.jabatan_tambahan"
 );
-fs.writeFileSync('pages/PublicDashboard.tsx', content);
+code = code.replace(
+  "jabatan_tambahan: editFormData.jabatan_tambahan === '-' ? null : editFormData.jabatan_tambahan",
+  "jabatan_tambahan: editFormData.jabatan_tambahan === '-' ? undefined : editFormData.jabatan_tambahan"
+);
+
+fs.writeFileSync('pages/UsersData.tsx', code);
+console.log("Done");

@@ -329,3 +329,15 @@ BEGIN
     ALTER TABLE public.students ADD CONSTRAINT students_academic_year_nisn_key UNIQUE (academic_year, nisn);
   END IF;
 END $$;
+
+-- SAFE MIGRATION: Tambahkan kolom jabatan_tambahan pada tabel profiles dan tabel_guru
+do $$
+begin
+  if not exists (select 1 from information_schema.columns where table_name = 'profiles' and column_name = 'jabatan_tambahan') then
+    alter table public.profiles add column jabatan_tambahan text;
+  end if;
+
+  if not exists (select 1 from information_schema.columns where table_name = 'tabel_guru' and column_name = 'jabatan_tambahan') then
+    alter table public.tabel_guru add column jabatan_tambahan text;
+  end if;
+end $$;

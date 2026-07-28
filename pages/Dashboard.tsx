@@ -591,7 +591,7 @@ const Dashboard: React.FC = () => {
                                                                 <span className={`text-xl md:text-2xl font-extrabold ${
                                                                     cell.isFilled 
                                                                     ? 'text-blue-500 dark:text-blue-500' 
-                                                                    : 'text-blue-600 dark:text-blue-500'
+                                                                    : 'text-red-500 dark:text-red-500'
                                                                 }`}>
                                                                     {cell.className}
                                                                 </span>

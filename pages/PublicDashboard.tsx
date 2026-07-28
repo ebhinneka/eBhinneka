@@ -84,7 +84,7 @@ const PublicDashboard: React.FC = () => {
     else if (jsDay === 4) jpPerClass = 4; // Kamis
     else if (jsDay === 5) jpPerClass = 5; // Jumat default
     
-    const calculatedTotalJp = jpPerClass * 24;
+    // Removed calculatedTotalJp = jpPerClass * 24
 
     try {
         const [studentsRes, journalsRes, attendanceRes, homeroomRes] = await Promise.all([
@@ -199,7 +199,7 @@ const PublicDashboard: React.FC = () => {
         setStats({
             count7: c7, count8: c8, count9: c9,
             classDetails: classCounts,
-            totalJpRequired: calculatedTotalJp, 
+            totalJpRequired: jpPerClass * (Object.keys(classCounts).length || 45), 
             completedJp: completedJp,
             absenceCount: sCount + iCount + aCount,
             absenceDetails: { S: sCount, I: iCount, A: aCount },

@@ -4,7 +4,7 @@ export interface Profile {
   full_name: string;
   role: 'admin' | 'user' | 'operator';
   mengajar_mapel?: string;
-  wali_kelas?: string;
+  wali_kelas?: string;  jabatan_tambahan?: string;
   avatar_url?: string;
   password_info?: string;
   is_active?: boolean;
@@ -15,7 +15,7 @@ export interface TeacherData {
   nip: string;
   nama_lengkap: string;
   mapel?: string;
-  wali_kelas?: string;
+  wali_kelas?: string;  jabatan_tambahan?: string;
 }
 
 export interface Student {

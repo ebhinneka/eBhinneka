@@ -38,7 +38,8 @@ const UsersData: React.FC = () => {
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [editFormData, setEditFormData] = useState({
     mengajar_mapel: '',
-    wali_kelas: ''
+    wali_kelas: '',
+    jabatan_tambahan: '-'
   });
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -98,7 +99,7 @@ const UsersData: React.FC = () => {
 
   const handleEditClick = (user: Profile) => {
     setEditingUser(user);
-    setEditFormData({ mengajar_mapel: user.mengajar_mapel || '', wali_kelas: user.wali_kelas || '' });
+    setEditFormData({ mengajar_mapel: user.mengajar_mapel || '', wali_kelas: user.wali_kelas || '', jabatan_tambahan: user.jabatan_tambahan || '-' });
     setIsMapelDropdownOpen(false);
   };
 
@@ -116,7 +117,8 @@ const UsersData: React.FC = () => {
       finalMapel = mapels.join(', ');
       const payload = {
           mengajar_mapel: finalMapel,
-          wali_kelas: editFormData.wali_kelas
+          wali_kelas: editFormData.wali_kelas,
+          jabatan_tambahan: editFormData.jabatan_tambahan === '-' ? undefined : editFormData.jabatan_tambahan
       };
       
       const { error: profileError } = await supabase.from('profiles').update(payload).eq('id', editingUser.id);
@@ -126,7 +128,7 @@ const UsersData: React.FC = () => {
          await supabase.from('tabel_guru').update({ mapel: finalMapel, wali_kelas: editFormData.wali_kelas }).eq('nip', editingUser.nip);
       }
 
-      setProfiles(prev => prev.map(p => p.id === editingUser.id ? { ...p, mengajar_mapel: finalMapel, wali_kelas: editFormData.wali_kelas } : p));
+      setProfiles(prev => prev.map(p => p.id === editingUser.id ? { ...p, mengajar_mapel: finalMapel, wali_kelas: editFormData.wali_kelas, jabatan_tambahan: editFormData.jabatan_tambahan === '-' ? undefined : editFormData.jabatan_tambahan } : p));
       setEditingUser(null);
     } catch (err: any) { alert('Gagal menyimpan data: ' + err.message); } finally { setSaving(false); }
   };
@@ -230,12 +232,13 @@ const UsersData: React.FC = () => {
                  </tr>
                </thead>
                <tbody className="divide-y divide-slate-100">
-                 {loading ? <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-500">Memuat data profiles...</td></tr> : filteredProfiles.length === 0 ? <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-500">Tidak ada data user ditemukan.</td></tr> : (
+                 {loading ? <tr><td colSpan={8} className="px-6 py-8 text-center text-slate-500">Memuat data profiles...</td></tr> : filteredProfiles.length === 0 ? <tr><td colSpan={8} className="px-6 py-8 text-center text-slate-500">Tidak ada data user ditemukan.</td></tr> : (
                    filteredProfiles.map((p) => (
                      <tr key={p.id} className="hover:bg-blue-50/50 transition-colors group">
                        <td className="px-6 py-3"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden flex-shrink-0">{p.avatar_url ? <img src={p.avatar_url} alt="" className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-bold">{p.full_name?.charAt(0)}</div>}</div><div><div className="font-bold text-slate-900">{p.full_name}</div><div className="text-xs text-slate-500 font-mono">{p.nip}</div></div></div></td>
                        <td className="px-6 py-3"><PasswordCell password={p.password_info} /></td>
                        <td className="px-6 py-3">{p.role === 'admin' ? <span className="inline-flex items-center gap-1 bg-blue-300 text-blue-600 px-2 py-1 rounded-lg text-xs font-bold"><Shield size={12} /> Admin</span> : <span className="inline-flex items-center gap-1 bg-blue-300 text-blue-500 px-2 py-1 rounded-lg text-xs font-bold">User</span>}</td>
+                       <td className="px-6 py-3">{p.jabatan_tambahan ? <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-lg text-xs font-bold">{p.jabatan_tambahan}</span> : <span className="text-slate-300">-</span>}</td>
                        <td className="px-6 py-3 text-slate-600 max-w-xs truncate" title={p.mengajar_mapel}>{p.mengajar_mapel ? <div className="flex flex-wrap gap-1">{p.mengajar_mapel.split(',').map((m, i) => <span key={i} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold border border-blue-100">{m.trim()}</span>)}</div> : <span className="text-slate-300 italic">Belum diisi</span>}</td>
                        <td className="px-6 py-3">{p.wali_kelas ? <span className="inline-flex items-center gap-1 bg-blue-300 text-blue-600 px-2 py-1 rounded-lg text-xs font-bold"><GraduationCap size={12} /> {p.wali_kelas}</span> : <span className="text-slate-300">-</span>}</td>
                        
@@ -353,6 +356,14 @@ const UsersData: React.FC = () => {
                             <select className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-100 text-slate-900   " value={editFormData.wali_kelas} onChange={e => setEditFormData({...editFormData, wali_kelas: e.target.value})}>
                                 <option value="">-- Bukan Wali Kelas --</option>
                                 {availableClasses.map(k => <option key={k} value={k}>{k}</option>)}
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">Jabatan Tambahan</label>
+                            <select className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-100 text-slate-900" value={editFormData.jabatan_tambahan} onChange={e => setEditFormData({...editFormData, jabatan_tambahan: e.target.value})}>
+                                <option value="-">-</option>
+                                <option value="Staff">Staff</option>
                             </select>
                         </div>
                         
