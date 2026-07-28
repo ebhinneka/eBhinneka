@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
 import { 
   User, Bell, BookOpen, Clock, Stethoscope, CheckCircle2, XCircle, FileText, ClipboardList, 
-  CalendarDays, TrendingUp, Users, Edit2, Plus, X, Loader2, Save, Flag, Check, Minus, Calendar, ChevronUp, ChevronDown
+  CalendarDays, TrendingUp, Users, Edit2, Plus, X, Loader2, Save, Flag, Check, Minus, Calendar, ChevronUp, ChevronDown, AlertTriangle
 } from 'lucide-react';
 import { getWIBDate, getWIBISOString, formatDateIndo } from '../utils/dateUtils';
 import { Student, Profile } from '../types';
@@ -15,6 +15,13 @@ interface MonthlyStats {
     targetJp: number;
     totalMeetings: number;
     monthJournals: Array<{ id: string, kelas: string, date: string, material: string, count: number }>;
+}
+
+interface WaliKelasViolation {
+    student_id: string;
+    student_name: string;
+    category: string;
+    note: string;
 }
 
 interface WaliKelasAbsence {
@@ -58,6 +65,7 @@ const Dashboard: React.FC = () => {
 
   const [stats, setStats] = useState<MonthlyStats>({ totalJp: 0, targetJp: 0, totalMeetings: 0, monthJournals: [] });
   const [homeroomAbsences, setHomeroomAbsences] = useState<WaliKelasAbsence[]>([]);
+  const [homeroomViolations, setHomeroomViolations] = useState<WaliKelasViolation[]>([]);
   const [kbmStatus, setKbmStatus] = useState<KbmStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterDate, setFilterDate] = useState(getWIBISOString());
@@ -283,6 +291,22 @@ const Dashboard: React.FC = () => {
             
             if (students && students.length > 0) {
                 const studentIds = students.map(s => s.id);
+                
+                // Fetch violations
+                const { data: violationLogs } = await supabase
+                    .from('journal_notes')
+                    .select('student_id, student_name, category, note')
+                    .eq('type', 'kedisiplinan')
+                    .gte('created_at', `${filterDate}T00:00:00+07:00`)
+                    .lte('created_at', `${filterDate}T23:59:59+07:00`)
+                    .in('student_id', studentIds);
+                    
+                if (violationLogs) {
+                    setHomeroomViolations(violationLogs as WaliKelasViolation[]);
+                } else {
+                    setHomeroomViolations([]);
+                }
+
                 const { data: homeroomLogs } = await supabase
                     .from('homeroom_attendance')
                     .select('student_id, status')
@@ -652,16 +676,16 @@ const Dashboard: React.FC = () => {
                             {/* Header Section (Left) */}
                             <div className="flex flex-row md:flex-col items-center md:items-start gap-4 flex-shrink-0 md:min-w-[180px] md:border-r md:border-slate-100 dark:md:border-slate-700 md:pr-4 pt-2 md:pt-0">
                                 <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center shadow-sm border transition-colors ${
-                                    homeroomAbsences.length > 0 
-                                    ? 'bg-sky-100 dark:bg-slate-900/30 border-blue-300 dark:border-slate-900 text-blue-600 dark:text-blue-500' 
+                                    (homeroomAbsences.length > 0 || homeroomViolations.length > 0)
+                                    ? 'bg-red-100 dark:bg-slate-900/30 border-red-300 dark:border-slate-900 text-red-600 dark:text-red-500' 
                                     : 'bg-sky-100 dark:bg-blue-500/30 border-blue-300 dark:border-blue-500 text-blue-500 dark:text-blue-500'
                                 }`}>
-                                     {homeroomAbsences.length > 0 ? <Bell size={20} className="animate-pulse" /> : <CheckCircle2 size={22} />}
+                                     {(homeroomAbsences.length > 0 || homeroomViolations.length > 0) ? <Bell size={20} className="animate-pulse text-red-500" /> : <CheckCircle2 size={22} />}
                                 </div>
                                 <div className="flex-1">
                                     <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-xs uppercase tracking-wide leading-relaxed">Rekap Absensi <br className="hidden md:block"/>Kelas {profile.wali_kelas}</h3>
                                     <p className={`text-[10px] font-bold mt-1 leading-tight ${homeroomAbsences.length > 0 ? 'text-blue-600 dark:text-blue-500' : 'text-blue-500 dark:text-blue-500'}`}>
-                                        {homeroomAbsences.length > 0 ? `${homeroomAbsences.length} Murid Absen` : 'Semua Hadir'}
+                                        {homeroomAbsences.length > 0 || homeroomViolations.length > 0 ? `${homeroomAbsences.length} Absen, ${homeroomViolations.length} Pelanggaran` : 'Semua Hadir & Tertib'}
                                     </p>
                                     
                                     <button 
@@ -757,16 +781,35 @@ const Dashboard: React.FC = () => {
                                     />
                                 </div>
 
-                                {homeroomAbsences.length === 0 ? (
+                                {(homeroomAbsences.length === 0 && homeroomViolations.length === 0) ? (
                                     <div className="flex items-center justify-center h-full text-slate-400 dark:text-slate-500 text-xs font-medium italic bg-slate-50/50 dark:bg-slate-900/50 rounded-xl px-4 py-8 border border-slate-100 dark:border-slate-700 border-dashed">
-                                        <CheckCircle2 size={14} className="mr-2"/> Tidak ada laporan ketidakhadiran murid pada tanggal ini.
+                                        <CheckCircle2 size={14} className="mr-2"/> Tidak ada laporan ketidakhadiran murid atau pelanggaran pada tanggal ini.
                                     </div>
                                 ) : (
+                                    <div className="flex flex-col gap-6">
+                                    {homeroomViolations.length > 0 && (
+                                        <div className="animate-fade-in border border-red-100 bg-red-50 rounded-2xl p-4">
+                                            <div className="flex items-center gap-2 mb-3 border-b border-red-100 pb-2">
+                                                <AlertTriangle size={16} className="text-red-500" />
+                                                <h4 className="font-extrabold text-red-700 text-xs uppercase">Pelanggaran Hari Ini</h4>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {homeroomViolations.map((v, idx) => (
+                                                    <div key={idx} className="flex flex-col bg-white rounded-xl p-3 shadow-sm border border-red-50">
+                                                        <span className="font-bold text-slate-800 text-sm">{v.student_name}</span>
+                                                        <span className="text-xs text-red-600 font-bold">{v.category}</span>
+                                                        {v.note && <span className="text-xs text-slate-500 mt-1">{v.note}</span>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="flex flex-wrap gap-x-8 gap-y-6">
                                         <AbsenceSection title="ALPA" list={listAlpa} colorClass="text-blue-600 dark:text-blue-500" icon={XCircle} onEdit={handleEditSpecific} />
                                         <AbsenceSection title="IZIN" list={listIzin} colorClass="text-blue-600 dark:text-blue-400" icon={FileText} onEdit={handleEditSpecific} />
                                         <AbsenceSection title="SAKIT" list={listSakit} colorClass="text-blue-500 dark:text-blue-500" icon={Stethoscope} onEdit={handleEditSpecific} />
                                         <AbsenceSection title="DISPEN" list={listDispen} colorClass="text-blue-600 dark:text-blue-500" icon={Flag} onEdit={handleEditSpecific} />
+                                    </div>
                                     </div>
                                 )}
                             </div>

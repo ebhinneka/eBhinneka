@@ -58,6 +58,7 @@ const JurnalForm: React.FC = () => {
   const [missingStudents, setMissingStudents] = useState<string[]>([]); 
 
   const [notesData, setNotesData] = useState<{ discipline: NoteItem[]; activity: NoteItem[]; }>({ discipline: [], activity: [] });
+  const [lockedAttendance, setLockedAttendance] = useState<Record<string, boolean>>({});
 
   const [prevMeetingStats, setPrevMeetingStats] = useState<Record<string, string>>({});
   const [hasPrevMeeting, setHasPrevMeeting] = useState(false);
@@ -229,12 +230,29 @@ const JurnalForm: React.FC = () => {
           }
           setNotesData(loadedNotes);
           setFormData({ kelas: existing.kelas, subject: existing.subject, hours: existing.hours.split(',').map(s => s.trim()), material: existing.material, attendance: attendanceMap, cleanliness: existing.cleanliness as any, validation: existing.validation as any, notes: existing.notes || '', isConfirmed: existing.validation === 'hadir_kbm' });
+          const todayStr = getWIBISOString();
+          supabase.from('homeroom_attendance').select('student_id, status').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('date', semesterStart ? `${semesterStart}` : '2000-01-01').lte('date', semesterEnd ? `${semesterEnd}` : '2100-01-01').eq('date', todayStr).eq('kelas', existing.kelas).then(({data}) => { 
+              if (data && data.length > 0) { 
+                  const locked: Record<string, boolean> = {}; 
+                  const updatedAtt = {...attendanceMap};
+                  data.forEach(r => { 
+                      if (['S', 'I', 'A', 'D'].includes(r.status)) { 
+                          updatedAtt[r.student_id] = r.status; 
+                          locked[r.student_id] = true; 
+                      } 
+                  }); 
+                  setFormData(prev => ({...prev, attendance: updatedAtt})); 
+                  setLockedAttendance(locked); 
+              } else {
+                  setLockedAttendance({});
+              }
+          });
       } else {
-          setEditJournalId(null); setNotesData({ discipline: [], activity: [] });
+          setEditJournalId(null); setNotesData({ discipline: [], activity: [] }); setLockedAttendance({}); setLockedAttendance({});
           let hoursParsed: string[] = []; if (selectedSchedule.hour.includes(',')) hoursParsed = selectedSchedule.hour.split(',').map(s => s.trim()); else hoursParsed = [selectedSchedule.hour];
           const isDhuhaSched = isSpecialSubjectDhuha(selectedSchedule.subject); const defaultMaterial = isDhuhaSched ? 'Salat Dhuha' : '';
           const todayStr = getWIBISOString();
-          supabase.from('homeroom_attendance').select('student_id, status').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('date', semesterStart ? `${semesterStart}` : '2000-01-01').lte('date', semesterEnd ? `${semesterEnd}` : '2100-01-01').eq('date', todayStr).eq('kelas', selectedSchedule.kelas).then(({data}) => { if (data && data.length > 0) { const initialAttendance: Record<string, any> = {}; data.forEach(r => { if (['S', 'I', 'A', 'D'].includes(r.status)) { initialAttendance[r.student_id] = r.status; } }); setFormData(prev => ({...prev, attendance: initialAttendance})); } });
+          supabase.from('homeroom_attendance').select('student_id, status').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('date', semesterStart ? `${semesterStart}` : '2000-01-01').lte('date', semesterEnd ? `${semesterEnd}` : '2100-01-01').eq('date', todayStr).eq('kelas', selectedSchedule.kelas).then(({data}) => { if (data && data.length > 0) { const initialAttendance: Record<string, any> = {}; const locked: Record<string, boolean> = {}; data.forEach(r => { if (['S', 'I', 'A', 'D'].includes(r.status)) { initialAttendance[r.student_id] = r.status; locked[r.student_id] = true; } }); setFormData(prev => ({...prev, attendance: initialAttendance})); setLockedAttendance(locked); } });
           setFormData({ kelas: selectedSchedule.kelas, subject: selectedSchedule.subject, hours: hoursParsed, material: defaultMaterial, attendance: {}, cleanliness: '', validation: '', notes: '', isConfirmed: false });
       }
   };
@@ -433,12 +451,12 @@ const JurnalForm: React.FC = () => {
                                                                    <>
                                                                        <td className="p-1 sm:p-2 text-center align-middle">
                                                                            <div className="flex justify-center">
-                                                                               <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5 rounded border-2 border-slate-300 focus:ring-0 cursor-pointer text-blue-500 focus:ring-blue-500 checked:bg-blue-500 checked:border-blue-500" checked={formData.attendance[student.id] === 'A'} onChange={() => { const newAtt = {...formData.attendance}; if (newAtt[student.id] === 'A') delete newAtt[student.id]; else newAtt[student.id] = 'A'; setFormData({...formData, attendance: newAtt}); }} />
+                                                                               <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5 rounded border-2 border-slate-300 focus:ring-0 cursor-pointer text-blue-500 focus:ring-blue-500 checked:bg-blue-500 checked:border-blue-500" checked={formData.attendance[student.id] === 'A'} disabled={lockedAttendance[student.id]} onChange={() => { const newAtt = {...formData.attendance}; if (newAtt[student.id] === 'A') delete newAtt[student.id]; else newAtt[student.id] = 'A'; setFormData({...formData, attendance: newAtt}); }} />
                                                                            </div>
                                                                        </td>
                                                                        <td className="p-1 sm:p-2 text-center align-middle">
                                                                            <div className="flex justify-center">
-                                                                               <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5 rounded border-2 border-slate-300 focus:ring-0 cursor-pointer text-blue-600 focus:ring-blue-600 checked:bg-blue-600 checked:border-blue-600" checked={formData.attendance[student.id] === 'D'} onChange={() => { const newAtt = {...formData.attendance}; if (newAtt[student.id] === 'D') delete newAtt[student.id]; else newAtt[student.id] = 'D'; setFormData({...formData, attendance: newAtt}); }} />
+                                                                               <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5 rounded border-2 border-slate-300 focus:ring-0 cursor-pointer text-blue-600 focus:ring-blue-600 checked:bg-blue-600 checked:border-blue-600" checked={formData.attendance[student.id] === 'D'} disabled={lockedAttendance[student.id]} onChange={() => { const newAtt = {...formData.attendance}; if (newAtt[student.id] === 'D') delete newAtt[student.id]; else newAtt[student.id] = 'D'; setFormData({...formData, attendance: newAtt}); }} />
                                                                            </div>
                                                                        </td>
                                                                    </>
@@ -449,7 +467,8 @@ const JurnalForm: React.FC = () => {
                                                                                <input 
                                                                                    type="checkbox" 
                                                                                    className={`w-4 h-4 sm:w-5 sm:h-5 rounded border-2 border-slate-300 focus:ring-0 cursor-pointer ${status === 'S' ? 'text-blue-500 focus:ring-blue-500 checked:bg-blue-500 checked:border-blue-500' : status === 'I' ? 'text-blue-400 focus:ring-blue-400 checked:bg-blue-400 checked:border-blue-400' : status === 'A' ? 'text-blue-500 focus:ring-blue-500 checked:bg-blue-500 checked:border-blue-500' : 'text-blue-500 focus:ring-blue-500 checked:bg-blue-500 checked:border-blue-500'}`} 
-                                                                                   checked={formData.attendance[student.id] === status} 
+                                                                                   checked={formData.attendance[student.id] === status}
+                                                                                   disabled={lockedAttendance[student.id]} 
                                                                                    onChange={() => { const newAtt = {...formData.attendance}; if (newAtt[student.id] === status) delete newAtt[student.id]; else newAtt[student.id] = status as any; setFormData({...formData, attendance: newAtt}); }} 
                                                                                />
                                                                            </div>

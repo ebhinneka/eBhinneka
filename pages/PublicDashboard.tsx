@@ -76,10 +76,13 @@ const PublicDashboard: React.FC = () => {
     const todayObj = new Date(todayStr);
     const jsDay = todayObj.getDay();
     let jpPerClass = 0;
-    if (jsDay === 1) jpPerClass = 7;
-    else if (jsDay >= 2 && jsDay <= 4) jpPerClass = 8;
-    else if (jsDay === 5) jpPerClass = 5;
-    else if (jsDay === 6) jpPerClass = 6;
+    if (jsDay === 6) jpPerClass = 8; // Sabtu
+    else if (jsDay === 0) jpPerClass = 6; // Minggu
+    else if (jsDay === 1) jpPerClass = 4; // Senin
+    else if (jsDay === 2) jpPerClass = 6; // Selasa
+    else if (jsDay === 3) jpPerClass = 8; // Rabu
+    else if (jsDay === 4) jpPerClass = 4; // Kamis
+    else if (jsDay === 5) jpPerClass = 5; // Jumat default
     
     const calculatedTotalJp = jpPerClass * 24;
 

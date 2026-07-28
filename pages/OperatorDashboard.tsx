@@ -126,7 +126,23 @@ const OperatorDashboard: React.FC = () => {
               supabase.from('homeroom_attendance').select('student_id, status, kelas').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('date', semesterStart ? `${semesterStart}` : '2000-01-01').lte('date', semesterEnd ? `${semesterEnd}` : '2100-01-01').eq('date', filterDate)
           ]);
 
-          const schedules = schedulesRes.data || [];
+          let schedules = schedulesRes.data || [];
+          const validHoursMap: Record<number, number[]> = {
+              1: [3, 4, 5, 6],
+              2: [1, 2, 3, 4, 5, 6],
+              3: [1, 2, 3, 4, 5, 6, 7, 8],
+              4: [3, 4, 5, 6],
+              6: [1, 2, 3, 4, 5, 6, 7, 8],
+              7: [1, 2, 3, 4, 5, 6]
+          };
+          if (validHoursMap[dbDay]) {
+              const validHours = validHoursMap[dbDay];
+              schedules = schedules.filter(sch => {
+                  const schHours = sch.hour.split(',').map((h: any) => parseInt(h.trim())).filter((h: number) => !isNaN(h));
+                  return schHours.some((h: number) => validHours.includes(h));
+              });
+          }
+
           const journals = journalsRes.data || [];
           const attendanceLogs = attendanceRes.data || [];
           const studentsData = studentsRes.data || [];
@@ -227,7 +243,7 @@ const OperatorDashboard: React.FC = () => {
                         <tr><th className="px-2 py-2 w-[15%] text-center">Kelas</th><th className="px-2 py-2 w-[15%] text-center">Jam</th><th className="px-2 py-2 w-[58%]">Guru / Mapel</th><th className="px-2 py-2 w-[12%] text-center">Sts</th></tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {displayItems.length === 0 ? <tr><td colSpan={4} className="p-6 text-center text-slate-400 italic text-[clamp(10px,1vw,13px)]">Tidak ada jadwal.</td></tr> : (displayItems.map((item) => (<tr key={item.scheduleId} className={`transition-all duration-500 ease-in-out ${item.isFilled ? 'bg-slate-100 hover:bg-slate-50' : 'bg-sky-100/40 hover:bg-sky-100'}`}><td className="px-1 py-1.5 text-center font-bold text-slate-700 text-[clamp(10px,1.1vw,14px)]">{item.kelas}</td><td className="px-1 py-1.5 text-center font-mono text-slate-500 text-[clamp(9px,1vw,12px)]">{formatJam(item.jam)}</td><td className="px-1 py-1.5 overflow-hidden"><div className="font-bold text-slate-800 truncate text-[clamp(10px,1.1vw,14px)] leading-tight">{item.teacherName}</div><div className="text-slate-500 truncate text-[clamp(9px,0.9vw,12px)] leading-tight">{item.mapel}</div></td><td className="px-1 py-1.5 text-center">{item.isFilled ? <CheckCircle2 className="text-blue-500 inline-block w-[clamp(14px,1.5vw,20px)] h-[clamp(14px,1.5vw,20px)]" /> : <XCircle className="text-blue-500 inline-block w-[clamp(14px,1.5vw,20px)] h-[clamp(14px,1.5vw,20px)]" />}</td></tr>)))}
+                        {displayItems.length === 0 ? <tr><td colSpan={4} className="p-6 text-center text-slate-400 italic text-[clamp(10px,1vw,13px)]">Tidak ada jadwal.</td></tr> : (displayItems.map((item) => (<tr key={item.scheduleId} className={`transition-all duration-500 ease-in-out ${item.isFilled ? 'bg-slate-100 hover:bg-slate-50' : 'bg-sky-100/40 hover:bg-sky-100'}`}><td className="px-1 py-1.5 text-center font-bold text-slate-700 text-[clamp(10px,1.1vw,14px)]">{item.kelas}</td><td className="px-1 py-1.5 text-center font-mono text-slate-500 text-[clamp(9px,1vw,12px)]">{formatJam(item.jam)}</td><td className="px-1 py-1.5 overflow-hidden"><div className="font-bold text-slate-800 truncate text-[clamp(10px,1.1vw,14px)] leading-tight">{item.teacherName}</div><div className="text-slate-500 truncate text-[clamp(9px,0.9vw,12px)] leading-tight">{item.mapel}</div></td><td className="px-1 py-1.5 text-center">{item.isFilled ? <CheckCircle2 className="text-blue-500 inline-block w-[clamp(14px,1.5vw,20px)] h-[clamp(14px,1.5vw,20px)]" /> : <XCircle className="text-red-500 inline-block w-[clamp(14px,1.5vw,20px)] h-[clamp(14px,1.5vw,20px)]" />}</td></tr>)))}
                     </tbody>
                 </table>
             </div>
