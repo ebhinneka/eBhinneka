@@ -71,10 +71,14 @@ const PublicDashboard: React.FC = () => {
   const fetchStatsClientSide = async () => {
     const todayStr = getWIBISOString();
     const startOfDay = `${todayStr}T00:00:00+07:00`;
+    const tempDate = new Date();
+    const jsDay = tempDate.getDay();
+    const dbDay = jsDay === 0 ? 7 : jsDay;
+    const activeScheduleVersion = 'Utama';
 
     
     const todayObj = new Date(todayStr);
-    const jsDay = todayObj.getDay();
+    // removed duplicate jsDay
     let jpPerClass = 0;
     if (jsDay === 6) jpPerClass = 8; // Sabtu
     else if (jsDay === 0) jpPerClass = 6; // Minggu
@@ -87,7 +91,7 @@ const PublicDashboard: React.FC = () => {
     // Removed calculatedTotalJp = jpPerClass * 24
 
     try {
-        const [studentsRes, journalsRes, attendanceRes, homeroomRes] = await Promise.all([
+        const [studentsRes, journalsRes, attendanceRes, homeroomRes, schedulesRes] = await Promise.all([
             
             (async () => {
                 let allData: any[] = [];
@@ -109,12 +113,29 @@ const PublicDashboard: React.FC = () => {
 ,
             supabase.from('journals').select('hours').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', startOfDay),
             supabase.from('attendance_logs').select('student_id, student_name, status, created_at, subject').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', startOfDay),
-            supabase.from('homeroom_attendance').select('student_id, status, kelas').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('date', semesterStart ? `${semesterStart}` : '2000-01-01').lte('date', semesterEnd ? `${semesterEnd}` : '2100-01-01').eq('date', todayStr)
+            supabase.from('homeroom_attendance').select('student_id, status, kelas').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('date', semesterStart ? `${semesterStart}` : '2000-01-01').lte('date', semesterEnd ? `${semesterEnd}` : '2100-01-01').eq('date', todayStr),
+            supabase.from('schedules').select('hour, academic_year, semester').eq('day_of_week', dbDay).eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').eq('schedule_version', activeScheduleVersion || 'Utama').then(async (res) => {
+                if (res.error && (res.error.code === '42703' || res.error.message?.includes('academic_year'))) {
+                    return await supabase.from('schedules').select('hour, academic_year, semester').eq('day_of_week', dbDay);
+                }
+                return res;
+            })
         ]);
 
         const classCounts: Record<string, number> = {};
         const sClassMap: Record<string, string> = {}; 
         let c7 = 0, c8 = 0, c9 = 0;
+        let calculatedTotalJp = 0;
+        if (schedulesRes && schedulesRes.data) {
+            let scheds = schedulesRes.data;
+            if (scheds.length > 0 && scheds[0].academic_year !== undefined) {
+                scheds = scheds.filter(s => s.academic_year === (academicYear || '2025/2026') && s.semester === (semester || 'Ganjil'));
+            }
+            scheds.forEach((s: any) => {
+                calculatedTotalJp += s.hour.split(',').filter((h: string) => h.trim() !== '').length;
+            });
+        }
+        if (calculatedTotalJp === 0) calculatedTotalJp = jpPerClass * (Object.keys(classCounts).length || 45); // fallback
         
         if (studentsRes.data) {
             studentsRes.data.forEach((s: any) => {
@@ -199,7 +220,7 @@ const PublicDashboard: React.FC = () => {
         setStats({
             count7: c7, count8: c8, count9: c9,
             classDetails: classCounts,
-            totalJpRequired: jpPerClass * (Object.keys(classCounts).length || 45), 
+            totalJpRequired: calculatedTotalJp, 
             completedJp: completedJp,
             absenceCount: sCount + iCount + aCount,
             absenceDetails: { S: sCount, I: iCount, A: aCount },

@@ -225,6 +225,7 @@ const UsersData: React.FC = () => {
                    <th className="px-6 py-4">User Info</th>
                    <th className="px-6 py-4">Password Info</th>
                    <th className="px-6 py-4">Role</th>
+                   <th className="px-6 py-4">Jabatan Tambahan</th>
                    <th className="px-6 py-4">Mapel (Profil)</th>
                    <th className="px-6 py-4">Wali Kelas</th>
                    
@@ -232,7 +233,7 @@ const UsersData: React.FC = () => {
                  </tr>
                </thead>
                <tbody className="divide-y divide-slate-100">
-                 {loading ? <tr><td colSpan={8} className="px-6 py-8 text-center text-slate-500">Memuat data profiles...</td></tr> : filteredProfiles.length === 0 ? <tr><td colSpan={8} className="px-6 py-8 text-center text-slate-500">Tidak ada data user ditemukan.</td></tr> : (
+                 {loading ? <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-500">Memuat data profiles...</td></tr> : filteredProfiles.length === 0 ? <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-500">Tidak ada data user ditemukan.</td></tr> : (
                    filteredProfiles.map((p) => (
                      <tr key={p.id} className="hover:bg-blue-50/50 transition-colors group">
                        <td className="px-6 py-3"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden flex-shrink-0">{p.avatar_url ? <img src={p.avatar_url} alt="" className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-bold">{p.full_name?.charAt(0)}</div>}</div><div><div className="font-bold text-slate-900">{p.full_name}</div><div className="text-xs text-slate-500 font-mono">{p.nip}</div></div></div></td>

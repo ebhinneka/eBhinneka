@@ -1,29 +1,21 @@
 const fs = require('fs');
-let content = fs.readFileSync('pages/PublicDashboard.tsx', 'utf8');
+let code = fs.readFileSync('pages/PublicDashboard.tsx', 'utf8');
 
-const fetchStudentsLoop = `
-            (async () => {
-                let allData = [];
-                let from = 0;
-                let step = 1000;
-                while (true) {
-                    let res = await supabase.from('students').select('id, kelas').eq('academic_year', academicYear || '2025/2026').range(from, from + step - 1);
-                    if (res.error && (res.error.code === '42703' || res.error.message?.includes('academic_year'))) {
-                        res = await supabase.from('students').select('id, kelas').eq('academic_year', academicYear || '2025/2026').range(from, from + step - 1);
-                    }
-                    if (res.error) break;
-                    if (!res.data || res.data.length === 0) break;
-                    allData = allData.concat(res.data);
-                    if (res.data.length < step) break;
-                    from += step;
-                }
-                return { data: allData, error: null };
-            })()
-`;
+// 1. Add activeScheduleVersion fallback and dbDay
+const beforeFetch = `const todayStr = getWIBISOString();\n    const startOfDay = \`\${todayStr}T00:00:00+07:00\`;`;
+const newVars = `const todayStr = getWIBISOString();
+    const startOfDay = \`\${todayStr}T00:00:00+07:00\`;
+    const tempDate = new Date();
+    const jsDay = tempDate.getDay();
+    const dbDay = jsDay === 0 ? 7 : jsDay;
+    const activeScheduleVersion = 'Utama';`;
+code = code.replace(beforeFetch, newVars);
 
-content = content.replace(
-    /supabase\.from\('students'\)\.select\('id, kelas'\)\.eq\('academic_year', academicYear \|\| '2025\/2026'\)\.then\(async \(res\) => \{[\s\S]*?return res;\s*\}\)/,
-    fetchStudentsLoop
+// 2. Fix select query fields
+code = code.replace(
+  "supabase.from('schedules').select('hour').eq('day_of_week', dbDay)",
+  "supabase.from('schedules').select('hour, academic_year, semester').eq('day_of_week', dbDay)"
 );
 
-fs.writeFileSync('pages/PublicDashboard.tsx', content);
+fs.writeFileSync('pages/PublicDashboard.tsx', code);
+console.log("Done");
