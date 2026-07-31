@@ -107,8 +107,8 @@ const AbsensiRapor: React.FC = () => {
 
           const studentIds = students.map(s => s.id);
 
-          const { data: hLogs } = await supabase.from('homeroom_attendance').select('student_id, date, status').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').in('student_id', studentIds).gte('date', startDate).lte('date', endDate);
-          const { data: tLogs } = await supabase.from('attendance_logs').select('student_id, created_at, status').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').in('student_id', studentIds).gte('created_at', start).lte('created_at', end).neq('status', 'D');
+          const { data: hLogs } = await supabase.from('homeroom_attendance').select('student_id, date, status').in('student_id', studentIds).gte('date', startDate).lte('date', endDate);
+          const { data: tLogs } = await supabase.from('attendance_logs').select('student_id, created_at, status').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').in('student_id', studentIds).gte('created_at', start).lte('created_at', end).neq('status', 'D');
 
           const processedStudents: ReportStudent[] = students.map(student => {
               let s_total = 0, i_total = 0, a_total = 0, d_total = 0;
@@ -188,8 +188,7 @@ const AbsensiRapor: React.FC = () => {
             <div className="grid md:grid-cols-4 gap-4 items-end">
                 <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1">Kelas</label>
-                    <select 
-                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-xl p-3 font-bold focus:ring-2 focus:ring-blue-500 dark: dark:border-slate-600"
+                    <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border rounded-xl p-3 font-bold focus:ring-2 focus:ring-blue-500 dark: dark:border-slate-600"
                         value={selectedClass}
                         onChange={e => setSelectedClass(e.target.value)}
                     >

@@ -425,8 +425,7 @@ const ImportData: React.FC = () => {
                         {activeTab !== 'teachers' && (
                             <div className="mb-6 bg-blue-50 border border-blue-200 p-4 rounded-xl">
                                 <label className="block text-xs font-bold text-blue-800 mb-2">Tahun Ajaran Tujuan Data (Penting):</label>
-                                <select 
-                                    className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-blue-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 dark: dark: dark:border-slate-600"
+                                <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border border-blue-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 dark:border-slate-600"
                                     value={targetYear}
                                     onChange={(e) => setTargetYear(e.target.value)}
                                 >

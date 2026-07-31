@@ -53,7 +53,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-transparent transition-colors duration-300"> 
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-900 transition-colors duration-300"> 
       <div className="text-center mb-8">
            <img 
              src="https://i.imghippo.com/files/WXB3962h.png" 

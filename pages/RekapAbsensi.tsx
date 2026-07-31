@@ -203,8 +203,7 @@ const RekapAbsensi: React.FC = () => {
             <div className="grid md:grid-cols-3 gap-4 items-end">
                 <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1">Kelas</label>
-                    <select 
-                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-xl p-3 font-bold focus:ring-2 focus:ring-blue-500 dark: dark:border-slate-600"
+                    <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border rounded-xl p-3 font-bold focus:ring-2 focus:ring-blue-500 dark: dark:border-slate-600"
                         value={selectedClass}
                         onChange={handleClassChange}
                     >

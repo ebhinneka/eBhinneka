@@ -283,8 +283,7 @@ const InputJadwal: React.FC = () => {
             <div className="flex items-center gap-3 bg-slate-100 p-2 rounded-2xl border border-slate-200 shadow-sm">
                 <div className="px-3">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase">Edit Versi Jadwal</label>
-                    <select 
-                        className="text-sm font-bold text-blue-600 bg-transparent outline-none cursor-pointer"
+                    <select className="bg-white text-slate-800 border-slate-200 text-sm font-bold text-blue-600 outline-none cursor-pointer"
                         value={workingVersion}
                         onChange={(e) => setWorkingVersion(e.target.value)}
                     >
@@ -307,21 +306,21 @@ const InputJadwal: React.FC = () => {
             <div className="lg:col-span-1 space-y-6">
                 <div className="bg-slate-100 p-5 rounded-3xl shadow-sm border border-slate-100 sticky top-4">
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 ml-1">Pilih Guru Pengajar</label>
-                    <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-200 rounded-xl p-3.5 focus:ring-2 focus:ring-blue-600 font-bold dark: dark:border-slate-600" value={selectedTeacherId} onChange={handleTeacherChange} disabled={loading || scheduleQueue.length > 0}><option value="">-- Cari Nama Guru --</option>{teachers.map(t => (<option key={t.id} value={t.id}>{t.full_name}</option>))}</select>
+                    <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border border-slate-200 rounded-xl p-3.5 focus:ring-2 focus:ring-blue-600 font-bold dark: dark:border-slate-600" value={selectedTeacherId} onChange={handleTeacherChange} disabled={loading || scheduleQueue.length > 0}><option value="">-- Cari Nama Guru --</option>{teachers.map(t => (<option key={t.id} value={t.id}>{t.full_name}</option>))}</select>
                     {scheduleQueue.length > 0 && <p className="text-[10px] text-blue-600 mt-2 font-bold px-2">* Simpan antrian sebelum ganti guru.</p>}
                 </div>
 
                 <div className={`bg-slate-100 p-6 rounded-3xl shadow-sm border border-slate-100 space-y-5 transition-all ${!selectedTeacher ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
                     <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-2"><Plus size={18} className="text-blue-600"/><h3 className="font-bold text-slate-800">Tambah Jadwal Baru</h3></div>
                     <div className="grid grid-cols-2 gap-4">
-                        <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Hari</label><select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-200 rounded-xl p-3 text-sm dark: dark: dark:border-slate-600" value={formData.hari} onChange={e => setFormData({...formData, hari: e.target.value})}>{['Sabtu','Minggu','Senin','Selasa','Rabu','Kamis'].map(d => <option key={d} value={d}>{d}</option>)}</select></div>
-                        <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Kelas</label><select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-200 rounded-xl p-3 text-sm dark: dark: dark:border-slate-600" value={formData.kelas} onChange={e => setFormData({...formData, kelas: e.target.value})}><option value="">- Pilih -</option>{availableClasses.map(c => (<option key={c} value={c}>{c}</option>))}</select></div>
+                        <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Hari</label><select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border border-slate-200 rounded-xl p-3 text-sm dark:border-slate-600" value={formData.hari} onChange={e => setFormData({...formData, hari: e.target.value})}>{['Sabtu','Minggu','Senin','Selasa','Rabu','Kamis'].map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                        <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Kelas</label><select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border border-slate-200 rounded-xl p-3 text-sm dark:border-slate-600" value={formData.kelas} onChange={e => setFormData({...formData, kelas: e.target.value})}><option value="">- Pilih -</option>{availableClasses.map(c => (<option key={c} value={c}>{c}</option>))}</select></div>
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-slate-500 mb-2 ml-1">Jam Ke-</label>
                         <div className="flex flex-wrap gap-2">{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(j => (<button key={j} type="button" onClick={() => toggleJam(j)} className={`w-9 h-9 rounded-lg text-xs font-bold transition-all border ${formData.jam.includes(String(j)) ? 'bg-blue-600 text-slate-100 border-blue-600 shadow-md' : 'bg-slate-100 text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'}`}>{j}</button>))}</div>
                     </div>
-                    <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Mata Pelajaran</label><select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-200 rounded-xl p-3 text-sm dark: dark: dark:border-slate-600" value={formData.mapel} onChange={e => setFormData({...formData, mapel: e.target.value})}><option value="">-- Pilih Mapel --</option>{availableSubjects.map((s, i) => <option key={i} value={s}>{s}</option>)}</select></div>
+                    <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Mata Pelajaran</label><select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border border-slate-200 rounded-xl p-3 text-sm dark:border-slate-600" value={formData.mapel} onChange={e => setFormData({...formData, mapel: e.target.value})}><option value="">-- Pilih Mapel --</option>{availableSubjects.map((s, i) => <option key={i} value={s}>{s}</option>)}</select></div>
                     <button onClick={handleAddToQueue} className="w-full bg-sky-100 text-blue-600 hover:bg-sky-100 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 border border-sky-100 transition-all shadow-sm hover:shadow-md"><ListChecks size={18} /> Tambah ke Antrian</button>
                 </div>
             </div>
@@ -359,8 +358,8 @@ const InputJadwal: React.FC = () => {
                     </div>
                     <div className="p-6 space-y-5">
                         <div className="grid grid-cols-2 gap-4">
-                             <div><label className="block text-xs font-bold text-slate-500 mb-1.5">Hari</label><select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-200 rounded-xl p-3 text-sm dark: dark: dark:border-slate-600" value={editFormData.hari} onChange={e => setEditFormData({...editFormData, hari: e.target.value})}>{['Sabtu','Minggu','Senin','Selasa','Rabu','Kamis'].map(d => <option key={d} value={d}>{d}</option>)}</select></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1.5">Kelas</label><select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-200 rounded-xl p-3 text-sm dark: dark: dark:border-slate-600" value={editFormData.kelas} onChange={e => setEditFormData({...editFormData, kelas: e.target.value})}>{availableClasses.map(c => (<option key={c} value={c}>{c}</option>))}</select></div>
+                             <div><label className="block text-xs font-bold text-slate-500 mb-1.5">Hari</label><select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border border-slate-200 rounded-xl p-3 text-sm dark:border-slate-600" value={editFormData.hari} onChange={e => setEditFormData({...editFormData, hari: e.target.value})}>{['Sabtu','Minggu','Senin','Selasa','Rabu','Kamis'].map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1.5">Kelas</label><select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border border-slate-200 rounded-xl p-3 text-sm dark:border-slate-600" value={editFormData.kelas} onChange={e => setEditFormData({...editFormData, kelas: e.target.value})}>{availableClasses.map(c => (<option key={c} value={c}>{c}</option>))}</select></div>
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-slate-500 mb-2">Jam Ke-</label>
@@ -368,7 +367,7 @@ const InputJadwal: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-slate-500 mb-1.5">Mata Pelajaran</label>
-                            <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-200 rounded-xl p-3 text-sm dark: dark: dark:border-slate-600" value={editFormData.mapel} onChange={e => setEditFormData({...editFormData, mapel: e.target.value})}>
+                            <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border border-slate-200 rounded-xl p-3 text-sm dark:border-slate-600" value={editFormData.mapel} onChange={e => setEditFormData({...editFormData, mapel: e.target.value})}>
                                 <option value="">-- Pilih Mapel --</option>
                                 {availableSubjects.map((s, i) => <option key={i} value={s}>{s}</option>)}
                             </select>

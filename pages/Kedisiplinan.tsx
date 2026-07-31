@@ -126,9 +126,9 @@ const Kedisiplinan: React.FC = () => {
           } else {
               // ALL CLASSES: Scan Logs First to find relevant IDs
               const [hRes, tRes, vRes] = await Promise.all([
-                  supabase.from('homeroom_attendance').select('student_id').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('date', semesterStart ? `${semesterStart}` : '2000-01-01').lte('date', semesterEnd ? `${semesterEnd}` : '2100-01-01').gte('date', startDate).lte('date', endDate).in('status', ['A']), // Only care about Alpa for query optimization
-                  supabase.from('attendance_logs').select('student_id').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', start).lte('created_at', end).in('status', ['A']),
-                  supabase.from('journal_notes').select('student_id').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').eq('type', 'kedisiplinan').gte('created_at', start).lte('created_at', end)
+                  supabase.from('homeroom_attendance').select('student_id').gte('date', semesterStart ? `${semesterStart}` : '2000-01-01').lte('date', semesterEnd ? `${semesterEnd}` : '2100-01-01').gte('date', startDate).lte('date', endDate).in('status', ['A']), // Only care about Alpa for query optimization
+                  supabase.from('attendance_logs').select('student_id').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', start).lte('created_at', end).in('status', ['A']),
+                  supabase.from('journal_notes').select('student_id').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').eq('type', 'kedisiplinan').gte('created_at', start).lte('created_at', end)
               ]);
 
               const ids = new Set<string>();
@@ -154,11 +154,11 @@ const Kedisiplinan: React.FC = () => {
           // 2. DATA ALPA (Logic Rapor: Aggregasi Wali Kelas & Guru Mapel)
           // Fetch data only for target IDs to be efficient
           const [hLogsRes, tLogsRes, violationNotesRes] = await Promise.all([
-              supabase.from('homeroom_attendance').select('student_id, date, status').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('date', semesterStart ? `${semesterStart}` : '2000-01-01').lte('date', semesterEnd ? `${semesterEnd}` : '2100-01-01')
+              supabase.from('homeroom_attendance').select('student_id, date, status').gte('date', semesterStart ? `${semesterStart}` : '2000-01-01').lte('date', semesterEnd ? `${semesterEnd}` : '2100-01-01')
                 .in('student_id', targetStudentIds).gte('date', startDate).lte('date', endDate),
-              supabase.from('attendance_logs').select('student_id, created_at, status').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00')
+              supabase.from('attendance_logs').select('student_id, created_at, status').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00')
                 .in('student_id', targetStudentIds).in('status', ['S', 'I', 'A']).gte('created_at', start).lte('created_at', end),
-              supabase.from('journal_notes').select('id, student_id, category, note, created_at, journal_id').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00')
+              supabase.from('journal_notes').select('id, student_id, category, note, created_at, journal_id').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00')
                 .in('student_id', targetStudentIds).eq('type', 'kedisiplinan').gte('created_at', start).lte('created_at', end)
           ]);
 
@@ -398,7 +398,7 @@ const Kedisiplinan: React.FC = () => {
               {isOpen && (
                   <div className="absolute z-20 w-full mt-1 bg-slate-100 border border-slate-100 rounded-xl shadow-lg max-h-48 overflow-y-auto p-1 custom-scrollbar">
                       {options.map((opt: any) => (
-                          <div key={opt.id} onClick={() => toggleSelection(opt.id)} className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer text-xs ${selectedIds.includes(opt.id) ? 'bg-sky-100 font-bold text-blue-600' : 'hover:bg-gray-50'}`}>
+                          <div key={opt.id} onClick={() => toggleSelection(opt.id)} className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer text-xs ${selectedIds.includes(opt.id) ? 'bg-sky-100 font-bold text-blue-600' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
                               {selectedIds.includes(opt.id) && <Check size={12} />} {opt.name}
                           </div>
                       ))}
@@ -465,7 +465,7 @@ const Kedisiplinan: React.FC = () => {
                     <>
                         <div className="mb-4">
                             <label className="block text-xs font-bold text-slate-500 mb-1">Pilih Kelas</label>
-                            <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  w-full md:w-1/3 border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-blue-600 font-bold " value={inputClass} onChange={e => setInputClass(e.target.value)}>
+                            <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full md:w-1/3 border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-blue-600 font-bold" value={inputClass} onChange={e => setInputClass(e.target.value)}>
                                 <option value="">-- Pilih Kelas --</option>
                                 {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
@@ -478,14 +478,14 @@ const Kedisiplinan: React.FC = () => {
                                         <div className="flex flex-col md:flex-row gap-3">
                                             <div className="w-full md:w-1/2">
                                                 <label className="block text-[10px] font-bold text-slate-500 mb-1">Jenis Pelanggaran</label>
-                                                <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full p-2.5 border rounded-lg text-xs dark: dark: dark:border-slate-600" value={row.category} onChange={e => updateRow(idx, 'category', e.target.value)}>
+                                                <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full p-2.5 border rounded-lg text-xs dark:border-slate-600" value={row.category} onChange={e => updateRow(idx, 'category', e.target.value)}>
                                                     <option value="">- Pilih -</option>
                                                     {disciplineTypes.map((t, i) => <option key={i} value={t}>{t}</option>)}
                                                 </select>
                                             </div>
                                             <div className="w-full md:w-1/2">
                                                 <label className="block text-[10px] font-bold text-slate-500 mb-1">Tindak Lanjut</label>
-                                                <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full p-2.5 border rounded-lg text-xs dark: dark: dark:border-slate-600" value={row.followUp} onChange={e => updateRow(idx, 'followUp', e.target.value)}>
+                                                <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full p-2.5 border rounded-lg text-xs dark:border-slate-600" value={row.followUp} onChange={e => updateRow(idx, 'followUp', e.target.value)}>
                                                     <option value="">- Pilih -</option>
                                                     {followUpTypes.map((t, i) => <option key={i} value={t}>{t}</option>)}
                                                 </select>
@@ -493,7 +493,7 @@ const Kedisiplinan: React.FC = () => {
                                         </div>
                                         <div>
                                             <label className="block text-[10px] font-bold text-slate-500 mb-1">Keterangan</label>
-                                            <input type="text" className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full p-2.5 border rounded-lg text-xs dark: dark: dark:border-slate-600" placeholder="Detail kejadian..." value={row.note} onChange={e => updateRow(idx, 'note', e.target.value)}/>
+                                            <input type="text" className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full p-2.5 border rounded-lg text-xs dark:border-slate-600" placeholder="Detail kejadian..." value={row.note} onChange={e => updateRow(idx, 'note', e.target.value)}/>
                                         </div>
                                         <div>
                                             <label className="block text-[10px] font-bold text-slate-500 mb-1">Murid Terlibat</label>
@@ -519,14 +519,14 @@ const Kedisiplinan: React.FC = () => {
                             <div className="flex flex-col md:flex-row gap-3">
                                 <div className="w-full md:w-1/2">
                                     <label className="block text-[10px] font-bold text-slate-500 mb-1">Jenis Pelanggaran</label>
-                                    <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full p-2.5 border rounded-lg text-xs dark: dark: dark:border-slate-600" value={massCommonData.category} onChange={e => setMassCommonData({...massCommonData, category: e.target.value})}>
+                                    <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full p-2.5 border rounded-lg text-xs dark:border-slate-600" value={massCommonData.category} onChange={e => setMassCommonData({...massCommonData, category: e.target.value})}>
                                         <option value="">- Pilih Jenis Pelanggaran -</option>
                                         {disciplineTypes.map((t, i) => <option key={i} value={t}>{t}</option>)}
                                     </select>
                                 </div>
                                 <div className="w-full md:w-1/2">
                                     <label className="block text-[10px] font-bold text-slate-500 mb-1">Tindak Lanjut</label>
-                                    <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full p-2.5 border rounded-lg text-xs dark: dark: dark:border-slate-600" value={massCommonData.followUp} onChange={e => setMassCommonData({...massCommonData, followUp: e.target.value})}>
+                                    <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full p-2.5 border rounded-lg text-xs dark:border-slate-600" value={massCommonData.followUp} onChange={e => setMassCommonData({...massCommonData, followUp: e.target.value})}>
                                         <option value="">- Pilih Tindak Lanjut -</option>
                                         {followUpTypes.map((t, i) => <option key={i} value={t}>{t}</option>)}
                                     </select>
@@ -534,7 +534,7 @@ const Kedisiplinan: React.FC = () => {
                             </div>
                             <div>
                                 <label className="block text-[10px] font-bold text-slate-500 mb-1">Keterangan</label>
-                                <input type="text" className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full p-2.5 border rounded-lg text-xs dark: dark: dark:border-slate-600" placeholder="Detail kejadian..." value={massCommonData.note} onChange={e => setMassCommonData({...massCommonData, note: e.target.value})}/>
+                                <input type="text" className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full p-2.5 border rounded-lg text-xs dark:border-slate-600" placeholder="Detail kejadian..." value={massCommonData.note} onChange={e => setMassCommonData({...massCommonData, note: e.target.value})}/>
                             </div>
                         </div>
 
@@ -545,8 +545,7 @@ const Kedisiplinan: React.FC = () => {
                                 <div key={idx} className="flex flex-col md:flex-row gap-3 items-start bg-slate-100 p-3 border rounded-xl shadow-sm relative pr-10">
                                     <div className="w-full md:w-1/3">
                                         <label className="block text-[10px] font-bold text-slate-400 mb-1">Pilih Kelas</label>
-                                        <select 
-                                            className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full p-2 border rounded-lg text-xs font-bold dark: dark:border-slate-600" 
+                                        <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full p-2 border rounded-lg text-xs font-bold dark: dark:border-slate-600" 
                                             value={row.class} 
                                             onChange={e => updateMassRow(idx, 'class', e.target.value)}
                                         >
@@ -593,21 +592,21 @@ const Kedisiplinan: React.FC = () => {
                     <label className="block text-[10px] font-bold text-slate-400 mb-1 ml-1 uppercase">Mulai Tanggal</label>
                     <div className="relative">
                         <Calendar className="absolute left-3 top-2.5 text-slate-400" size={14}/>
-                        <input type="date" className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  w-full pl-9 border border-slate-200 rounded-xl p-2 text-sm focus:ring-2 focus:ring-blue-600 dark: dark: dark:border-slate-600" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                        <input type="date" className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  w-full pl-9 border border-slate-200 rounded-xl p-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-slate-600" value={startDate} onChange={e => setStartDate(e.target.value)} />
                     </div>
                 </div>
                 <div>
                     <label className="block text-[10px] font-bold text-slate-400 mb-1 ml-1 uppercase">Sampai Tanggal</label>
                     <div className="relative">
                         <Calendar className="absolute left-3 top-2.5 text-slate-400" size={14}/>
-                        <input type="date" className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  w-full pl-9 border border-slate-200 rounded-xl p-2 text-sm focus:ring-2 focus:ring-blue-600 dark: dark: dark:border-slate-600" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                        <input type="date" className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  w-full pl-9 border border-slate-200 rounded-xl p-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-slate-600" value={endDate} onChange={e => setEndDate(e.target.value)} />
                     </div>
                 </div>
                 <div>
                     <label className="block text-[10px] font-bold text-slate-400 mb-1 ml-1 uppercase">Pilih Kelas</label>
                     <div className="relative">
                         <Filter className="absolute left-3 top-2.5 text-slate-400" size={14}/>
-                        <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full pl-9 border border-slate-200 rounded-xl p-2 text-sm focus:ring-2 focus:ring-blue-600 font-bold dark: dark:border-slate-600" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
+                        <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full pl-9 border border-slate-200 rounded-xl p-2 text-sm focus:ring-2 focus:ring-blue-600 font-bold dark: dark:border-slate-600" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
                             <option value="">-- Semua Kelas --</option>
                             {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>

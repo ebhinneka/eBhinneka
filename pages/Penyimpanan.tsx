@@ -195,7 +195,7 @@ const Penyimpanan: React.FC = () => {
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Tahun Ajaran</label>
                                 <input 
                                     type="text"
-                                    className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-xl p-3 focus: focus:ring-2 focus:ring-blue-500 outline-none transition-all dark: dark: dark:border-slate-600"
+                                    className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-xl p-3 focus: focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:border-slate-600"
                                     value={academicYear}
                                     onChange={(e) => setAcademicYear(e.target.value)}
                                     placeholder="Contoh: 2025/2026"
@@ -223,8 +223,7 @@ const Penyimpanan: React.FC = () => {
                             
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Pilih Tahun Ajaran Aktif</label>
-                                <select 
-                                    className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-xl p-3 focus: focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium dark: dark: dark:border-slate-600"
+                                <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border rounded-xl p-3 focus: focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium dark:border-slate-600"
                                     value={activeYear}
                                     onChange={(e) => handleSetActiveYear(e.target.value)}
                                 >
@@ -240,7 +239,7 @@ const Penyimpanan: React.FC = () => {
                                     <label className="block text-sm font-bold text-slate-700 mb-1">Berlaku dari tanggal</label>
                                     <input 
                                         type="date"
-                                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-xl p-3 focus: focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium dark: dark: dark:border-slate-600"
+                                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-xl p-3 focus: focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium dark:border-slate-600"
                                         value={academicYearStart}
                                         onChange={(e) => setAcademicYearStart(e.target.value)}
                                         onBlur={handleSaveAcademicYearDates}
@@ -250,7 +249,7 @@ const Penyimpanan: React.FC = () => {
                                     <label className="block text-sm font-bold text-slate-700 mb-1">Sampai tanggal</label>
                                     <input 
                                         type="date"
-                                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-xl p-3 focus: focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium dark: dark: dark:border-slate-600"
+                                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-xl p-3 focus: focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium dark:border-slate-600"
                                         value={academicYearEnd}
                                         onChange={(e) => setAcademicYearEnd(e.target.value)}
                                         onBlur={handleSaveAcademicYearDates}
@@ -260,8 +259,7 @@ const Penyimpanan: React.FC = () => {
                             
                             <div className="pt-4">
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Pilih Semester Aktif</label>
-                                <select 
-                                    className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-xl p-3 focus: focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium dark: dark: dark:border-slate-600"
+                                <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border rounded-xl p-3 focus: focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium dark:border-slate-600"
                                     value={activeSemester}
                                     onChange={(e) => handleSetActiveSemester(e.target.value)}
                                 >
@@ -276,7 +274,7 @@ const Penyimpanan: React.FC = () => {
                                     <label className="block text-sm font-bold text-slate-700 mb-1">Berlaku mulai tanggal</label>
                                     <input 
                                         type="date"
-                                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-xl p-3 focus: focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium dark: dark: dark:border-slate-600"
+                                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-xl p-3 focus: focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium dark:border-slate-600"
                                         value={semesterStart}
                                         onChange={(e) => setSemesterStart(e.target.value)}
                                         onBlur={handleSaveSemesterDates}
@@ -286,7 +284,7 @@ const Penyimpanan: React.FC = () => {
                                     <label className="block text-sm font-bold text-slate-700 mb-1">Sampai Tanggal</label>
                                     <input 
                                         type="date"
-                                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-xl p-3 focus: focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium dark: dark: dark:border-slate-600"
+                                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-xl p-3 focus: focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium dark:border-slate-600"
                                         value={semesterEnd}
                                         onChange={(e) => setSemesterEnd(e.target.value)}
                                         onBlur={handleSaveSemesterDates}
@@ -305,8 +303,7 @@ const Penyimpanan: React.FC = () => {
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Versi Jadwal (misal: Utama, Ramadhan)</label>
                                 <div className="flex gap-2">
                                     
-                                    <select 
-                                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 flex-1 border rounded-xl p-3 focus: focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium dark: dark: dark:border-slate-600"
+                                    <select className="bg-white text-slate-800 border-slate-200 dark: dark: flex-1 border rounded-xl p-3 focus: focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium dark:border-slate-600"
                                         value={activeScheduleVersion}
                                         onChange={(e) => setActiveScheduleVersion(e.target.value)}
                                     >

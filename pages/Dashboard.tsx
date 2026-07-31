@@ -109,9 +109,9 @@ const Dashboard: React.FC = () => {
 
           const [profilesRes, schedulesRes, journalsRes] = await Promise.all([
               supabase.from('profiles').select('*').neq('role', 'operator').order('full_name'),
-              supabase.from('schedules').select('*').eq('day_of_week', dbDay).eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').eq('schedule_version', activeScheduleVersion || 'Utama').then(async (res) => {
+              supabase.from('schedules').select('*').eq('day_of_week', dbDay).eq('schedule_version', activeScheduleVersion || 'Utama').then(async (res) => {
                   if (res.error && (res.error.code === '42703' || res.error.message?.includes('academic_year') || res.error.message?.includes('schedule_version'))) {
-                      const fallback = await supabase.from('schedules').select('*').eq('day_of_week', dbDay).eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil');
+                      const fallback = await supabase.from('schedules').select('*').eq('day_of_week', dbDay);
                       if (fallback.error) {
                           const ultra = await supabase.from('schedules').select('*').eq('day_of_week', dbDay);
                           if (ultra.data) ultra.data = ultra.data.filter(s => s.academic_year === academicYear && s.semester === semester);
@@ -121,7 +121,7 @@ const Dashboard: React.FC = () => {
                   }
                   return res;
               }),
-              supabase.from('journals').select('*').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', startOfDay).lte('created_at', endOfDay)
+              supabase.from('journals').select('*').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', startOfDay).lte('created_at', endOfDay)
           ]);
 
           const excludedNames = ['Guru Baru', 'Agung Budiartati, M.Pd.', 'Dra.Laily Asriyah, M.Pd.I.'];
@@ -180,7 +180,7 @@ const Dashboard: React.FC = () => {
         const startOfDay = `${filterDate}T00:00:00+07:00`;
         const endOfDay = `${filterDate}T23:59:59+07:00`;
 
-        const { data: journals } = await supabase.from('journals').select('id, created_at, hours, kelas, material').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').eq('teacher_id', profile?.id).gte('created_at', firstDayStr);
+        const { data: journals } = await supabase.from('journals').select('id, created_at, hours, kelas, material').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').eq('teacher_id', profile?.id).gte('created_at', firstDayStr);
 
         let jp = 0;
         let meetings = 0;
@@ -203,7 +203,7 @@ const Dashboard: React.FC = () => {
             monthJournals.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         }
 
-        let { data: mySchedules, error: mySchedError } = await supabase.from('schedules').select('day_of_week, hour').eq('teacher_id', profile?.id).eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').eq('schedule_version', activeScheduleVersion || 'Utama');
+        let { data: mySchedules, error: mySchedError } = await supabase.from('schedules').select('day_of_week, hour').eq('teacher_id', profile?.id).eq('schedule_version', activeScheduleVersion || 'Utama');
         if (mySchedError && (mySchedError.code === '42703' || mySchedError.message?.includes('academic_year'))) {
             const fallback = await supabase.from('schedules').select('*').eq('teacher_id', profile?.id);
             if (fallback.data && fallback.data.length > 0 && fallback.data[0].academic_year !== undefined) {
@@ -238,7 +238,7 @@ const Dashboard: React.FC = () => {
         const todayEnd = `${todayStr}T23:59:59+07:00`;
 
         const [todaySchedRes, todayJournalRes] = await Promise.all([
-            supabase.from('schedules').select('*').eq('teacher_id', profile?.id).eq('day_of_week', dbDay).eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').eq('schedule_version', activeScheduleVersion || 'Utama').then(async (res) => {
+            supabase.from('schedules').select('*').eq('teacher_id', profile?.id).eq('day_of_week', dbDay).eq('schedule_version', activeScheduleVersion || 'Utama').then(async (res) => {
                 if (res.error && (res.error.code === '42703' || res.error.message?.includes('academic_year'))) {
                     const fallback = await supabase.from('schedules').select('*').eq('teacher_id', profile?.id).eq('day_of_week', dbDay);
                     if (fallback.data && fallback.data.length > 0 && fallback.data[0].academic_year !== undefined) {
@@ -248,7 +248,7 @@ const Dashboard: React.FC = () => {
                 }
                 return res;
             }),
-            supabase.from('journals').select('*').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').eq('teacher_id', profile?.id).gte('created_at', todayStart).lte('created_at', todayEnd)
+            supabase.from('journals').select('*').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').eq('teacher_id', profile?.id).gte('created_at', todayStart).lte('created_at', todayEnd)
         ]);
 
         const hoursList: KbmStatus[] = [];
@@ -558,7 +558,7 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 {/* MATRIX TABLE */}
-                <div className="bg-slate-100 dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left border-collapse">
                             <thead>
@@ -818,7 +818,7 @@ const Dashboard: React.FC = () => {
                 )}
 
                 {/* KBM STATUS TABLE */}
-                <div className="bg-slate-100 dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700">
+                <div className="app-card p-5">
                     <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-sm mb-4 uppercase tracking-wide flex items-center gap-2">
                         <CheckCircle2 size={16} className="text-blue-600 dark:text-blue-400"/>
                         Keterlaksanaan KBM Hari Ini Di Kelas

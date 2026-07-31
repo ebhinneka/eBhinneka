@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, isSupabaseConfigured } from '../services/supabase';
 import { PublicStats } from '../types';
-import { Bell,  LogIn, Loader2, BookOpen, AlertCircle, X, School, ChevronDown, ChevronRight, Bookmark, Lock, User, ArrowRight, ShieldCheck, GraduationCap, MonitorPlay, Shield, ChevronLeft, Eye, EyeOff  } from 'lucide-react';
+import { Bell,  LogIn, Loader2, BookOpen, AlertCircle, X, School, ChevronDown, ChevronRight, Bookmark, Lock, User, ArrowRight, ShieldCheck, GraduationCap, MonitorPlay, Shield, ChevronLeft, Eye, EyeOff, Calendar  } from 'lucide-react';
 import { getWIBDate, getWIBISOString, formatDateIndo, formatTimeIndo } from '../utils/dateUtils';
 
 const PublicDashboard: React.FC = () => {
@@ -113,7 +113,7 @@ const PublicDashboard: React.FC = () => {
 ,
             supabase.from('journals').select('hours').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', startOfDay),
             supabase.from('attendance_logs').select('student_id, student_name, status, created_at, subject').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', startOfDay),
-            supabase.from('homeroom_attendance').select('student_id, status, kelas').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('date', semesterStart ? `${semesterStart}` : '2000-01-01').lte('date', semesterEnd ? `${semesterEnd}` : '2100-01-01').eq('date', todayStr),
+            supabase.from('homeroom_attendance').select('student_id, status, kelas').gte('date', semesterStart ? `${semesterStart}` : '2000-01-01').lte('date', semesterEnd ? `${semesterEnd}` : '2100-01-01').eq('date', todayStr),
             supabase.from('schedules').select('hour, academic_year, semester').eq('day_of_week', dbDay).eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').eq('schedule_version', activeScheduleVersion || 'Utama').then(async (res) => {
                 if (res.error && (res.error.code === '42703' || res.error.message?.includes('academic_year'))) {
                     return await supabase.from('schedules').select('hour, academic_year, semester').eq('day_of_week', dbDay);
@@ -312,7 +312,7 @@ const PublicDashboard: React.FC = () => {
       <main className="w-full max-w-md space-y-4 m-auto">
         
         {/* HEADER CARD */}
-        <div className="bg-slate-100/10 backdrop-blur-2xl rounded-[2rem] p-5 flex items-center justify-between shadow-[0_8px_32px_rgba(0,0,0,0.15)] border border-slate-100/20 text-white relative overflow-hidden">
+        <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-blue-800 rounded-[2rem] p-5 flex items-center justify-between shadow-xl border-none text-white relative overflow-hidden">
              <div className="flex items-center gap-3 relative z-10">
                  <img src="https://i.imghippo.com/files/WXB3962h.png" alt="Logo" className="h-14 w-auto object-contain bg-slate-100/20 p-1 rounded-full shadow-inner backdrop-blur-md" />
                  <div>
@@ -335,7 +335,7 @@ const PublicDashboard: React.FC = () => {
           <>
             {/* ROW 1 */}
             <div className="flex justify-center mb-4">
-                <div className="app-card border-none text-slate-800 px-6 py-2 rounded-full shadow-sm text-sm font-bold text-slate-700 dark:text-slate-300">
+                <div className="bg-white px-6 py-2.5 rounded-full shadow-sm text-xs font-bold text-slate-700 flex items-center justify-center gap-2 border border-slate-200/60"><Calendar size={14} className="text-blue-500"/> 
                     Tahun Ajaran: {academicYear} | Semester: {semester}
                 </div>
             </div>

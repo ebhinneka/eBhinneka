@@ -174,7 +174,7 @@ export const Layout: React.FC<{ children: React.ReactNode; showNav?: boolean; co
       
       {/* --- DESKTOP SIDEBAR (Compact Mode Default) --- */}
       {showNav && (
-        <aside className={`hidden md:flex flex-col h-screen sticky top-0 bg-slate-100 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 z-20 transition-all duration-300 ${collapsed ? 'w-20' : 'w-72'}`}>
+        <aside className={`hidden md:flex flex-col h-screen sticky top-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 shadow-[2px_0_10px_-2px_rgba(0,0,0,0.05)] z-20 transition-all duration-300 ${collapsed ? 'w-20' : 'w-72'}`}>
             {/* Logo Area */}
             <div className={`p-4 flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 ${collapsed ? 'justify-center' : ''} h-20`}>
                  <img 
@@ -278,7 +278,7 @@ export const Layout: React.FC<{ children: React.ReactNode; showNav?: boolean; co
       {/* --- MAIN CONTENT --- */}
       <main className="flex-1 flex flex-col h-screen overflow-y-auto custom-scrollbar relative bg-transparent  transition-colors duration-300">
           {/* Mobile Header */}
-          <div className="md:hidden sticky top-0 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-30 shadow-sm pt-[calc(env(safe-area-inset-top)+0.25rem)]">
+          <div className="md:hidden sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-30 shadow-[0_2px_10px_-2px_rgba(0,0,0,0.05)] pt-[calc(env(safe-area-inset-top)+0.25rem)]">
              <div className="px-4 py-3 flex justify-between items-center">
                  <div className="flex items-center gap-3">
                      <img 
@@ -329,7 +329,7 @@ export const Layout: React.FC<{ children: React.ReactNode; showNav?: boolean; co
           </div>
 
           {/* DESKTOP TOP BAR */}
-          <div className="hidden md:flex justify-between items-center sticky top-0 z-30 bg-slate-100/80 backdrop-blur-md text-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 py-3 pt-[calc(env(safe-area-inset-top)+0.25rem)]">
+          <div className="hidden md:flex justify-between items-center sticky top-0 z-30 bg-white/90 backdrop-blur-md text-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 py-3 pt-[calc(env(safe-area-inset-top)+0.25rem)]">
               <div className="flex items-center gap-3 text-sm font-bold">
                   <div className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1.5 rounded-xl border border-blue-100 dark:border-blue-800/50 shadow-sm">
                       <span className="text-blue-400 dark:text-blue-500">T.A:</span> {academicYear}

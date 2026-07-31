@@ -312,8 +312,7 @@ const UsersData: React.FC = () => {
                                             {displayMapels.length === 0 && <div className="text-sm text-slate-500 italic">Belum ada mata pelajaran.</div>}
                                             {displayMapels.map((mapel, idx) => (
                                                 <div key={idx} className="flex gap-2">
-                                                    <select
-                                                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 flex-1 border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 "
+                                                    <select className="bg-white text-slate-800 border-slate-200 dark: dark: flex-1 border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500"
                                                         value={mapel}
                                                         onChange={(e) => {
                                                             const newArr = [...displayMapels];
@@ -354,7 +353,7 @@ const UsersData: React.FC = () => {
                         
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Wali Kelas</label>
-                            <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 " value={editFormData.wali_kelas} onChange={e => setEditFormData({...editFormData, wali_kelas: e.target.value})}>
+                            <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" value={editFormData.wali_kelas} onChange={e => setEditFormData({...editFormData, wali_kelas: e.target.value})}>
                                 <option value="">-- Bukan Wali Kelas --</option>
                                 {availableClasses.map(k => <option key={k} value={k}>{k}</option>)}
                             </select>
@@ -362,7 +361,7 @@ const UsersData: React.FC = () => {
                         
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Jabatan Tambahan</label>
-                            <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 " value={editFormData.jabatan_tambahan} onChange={e => setEditFormData({...editFormData, jabatan_tambahan: e.target.value})}>
+                            <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" value={editFormData.jabatan_tambahan} onChange={e => setEditFormData({...editFormData, jabatan_tambahan: e.target.value})}>
                                 <option value="-">-</option>
                                 <option value="Staff">Staff</option>
                             </select>
@@ -419,7 +418,7 @@ const UsersData: React.FC = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Role</label>
-                                <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 " value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}>
+                                <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500" value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}>
                                     <option value="user">User (Guru)</option>
                                     <option value="operator">Operator</option>
                                     <option value="admin">Administrator</option>
@@ -438,8 +437,7 @@ const UsersData: React.FC = () => {
                                                 {displayMapels.length === 0 && <div className="text-sm text-slate-500 italic">Belum ada mata pelajaran.</div>}
                                                 {displayMapels.map((mapel, idx) => (
                                                     <div key={idx} className="flex gap-2">
-                                                        <select
-                                                            className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 flex-1 border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 "
+                                                        <select className="bg-white text-slate-800 border-slate-200 dark: dark: flex-1 border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500"
                                                             value={mapel}
                                                             onChange={(e) => {
                                                                 const newArr = [...displayMapels];
@@ -479,7 +477,7 @@ const UsersData: React.FC = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Wali Kelas</label>
-                                <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 " value={newUser.waliKelas} onChange={e => setNewUser({...newUser, waliKelas: e.target.value})}>
+                                <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500" value={newUser.waliKelas} onChange={e => setNewUser({...newUser, waliKelas: e.target.value})}>
                                     <option value="">-- Bukan Wali Kelas --</option>
                                     {availableClasses.map(k => <option key={k} value={k}>{k}</option>)}
                                 </select>

@@ -245,8 +245,7 @@ const SettingsPage: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-slate-500 mb-1">Semester</label>
-                            <select 
-                                className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-lg dark: dark: p-3 cursor-not-allowed"
+                            <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border rounded-lg dark: dark: p-3 cursor-not-allowed"
                                 value={settings['semester'] || 'Ganjil'}
                                 disabled
                             >
@@ -260,8 +259,7 @@ const SettingsPage: React.FC = () => {
                             <label className="block text-xs font-bold text-blue-800 mb-1">Kepala Sekolah</label>
                             <div className="relative">
                                 <User className="absolute left-3 top-3.5 text-blue-400" size={16}/>
-                                <select 
-                                    className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-blue-200 rounded-lg p-3 pl-9 font-medium focus:ring-2 focus:ring-blue-500 outline-none dark: dark: dark:border-slate-600" 
+                                <select className="bg-white text-slate-800 border-slate-200 dark: dark: w-full border border-blue-200 rounded-lg p-3 pl-9 font-medium focus:ring-2 focus:ring-blue-500 outline-none dark:border-slate-600" 
                                     value={teachers.find(t => (t.nip && t.nip === settings.headmaster_nip) || t.full_name === settings.headmaster)?.id || ''}
                                     onChange={handleHeadmasterChange}
                                 >
