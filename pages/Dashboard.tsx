@@ -550,7 +550,7 @@ const Dashboard: React.FC = () => {
                         <Calendar size={18} className="text-slate-400"/>
                         <input 
                             type="date" 
-                            className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg py-1.5 px-3 text-sm font-bold text-slate-700 dark:text-slate-100"
+                            className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  dark: border border-slate-200 dark:border-slate-700 rounded-lg py-1.5 px-3 text-sm font-bold dark:"
                             value={matrixDate}
                             onChange={(e) => setMatrixDate(e.target.value)}
                         />
@@ -943,7 +943,7 @@ const Dashboard: React.FC = () => {
                                 <div>
                                     <input 
                                         type="text" 
-                                        className="w-full border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-100 transition-all placeholder:text-slate-400"
+                                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-200 dark:border-slate-600 dark:/50 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-blue-500 dark: transition-all placeholder:"
                                         placeholder="Catatan (Opsional)..."
                                         value={item.note}
                                         onChange={(e) => updateSpecificRow(idx, 'note', e.target.value)}

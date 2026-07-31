@@ -268,12 +268,12 @@ const UsersData: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-slate-500 mb-1">Password Baru</label>
-                            <input className="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white  text-slate-900  focus:ring-2 focus:ring-blue-500" placeholder="Masukkan password baru..." value={resetData.newPassword} onChange={e => setResetData({...resetData, newPassword: e.target.value})}/>
+                            <input className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500" placeholder="Masukkan password baru..." value={resetData.newPassword} onChange={e => setResetData({...resetData, newPassword: e.target.value})}/>
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-slate-500 mb-1">Service Role Key (Wajib)</label>
                             <div className="relative">
-                                <input type={showServiceKey ? "text" : "password"} className="w-full border border-blue-300 rounded-lg p-2 pr-10 text-xs font-mono focus:ring-2 focus:ring-blue-600 bg-slate-100 text-slate-900   " placeholder="Paste Service Role Key..." value={serviceKey} onChange={e => setServiceKey(e.target.value)}/>
+                                <input type={showServiceKey ? "text" : "password"} className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-blue-300 rounded-lg p-2 pr-10 text-xs font-mono focus:ring-2 focus:ring-blue-600 " placeholder="Paste Service Role Key..." value={serviceKey} onChange={e => setServiceKey(e.target.value)}/>
                                 <button type="button" onClick={() => setShowServiceKey(!showServiceKey)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">{showServiceKey ? <EyeOff size={16} /> : <Eye size={16} />}</button>
                             </div>
                             <p className="text-[10px] text-blue-600 mt-1">* Diperlukan untuk update di sistem Auth.</p>
@@ -313,7 +313,7 @@ const UsersData: React.FC = () => {
                                             {displayMapels.map((mapel, idx) => (
                                                 <div key={idx} className="flex gap-2">
                                                     <select
-                                                        className="flex-1 border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 bg-slate-100 text-slate-900"
+                                                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 flex-1 border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 "
                                                         value={mapel}
                                                         onChange={(e) => {
                                                             const newArr = [...displayMapels];
@@ -354,7 +354,7 @@ const UsersData: React.FC = () => {
                         
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Wali Kelas</label>
-                            <select className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-100 text-slate-900   " value={editFormData.wali_kelas} onChange={e => setEditFormData({...editFormData, wali_kelas: e.target.value})}>
+                            <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 " value={editFormData.wali_kelas} onChange={e => setEditFormData({...editFormData, wali_kelas: e.target.value})}>
                                 <option value="">-- Bukan Wali Kelas --</option>
                                 {availableClasses.map(k => <option key={k} value={k}>{k}</option>)}
                             </select>
@@ -362,7 +362,7 @@ const UsersData: React.FC = () => {
                         
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Jabatan Tambahan</label>
-                            <select className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-100 text-slate-900" value={editFormData.jabatan_tambahan} onChange={e => setEditFormData({...editFormData, jabatan_tambahan: e.target.value})}>
+                            <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 " value={editFormData.jabatan_tambahan} onChange={e => setEditFormData({...editFormData, jabatan_tambahan: e.target.value})}>
                                 <option value="-">-</option>
                                 <option value="Staff">Staff</option>
                             </select>
@@ -398,14 +398,14 @@ const UsersData: React.FC = () => {
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">NIPY (Username / Email prefix)</label>
-                                <input className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 text-slate-900 " placeholder="Contoh: 123456" value={newUser.nip} onChange={e => setNewUser({...newUser, nip: e.target.value})}/>
+                                <input className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 " placeholder="Contoh: 123456" value={newUser.nip} onChange={e => setNewUser({...newUser, nip: e.target.value})}/>
                                 <p className="text-xs text-slate-500 mt-1">Otomatis menjadi email: <span className="font-mono">{newUser.nip || '...' }@sekolah.id</span></p>
                             </div>
                             
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">Service Role Key (Wajib)</label>
                                 <div className="relative">
-                                    <input type={showServiceKey ? "text" : "password"} className="w-full border border-blue-300 rounded-lg p-2 pr-10 text-xs font-mono focus:ring-2 focus:ring-blue-500 bg-slate-100 text-slate-900   " placeholder="Paste Service Role Key..." value={serviceKey} onChange={e => setServiceKey(e.target.value)}/>
+                                    <input type={showServiceKey ? "text" : "password"} className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-blue-300 rounded-lg p-2 pr-10 text-xs font-mono focus:ring-2 focus:ring-blue-500 " placeholder="Paste Service Role Key..." value={serviceKey} onChange={e => setServiceKey(e.target.value)}/>
                                     <button type="button" onClick={() => setShowServiceKey(!showServiceKey)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">{showServiceKey ? <EyeOff size={16} /> : <Eye size={16} />}</button>
                                 </div>
                                 <p className="text-[10px] text-blue-500 mt-1">* Diperlukan untuk membuat user di Authentication Supabase.</p>
@@ -415,11 +415,11 @@ const UsersData: React.FC = () => {
                         <div className="space-y-4 mt-4">
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Nama Lengkap</label>
-                                <input className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 text-slate-900 " placeholder="Nama Guru..." value={newUser.fullName} onChange={e => setNewUser({...newUser, fullName: e.target.value})}/>
+                                <input className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 " placeholder="Nama Guru..." value={newUser.fullName} onChange={e => setNewUser({...newUser, fullName: e.target.value})}/>
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Role</label>
-                                <select className="w-full border border-slate-300 rounded-xl p-3 bg-slate-100 focus:ring-2 focus:ring-blue-500 text-slate-900   " value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}>
+                                <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 " value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}>
                                     <option value="user">User (Guru)</option>
                                     <option value="operator">Operator</option>
                                     <option value="admin">Administrator</option>
@@ -439,7 +439,7 @@ const UsersData: React.FC = () => {
                                                 {displayMapels.map((mapel, idx) => (
                                                     <div key={idx} className="flex gap-2">
                                                         <select
-                                                            className="flex-1 border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 bg-slate-100 text-slate-900"
+                                                            className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 flex-1 border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 "
                                                             value={mapel}
                                                             onChange={(e) => {
                                                                 const newArr = [...displayMapels];
@@ -479,7 +479,7 @@ const UsersData: React.FC = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Wali Kelas</label>
-                                <select className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 bg-slate-100 text-slate-900   " value={newUser.waliKelas} onChange={e => setNewUser({...newUser, waliKelas: e.target.value})}>
+                                <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 " value={newUser.waliKelas} onChange={e => setNewUser({...newUser, waliKelas: e.target.value})}>
                                     <option value="">-- Bukan Wali Kelas --</option>
                                     {availableClasses.map(k => <option key={k} value={k}>{k}</option>)}
                                 </select>

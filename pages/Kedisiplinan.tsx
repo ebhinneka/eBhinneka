@@ -465,7 +465,7 @@ const Kedisiplinan: React.FC = () => {
                     <>
                         <div className="mb-4">
                             <label className="block text-xs font-bold text-slate-500 mb-1">Pilih Kelas</label>
-                            <select className="w-full md:w-1/3 border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-blue-600 font-bold text-slate-700" value={inputClass} onChange={e => setInputClass(e.target.value)}>
+                            <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  w-full md:w-1/3 border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-blue-600 font-bold " value={inputClass} onChange={e => setInputClass(e.target.value)}>
                                 <option value="">-- Pilih Kelas --</option>
                                 {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
@@ -478,14 +478,14 @@ const Kedisiplinan: React.FC = () => {
                                         <div className="flex flex-col md:flex-row gap-3">
                                             <div className="w-full md:w-1/2">
                                                 <label className="block text-[10px] font-bold text-slate-500 mb-1">Jenis Pelanggaran</label>
-                                                <select className="w-full p-2.5 border rounded-lg text-xs bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={row.category} onChange={e => updateRow(idx, 'category', e.target.value)}>
+                                                <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full p-2.5 border rounded-lg text-xs dark: dark: dark:border-slate-600" value={row.category} onChange={e => updateRow(idx, 'category', e.target.value)}>
                                                     <option value="">- Pilih -</option>
                                                     {disciplineTypes.map((t, i) => <option key={i} value={t}>{t}</option>)}
                                                 </select>
                                             </div>
                                             <div className="w-full md:w-1/2">
                                                 <label className="block text-[10px] font-bold text-slate-500 mb-1">Tindak Lanjut</label>
-                                                <select className="w-full p-2.5 border rounded-lg text-xs bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={row.followUp} onChange={e => updateRow(idx, 'followUp', e.target.value)}>
+                                                <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full p-2.5 border rounded-lg text-xs dark: dark: dark:border-slate-600" value={row.followUp} onChange={e => updateRow(idx, 'followUp', e.target.value)}>
                                                     <option value="">- Pilih -</option>
                                                     {followUpTypes.map((t, i) => <option key={i} value={t}>{t}</option>)}
                                                 </select>
@@ -493,7 +493,7 @@ const Kedisiplinan: React.FC = () => {
                                         </div>
                                         <div>
                                             <label className="block text-[10px] font-bold text-slate-500 mb-1">Keterangan</label>
-                                            <input type="text" className="w-full p-2.5 border rounded-lg text-xs bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" placeholder="Detail kejadian..." value={row.note} onChange={e => updateRow(idx, 'note', e.target.value)}/>
+                                            <input type="text" className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full p-2.5 border rounded-lg text-xs dark: dark: dark:border-slate-600" placeholder="Detail kejadian..." value={row.note} onChange={e => updateRow(idx, 'note', e.target.value)}/>
                                         </div>
                                         <div>
                                             <label className="block text-[10px] font-bold text-slate-500 mb-1">Murid Terlibat</label>
@@ -519,14 +519,14 @@ const Kedisiplinan: React.FC = () => {
                             <div className="flex flex-col md:flex-row gap-3">
                                 <div className="w-full md:w-1/2">
                                     <label className="block text-[10px] font-bold text-slate-500 mb-1">Jenis Pelanggaran</label>
-                                    <select className="w-full p-2.5 border rounded-lg text-xs bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={massCommonData.category} onChange={e => setMassCommonData({...massCommonData, category: e.target.value})}>
+                                    <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full p-2.5 border rounded-lg text-xs dark: dark: dark:border-slate-600" value={massCommonData.category} onChange={e => setMassCommonData({...massCommonData, category: e.target.value})}>
                                         <option value="">- Pilih Jenis Pelanggaran -</option>
                                         {disciplineTypes.map((t, i) => <option key={i} value={t}>{t}</option>)}
                                     </select>
                                 </div>
                                 <div className="w-full md:w-1/2">
                                     <label className="block text-[10px] font-bold text-slate-500 mb-1">Tindak Lanjut</label>
-                                    <select className="w-full p-2.5 border rounded-lg text-xs bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={massCommonData.followUp} onChange={e => setMassCommonData({...massCommonData, followUp: e.target.value})}>
+                                    <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full p-2.5 border rounded-lg text-xs dark: dark: dark:border-slate-600" value={massCommonData.followUp} onChange={e => setMassCommonData({...massCommonData, followUp: e.target.value})}>
                                         <option value="">- Pilih Tindak Lanjut -</option>
                                         {followUpTypes.map((t, i) => <option key={i} value={t}>{t}</option>)}
                                     </select>
@@ -534,7 +534,7 @@ const Kedisiplinan: React.FC = () => {
                             </div>
                             <div>
                                 <label className="block text-[10px] font-bold text-slate-500 mb-1">Keterangan</label>
-                                <input type="text" className="w-full p-2.5 border rounded-lg text-xs bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" placeholder="Detail kejadian..." value={massCommonData.note} onChange={e => setMassCommonData({...massCommonData, note: e.target.value})}/>
+                                <input type="text" className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full p-2.5 border rounded-lg text-xs dark: dark: dark:border-slate-600" placeholder="Detail kejadian..." value={massCommonData.note} onChange={e => setMassCommonData({...massCommonData, note: e.target.value})}/>
                             </div>
                         </div>
 
@@ -546,7 +546,7 @@ const Kedisiplinan: React.FC = () => {
                                     <div className="w-full md:w-1/3">
                                         <label className="block text-[10px] font-bold text-slate-400 mb-1">Pilih Kelas</label>
                                         <select 
-                                            className="w-full p-2 border rounded-lg text-xs bg-slate-50 font-bold text-slate-700 dark:bg-slate-800 dark:border-slate-600" 
+                                            className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full p-2 border rounded-lg text-xs font-bold dark: dark:border-slate-600" 
                                             value={row.class} 
                                             onChange={e => updateMassRow(idx, 'class', e.target.value)}
                                         >
@@ -593,21 +593,21 @@ const Kedisiplinan: React.FC = () => {
                     <label className="block text-[10px] font-bold text-slate-400 mb-1 ml-1 uppercase">Mulai Tanggal</label>
                     <div className="relative">
                         <Calendar className="absolute left-3 top-2.5 text-slate-400" size={14}/>
-                        <input type="date" className="w-full pl-9 border border-slate-200 rounded-xl p-2 text-sm focus:ring-2 focus:ring-blue-600 text-slate-900 dark:text-slate-100" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                        <input type="date" className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  w-full pl-9 border border-slate-200 rounded-xl p-2 text-sm focus:ring-2 focus:ring-blue-600 dark: dark: dark:border-slate-600" value={startDate} onChange={e => setStartDate(e.target.value)} />
                     </div>
                 </div>
                 <div>
                     <label className="block text-[10px] font-bold text-slate-400 mb-1 ml-1 uppercase">Sampai Tanggal</label>
                     <div className="relative">
                         <Calendar className="absolute left-3 top-2.5 text-slate-400" size={14}/>
-                        <input type="date" className="w-full pl-9 border border-slate-200 rounded-xl p-2 text-sm focus:ring-2 focus:ring-blue-600 text-slate-900 dark:text-slate-100" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                        <input type="date" className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  w-full pl-9 border border-slate-200 rounded-xl p-2 text-sm focus:ring-2 focus:ring-blue-600 dark: dark: dark:border-slate-600" value={endDate} onChange={e => setEndDate(e.target.value)} />
                     </div>
                 </div>
                 <div>
                     <label className="block text-[10px] font-bold text-slate-400 mb-1 ml-1 uppercase">Pilih Kelas</label>
                     <div className="relative">
                         <Filter className="absolute left-3 top-2.5 text-slate-400" size={14}/>
-                        <select className="w-full pl-9 border border-slate-200 rounded-xl p-2 text-sm bg-slate-100 focus:ring-2 focus:ring-blue-600 font-bold text-slate-700 dark:bg-slate-800 dark:border-slate-600" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
+                        <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full pl-9 border border-slate-200 rounded-xl p-2 text-sm focus:ring-2 focus:ring-blue-600 font-bold dark: dark:border-slate-600" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
                             <option value="">-- Semua Kelas --</option>
                             {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>

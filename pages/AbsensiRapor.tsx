@@ -189,7 +189,7 @@ const AbsensiRapor: React.FC = () => {
                 <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1">Kelas</label>
                     <select 
-                        className="w-full border rounded-xl p-3 bg-gray-50 font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-600"
+                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-xl p-3 font-bold focus:ring-2 focus:ring-blue-500 dark: dark:border-slate-600"
                         value={selectedClass}
                         onChange={e => setSelectedClass(e.target.value)}
                     >
@@ -201,7 +201,7 @@ const AbsensiRapor: React.FC = () => {
                     <label className="block text-xs font-bold text-slate-500 mb-1 flex items-center gap-1"><CalendarDays size={12}/> Tanggal Awal</label>
                     <input 
                         type="date"
-                        className="w-full border rounded-xl p-3 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:border-slate-600"
+                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-xl p-3 dark: dark:border-slate-600"
                         value={startDate}
                         onChange={e => setStartDate(e.target.value)}
                     />
@@ -210,7 +210,7 @@ const AbsensiRapor: React.FC = () => {
                     <label className="block text-xs font-bold text-slate-500 mb-1 flex items-center gap-1"><CalendarDays size={12}/> Tanggal Akhir</label>
                     <input 
                         type="date"
-                        className="w-full border rounded-xl p-3 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:border-slate-600"
+                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border rounded-xl p-3 dark: dark:border-slate-600"
                         value={endDate}
                         onChange={e => setEndDate(e.target.value)}
                     />

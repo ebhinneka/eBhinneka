@@ -1,0 +1,199 @@
+                                <input type="text" className="text-slate-900 dark:text-slate-100 w-full border rounded-xl p-3 bg-slate-100 text-slate-500 font-medium dark:bg-slate-800 dark:border-slate-600" value={academicYear || '2025/2026'} disabled />
+                                <input type="text" className="text-slate-900 dark:text-slate-100 w-full border rounded-xl p-3 bg-slate-100 text-slate-500 font-medium dark:bg-slate-800 dark:border-slate-600" value={semester || 'Ganjil'} disabled />
+                                <input 
+                                    type="text" 
+                                    className="w-full border rounded-xl p-3 bg-slate-100 focus:ring-2 focus:ring-blue-600 outline-none font-medium text-slate-800 dark:bg-slate-800 dark:border-slate-600" 
+                                    value={newVersionName}
+                                    onChange={(e) => setNewVersionName(e.target.value)}
+                <input type="text" placeholder="Cari Nama / NISN..." className="bg-slate-50 w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                                <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Nama Lengkap</label><input className="bg-slate-50 w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Nama Murid" /></div>
+                                    <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">NISN</label><input className="bg-slate-50 w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={formData.nisn} onChange={e => setFormData({...formData, nisn: e.target.value})} placeholder="001xxxx" /></div>
+                                    <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">NIS (Opsional)</label><input className="bg-slate-50 w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={formData.nis} onChange={e => setFormData({...formData, nis: e.target.value})} placeholder="1234" /></div>
+                                            <label className={`flex-1 text-center py-3 rounded-xl cursor-pointer border font-bold text-sm transition-all ${formData.gender === 'L' ? 'bg-blue-100 border-blue-300 text-blue-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}><input type="radio" className="hidden text-slate-900 dark:text-slate-100" name="gender" value="L" checked={formData.gender === 'L'} onChange={() => setFormData({...formData, gender: 'L'})} /> L</label>
+                                            <label className={`flex-1 text-center py-3 rounded-xl cursor-pointer border font-bold text-sm transition-all ${formData.gender === 'P' ? 'bg-pink-100 border-pink-300 text-pink-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}><input type="radio" className="hidden text-slate-900 dark:text-slate-100" name="gender" value="P" checked={formData.gender === 'P'} onChange={() => setFormData({...formData, gender: 'P'})} /> P</label>
+                                                <input type="radio" name="status" value="tidak_aktif" checked={mutasiKeluarData.status === 'tidak_aktif'} onChange={() => setMutasiKeluarData({...mutasiKeluarData, status: 'tidak_aktif'})} className="text-blue-600 focus:ring-blue-500"/>
+                        <input 
+                            type="date" 
+                            className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg py-1.5 px-3 text-sm font-bold text-slate-700 dark:text-slate-100"
+                            value={matrixDate}
+                            onChange={(e) => setMatrixDate(e.target.value)}
+                                    <input 
+                                        type="date" 
+                                        value={filterDate}
+                                        onChange={(e) => setFilterDate(e.target.value)}
+                                    <input 
+                                        type="text" 
+                                        className="w-full border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-100 transition-all placeholder:text-slate-400"
+                                        placeholder="Catatan (Opsional)..."
+                                        value={item.note}
+                                        onChange={(e) => updateSpecificRow(idx, 'note', e.target.value)}
+                    <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv, .txt" className="hidden text-slate-900 dark:text-slate-100" />
+                    <input 
+                        type="text"
+                        className="w-full border rounded-xl p-3 bg-gray-50 text-slate-700 dark:bg-slate-800 dark:border-slate-600"
+                        value={selectedSubject}
+                        readOnly
+                        placeholder="Otomatis sesuai kelas..."
+                    />
+                    <input
+                                  name="nip"
+                                  id="nip"
+                                  autoComplete="username"
+                                  type="text"
+                                  value={userId}
+                      onChange={(e) => setUserId(e.target.value)}
+                    <input
+                                  name="password"
+                                  id="password"
+                                  autoComplete="current-password"
+                                  type={showPassword ? "text" : "password"}
+                                  value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                            <input 
+                                className="w-full border rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-3 font-medium bg-slate-100 text-slate-500 cursor-not-allowed" 
+                                value={settings['academic_year'] || ''}
+                                readOnly
+                            />
+                                <input 
+                                    type="text" 
+                                    readOnly
+                                    className="text-slate-900 dark:text-slate-100 flex-1 bg-transparent border-none text-xs text-slate-600 font-mono focus:ring-0 p-0"
+                                    value={settings['headmaster_nip'] || '-'}
+                                    placeholder="NIPY otomatis..."
+                                />
+                             <input 
+                                className="flex-1 border rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-2.5 text-sm" 
+                                value={newSubject}
+                                onChange={e => setNewSubject(e.target.value)}
+                                <input 
+                                    className="flex-1 border rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-2 text-xs" 
+                                    value={newDiscipline}
+                                    onChange={e => setNewDiscipline(e.target.value)}
+                                <input 
+                                    className="flex-1 border rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-2 text-xs" 
+                                    value={newFollowUp}
+                                    onChange={e => setNewFollowUp(e.target.value)}
+                                <input 
+                                    className="flex-1 border rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-2 text-xs" 
+                                    value={newActivity}
+                                    onChange={e => setNewActivity(e.target.value)}
+                                <input 
+                                    type="date" 
+                                    className="w-full border rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-2 text-sm"
+                                    value={newDay.date}
+                                    onChange={e => setNewDay({...newDay, date: e.target.value})}
+                                <input 
+                                    type="text" 
+                                    className="w-full border rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-2 text-sm"
+                                    placeholder="Contoh: Rapat Dinas"
+                                    value={newDay.reason}
+                                    onChange={e => setNewDay({...newDay, reason: e.target.value})}
+                                <input 
+                                    type="text"
+                                    className="w-full border rounded-xl p-3 bg-gray-50 focus:bg-slate-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600"
+                                    value={academicYear}
+                                    onChange={(e) => setAcademicYear(e.target.value)}
+                                    <input 
+                                        type="date"
+                                        className="w-full border rounded-xl p-3 bg-gray-50 focus:bg-slate-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600"
+                                        value={academicYearStart}
+                                        onChange={(e) => setAcademicYearStart(e.target.value)}
+                                    <input 
+                                        type="date"
+                                        className="w-full border rounded-xl p-3 bg-gray-50 focus:bg-slate-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600"
+                                        value={academicYearEnd}
+                                        onChange={(e) => setAcademicYearEnd(e.target.value)}
+                                    <input 
+                                        type="date"
+                                        className="w-full border rounded-xl p-3 bg-gray-50 focus:bg-slate-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600"
+                                        value={semesterStart}
+                                        onChange={(e) => setSemesterStart(e.target.value)}
+                                    <input 
+                                        type="date"
+                                        className="w-full border rounded-xl p-3 bg-gray-50 focus:bg-slate-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600"
+                                        value={semesterEnd}
+                                        onChange={(e) => setSemesterEnd(e.target.value)}
+                    <input 
+                        type="date"
+                        className="w-full border rounded-xl p-3 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:border-slate-600"
+                        value={startDate}
+                        onChange={e => setStartDate(e.target.value)}
+                    <input 
+                        type="date"
+                        className="w-full border rounded-xl p-3 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:border-slate-600"
+                        value={endDate}
+                        onChange={e => setEndDate(e.target.value)}
+                            <input 
+                                type="checkbox" 
+                                id="createAcc"
+                                checked={createAccounts}
+                                onChange={(e) => setCreateAccounts(e.target.checked)}
+                                    <input 
+                                        type={showKey ? "text" : "password"}
+                                        value={serviceRoleKey}
+                                        onChange={(e) => setServiceRoleKey(e.target.value)}
+                        <input 
+                            type="file" 
+                            ref={fileInputRef} 
+                            onChange={handleFileChange} 
+                            accept=".csv, .txt" 
+                            className="hidden text-slate-900 dark:text-slate-100" 
+                        />
+                <div><label className="block text-xs font-bold text-slate-500 mb-1 flex items-center gap-1"><CalendarDays size={12}/> Tanggal Awal</label><input type="date" className="w-full border rounded-xl p-3 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:border-slate-600" value={startDate} onChange={e => setStartDate(e.target.value)}/></div>
+                 <div><label className="block text-xs font-bold text-slate-500 mb-1 flex items-center gap-1"><CalendarDays size={12}/> Tanggal Akhir</label><input type="date" className="w-full border rounded-xl p-3 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:border-slate-600" value={endDate} onChange={e => setEndDate(e.target.value)}/></div>
+                                            <input type="text" className="w-full p-2.5 border rounded-lg text-xs bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" placeholder="Detail kejadian..." value={row.note} onChange={e => updateRow(idx, 'note', e.target.value)}/>
+                                <input type="text" className="w-full p-2.5 border rounded-lg text-xs bg-slate-100 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" placeholder="Detail kejadian..." value={massCommonData.note} onChange={e => setMassCommonData({...massCommonData, note: e.target.value})}/>
+                        <input type="date" className="bg-slate-50 w-full pl-9 border border-slate-200 rounded-xl p-2 text-sm focus:ring-2 focus:ring-blue-600 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                        <input type="date" className="bg-slate-50 w-full pl-9 border border-slate-200 rounded-xl p-2 text-sm focus:ring-2 focus:ring-blue-600 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                    <div className="relative"><Search className="absolute left-3 top-2.5 text-slate-400" size={16}/><input type="text" placeholder="Cari Guru..." className="bg-slate-50 pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 w-40 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={hmSearch} onChange={(e) => setHmSearch(e.target.value)}/></div>
+                                <input
+                                  name="nip"
+                                  id="nip"
+                                  autoComplete="username"
+                                  type="text"
+                                  value={userId}
+                                  onChange={(e) => setUserId(e.target.value)}
+                                <input
+                                  name="password"
+                                  id="password"
+                                  autoComplete="current-password"
+                                  type={showPassword ? "text" : "password"}
+                                  value={password}
+                                  onChange={(e) => setPassword(e.target.value)}
+                    </div><div className="flex items-center gap-3 mt-0.5"><div className="flex items-center gap-1.5 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-xs font-bold text-slate-600"><CalendarDays size={12}/><input type="date" className="bg-transparent border-none p-0 text-xs font-bold text-slate-700 focus:ring-0 cursor-pointer" value={filterDate} onChange={(e) => setFilterDate(e.target.value)}/></div><span className="text-[10px] text-slate-400 font-mono hidden md:inline">Live Update</span></div></div>
+                 <div className="relative"><Search className="absolute left-3 top-2.5 text-slate-400" size={14}/><input type="text" placeholder="Cari Guru / Mapel..." className="pl-8 pr-3 py-1.5 bg-slate-100 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 w-40 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}/></div>
+                <input type="text" placeholder="Cari User / NIPY..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 w-full border border-slate-300 rounded-xl text-slate-900 p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"/>
+                            <input className="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white  text-slate-900  focus:ring-2 focus:ring-blue-500" placeholder="Masukkan password baru..." value={resetData.newPassword} onChange={e => setResetData({...resetData, newPassword: e.target.value})}/>
+                                <input type={showServiceKey ? "text" : "password"} className="w-full border border-blue-300 rounded-lg p-2 pr-10 text-xs font-mono focus:ring-2 focus:ring-blue-600 bg-slate-100 text-slate-900   " placeholder="Paste Service Role Key..." value={serviceKey} onChange={e => setServiceKey(e.target.value)}/>
+                                <input className="bg-slate-50 w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 text-slate-900 " placeholder="Contoh: 123456" value={newUser.nip} onChange={e => setNewUser({...newUser, nip: e.target.value})}/>
+                                    <input type={showServiceKey ? "text" : "password"} className="w-full border border-blue-300 rounded-lg p-2 pr-10 text-xs font-mono focus:ring-2 focus:ring-blue-500 bg-slate-100 text-slate-900   " placeholder="Paste Service Role Key..." value={serviceKey} onChange={e => setServiceKey(e.target.value)}/>
+                                <input className="bg-slate-50 w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 text-slate-900 " placeholder="Nama Guru..." value={newUser.fullName} onChange={e => setNewUser({...newUser, fullName: e.target.value})}/>
+                                                                               <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5 rounded border-2 border-slate-300 focus:ring-0 cursor-pointer text-blue-500 focus:ring-blue-500 checked:bg-blue-500 checked:border-blue-500" checked={formData.attendance[student.id] === 'A'} disabled={lockedAttendance[student.id]} onChange={() => { const newAtt = {...formData.attendance}; if (newAtt[student.id] === 'A') delete newAtt[student.id]; else newAtt[student.id] = 'A'; setFormData({...formData, attendance: newAtt}); }} />
+                                                                               <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5 rounded border-2 border-slate-300 focus:ring-0 cursor-pointer text-blue-600 focus:ring-blue-600 checked:bg-blue-600 checked:border-blue-600" checked={formData.attendance[student.id] === 'D'} disabled={lockedAttendance[student.id]} onChange={() => { const newAtt = {...formData.attendance}; if (newAtt[student.id] === 'D') delete newAtt[student.id]; else newAtt[student.id] = 'D'; setFormData({...formData, attendance: newAtt}); }} />
+                                                                               <input 
+                                                                                   type="checkbox" 
+                                                                                   className={`w-4 h-4 sm:w-5 sm:h-5 rounded border-2 border-slate-300 focus:ring-0 cursor-pointer ${status === 'S' ? 'text-blue-500 focus:ring-blue-500 checked:bg-blue-500 checked:border-blue-500' : status === 'I' ? 'text-blue-400 focus:ring-blue-400 checked:bg-blue-400 checked:border-blue-400' : status === 'A' ? 'text-blue-500 focus:ring-blue-500 checked:bg-blue-500 checked:border-blue-500' : 'text-blue-500 focus:ring-blue-500 checked:bg-blue-500 checked:border-blue-500'}`} 
+                                                                                   checked={formData.attendance[student.id] === status}
+                                                                                   disabled={lockedAttendance[student.id]} 
+                                                                                   onChange={() => { const newAtt = {...formData.attendance}; if (newAtt[student.id] === status) delete newAtt[student.id]; else newAtt[student.id] = status as any; setFormData({...formData, attendance: newAtt}); }} 
+                            <input 
+                                type="text" 
+                                className="bg-slate-50 border p-3 rounded-xl text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" 
+                                placeholder="Mapel (Misal: IPA)" 
+                                value={formData.subject} 
+                                onChange={(e) => setFormData({...formData, subject: e.target.value})}
+  const renderStep2 = () => (<div className="bg-slate-100 dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 animate-fade-in"><div className="flex justify-between items-center mb-6"><h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-100">Detail Pembelajaran</h3>{inputMode === 'auto' && <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-[10px] font-bold border border-blue-100">AUTO</span>}</div><div className="space-y-6"><div><label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Mata Pelajaran</label><input type="text" className="w-full border border-slate-200 rounded-xl p-3.5 bg-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-bold text-slate-700 dark:bg-slate-800 dark:border-slate-600" value={formData.subject} readOnly={inputMode === 'auto'} onChange={e => setFormData({...formData, subject: e.target.value})} placeholder="Contoh: Matematika"/></div><div><label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Jam Pelajaran Ke-</label><div className="flex gap-2 flex-wrap">{[1,2,3,4,5,6,7,8,9,10].map(h => (<label key={h} className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-sm border-2 cursor-pointer transition-all ${formData.hours.includes(String(h)) ? 'bg-blue-600 text-slate-100 border-blue-600 shadow-md' : 'bg-slate-100 text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'}`}><input type="checkbox" className="hidden text-slate-900 dark:text-slate-100" value={h} disabled={inputMode === 'auto'} checked={formData.hours.includes(String(h))} onChange={() => { const val = String(h); let newHours = [...formData.hours]; if (newHours.includes(val)) newHours = newHours.filter(x => x !== val); else newHours.push(val); setFormData({...formData, hours: newHours.sort()}); }} />{h}</label>))}</div></div><div><label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Materi / Topik Bahasan</label><textarea className="w-full border border-slate-200 rounded-xl p-4 min-h-[140px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-700 font-medium leading-relaxed bg-slate-100 dark:bg-slate-800 dark:border-slate-600" value={formData.material} onChange={handleMaterialChange} placeholder="Tuliskan ringkasan materi yang diajarkan hari ini..."></textarea>{isDhuha && <p className="text-[10px] text-blue-500 mt-1 font-bold flex items-center gap-1"><Sparkles size={10}/> Materi otomatis terisi untuk Salat Dhuha.</p>}<p className="text-[10px] text-slate-400 mt-1 italic">*Teks akan otomatis diformat kapital di awal kata (kecuali kata sambung).</p></div></div><div className="flex justify-between mt-8 pt-6 border-t border-slate-100"><button onClick={handleBack} className="text-slate-500 hover:bg-slate-50 px-5 py-3 rounded-xl font-bold flex items-center gap-2 transition-colors"><ArrowLeft size={18} /> Kembali</button><button disabled={!formData.subject || !formData.material} onClick={handleNext} className="bg-blue-600 hover:bg-blue-700 text-slate-100 px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-200 disabled:opacity-50 disabled:shadow-none transition-all">Lanjut <ArrowRight size={18} /></button></div></div>);
+  const renderStep3 = () => { const presentStudents = students.filter(s => !formData.attendance[s.id]); return (<div className="bg-slate-100 dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 animate-fade-in"><h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-100 mb-4">Catatan Murid</h3><div className="mb-8"><div className="flex justify-between items-center mb-3"><h4 className="font-bold text-slate-700 dark:text-slate-300 text-sm">Catatan Kedisiplinan</h4></div><div className="space-y-3">{notesData.discipline.map((row, idx) => (<div key={idx} className="flex flex-col gap-3 p-4 border border-slate-200 rounded-xl bg-slate-50 relative"><div className="flex flex-col md:flex-row gap-3"><div className="w-full md:w-1/2"><label className="block text-[10px] font-bold text-slate-500 mb-1">Jenis Pelanggaran</label><select className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-100 text-sm text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={row.category} onChange={e => updateNoteRow('discipline', idx, 'category', e.target.value)}><option value="">-- Pilih Jenis --</option>{disciplineTypes.map((t, i) => <option key={i} value={t}>{t}</option>)}</select></div><div className="w-full md:w-1/2"><label className="block text-[10px] font-bold text-slate-500 mb-1 flex items-center gap-1"><Gavel size={10}/> Tindak Lanjut</label><select className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-100 text-sm text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={row.followUp || ''} onChange={e => updateNoteRow('discipline', idx, 'followUp', e.target.value)}><option value="">-- Pilih Tindakan --</option>{followUpTypes.map((t, i) => <option key={i} value={t}>{t}</option>)}</select></div></div><div><label className="block text-[10px] font-bold text-slate-500 mb-1">Keterangan / Catatan Kejadian</label><input type="text" className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-100 text-sm focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" placeholder="Contoh: Siswa tidur saat jam pelajaran berlangsung..." value={row.note || ''} onChange={e => updateNoteRow('discipline', idx, 'note', e.target.value)}/></div><div className="w-full"><label className="block text-[10px] font-bold text-slate-500 mb-1">Murid Terlibat</label><MultiSelectDropdown options={presentStudents} selectedIds={row.studentIds} onChange={(ids: string[]) => updateNoteRow('discipline', idx, 'studentIds', ids)} placeholder="Pilih Murid (Hadir)"/></div><button onClick={() => removeNoteRow('discipline', idx)} className="absolute top-2 right-2 p-2 text-blue-500 hover:bg-sky-100 rounded-lg"><Trash2 size={16}/></button></div>))}<button onClick={() => addNoteRow('discipline')} className="text-blue-600 text-xs font-bold flex items-center gap-1 hover:underline"><Plus size={14}/> Tambah Catatan Kedisiplinan</button></div></div><div className="mb-6"><div className="flex justify-between items-center mb-3"><h4 className="font-bold text-slate-700 dark:text-slate-300 text-sm">Catatan Keaktifan</h4></div><div className="space-y-3">{notesData.activity.map((row, idx) => (<div key={idx} className="flex flex-col gap-3 p-4 border border-slate-200 rounded-xl bg-slate-50 relative"><div className="flex flex-col md:flex-row gap-3"><div className="w-full"><label className="block text-[10px] font-bold text-slate-500 mb-1">Jenis Keaktifan</label><select className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-100 text-sm text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={row.category} onChange={e => updateNoteRow('activity', idx, 'category', e.target.value)}><option value="">-- Pilih Jenis --</option>{activityTypes.map((t, i) => <option key={i} value={t}>{t}</option>)}</select></div></div><div><label className="block text-[10px] font-bold text-slate-500 mb-1">Keterangan (Opsional)</label><input type="text" className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-100 text-sm focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" placeholder="Contoh: Menjawab pertanyaan dengan benar..." value={row.note || ''} onChange={e => updateNoteRow('activity', idx, 'note', e.target.value)}/></div><div className="w-full"><label className="block text-[10px] font-bold text-slate-500 mb-1">Murid Terlibat</label><MultiSelectDropdown options={presentStudents} selectedIds={row.studentIds} onChange={(ids: string[]) => updateNoteRow('activity', idx, 'studentIds', ids)} placeholder="Pilih Murid (Hadir)"/></div><button onClick={() => removeNoteRow('activity', idx)} className="absolute top-2 right-2 p-2 text-blue-500 hover:bg-sky-100 rounded-lg"><Trash2 size={16}/></button></div>))}<button onClick={() => addNoteRow('activity')} className="text-blue-500 text-xs font-bold flex items-center gap-1 hover:underline"><Plus size={14}/> Tambah Catatan Keaktifan</button></div></div><div className="flex justify-between mt-8 pt-6 border-t border-slate-100"><button onClick={handleBack} className="text-slate-500 hover:bg-slate-50 px-5 py-3 rounded-xl font-bold flex items-center gap-2 transition-colors"><ArrowLeft size={18} /> Kembali</button><button onClick={handleNext} className="bg-blue-600 hover:bg-blue-700 text-slate-100 px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-200 disabled:opacity-50 transition-all">Lanjut <ArrowRight size={18} /></button></div></div>); };
+    return (<div className="bg-slate-100 dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 animate-fade-in"><h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-100 mb-1">Validasi Akhir</h3><p className="text-slate-500 dark:text-slate-400 text-sm mb-6">Konfirmasi status kelas sebelum mengirim laporan.</p><div className="space-y-6"><div className="bg-slate-50 dark:bg-slate-700/50 p-5 rounded-2xl border border-slate-200 dark:border-slate-600"><ul className="text-sm space-y-2 text-slate-700 dark:text-slate-300"><li className="flex"><span className="font-bold text-slate-400 w-24 flex-shrink-0">Mapel</span> <span className="font-bold">: {formData.subject}</span></li><li className="flex"><span className="font-bold text-slate-400 w-24 flex-shrink-0">Kelas</span> <span className="font-bold">: {formData.kelas}</span></li><li className="flex"><span className="font-bold text-slate-400 w-24 flex-shrink-0">Jam Ke</span> <span className="font-bold">: {formData.hours.join(', ')}</span></li><li className="flex"><span className="font-bold text-slate-400 w-24 flex-shrink-0">Absen</span> <span className="font-extrabold text-blue-500 bg-sky-100 dark:bg-blue-600/30 px-2 rounded">: {Object.keys(formData.attendance).length} Murid</span></li><li className="flex"><span className="font-bold text-slate-400 w-24 flex-shrink-0">Catatan</span> <span className="font-bold">: {noteCount} Murid</span></li></ul></div><div><label className="block text-xs font-bold text-slate-500 mb-3 uppercase tracking-wide">Kondisi Kebersihan Kelas</label><div className="grid grid-cols-2 gap-4"><label className={`cursor-pointer border-2 rounded-2xl p-4 flex flex-col items-center gap-3 transition-all ${formData.cleanliness === 'mengarahkan_piket' ? 'border-blue-500 bg-sky-100 text-blue-600 shadow-md' : 'border-slate-100 hover:border-blue-300 bg-slate-100 text-slate-500'}`}><input type="radio" name="cleanliness" value="mengarahkan_piket" className="hidden text-slate-900 dark:text-slate-100" checked={formData.cleanliness === 'mengarahkan_piket'} onChange={e => setFormData({...formData, cleanliness: e.target.value})} /><Sparkles size={28} /> <span className="text-xs font-bold text-center">Perlu Dibersihkan</span></label><label className={`cursor-pointer border-2 rounded-2xl p-4 flex flex-col items-center gap-3 transition-all ${formData.cleanliness === 'sudah_bersih' ? 'border-blue-500 bg-sky-100 text-blue-500 shadow-md' : 'border-slate-100 hover:border-blue-300 bg-slate-100 text-slate-500'}`}><input type="radio" name="cleanliness" value="sudah_bersih" className="hidden text-slate-900 dark:text-slate-100" checked={formData.cleanliness === 'sudah_bersih'} onChange={e => setFormData({...formData, cleanliness: e.target.value})} /><CheckCircle2 size={28} /> <span className="text-xs font-bold text-center">Sudah Bersih</span></label></div></div><div><label className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.isConfirmed ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-200 hover:border-blue-300'}`}><div className={`w-6 h-6 rounded flex items-center justify-center border-2 transition-colors flex-shrink-0 ${formData.isConfirmed ? 'bg-blue-600 border-blue-600 text-slate-100' : 'border-slate-300 bg-slate-100'}`}>{formData.isConfirmed && <Check size={16} strokeWidth={4} />}</div><input type="checkbox" className="hidden text-slate-900 dark:text-slate-100" checked={formData.isConfirmed} onChange={e => setFormData({...formData, isConfirmed: e.target.checked})} /><span className="font-bold text-slate-700 dark:text-slate-300 text-sm leading-tight">Saya menyatakan bahwa saya benar-benar melaksanakan KBM di dalam kelas dengan baik.</span></label></div><div><label className="flex items-center gap-2 text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide"><MessageSquare size={14}/> Catatan Tambahan (Opsional)</label><textarea className="bg-slate-50 w-full border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" rows={2} value={formData.notes} onChange={e => setFormData(prev => ({...prev, notes: e.target.value}))} placeholder="Catatan kejadian khusus..."></textarea></div></div><div className="flex justify-between mt-8 pt-6 border-t border-slate-100"><button onClick={handleBack} className="text-slate-500 hover:bg-slate-50 px-5 py-3 rounded-xl font-bold flex items-center gap-2 transition-colors"><ArrowLeft size={18} /> Kembali</button><button disabled={!formData.cleanliness || !formData.isConfirmed || loading} onClick={handlePreSubmit} className="bg-blue-600 hover:bg-blue-700 text-slate-100 px-8 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-200 disabled:opacity-50 disabled:shadow-none transition-all">{loading ? 'Menyimpan...' : (editJournalId ? <><Edit3 size={18} /> Update Jurnal</> : <><Send size={18} /> Kirim Data</>)}</button></div></div>);
+                    <input 
+                      type="text" 
+                      value={profile?.nip || ''} 
+                      disabled 
+                      className="text-slate-900 dark:text-slate-100 w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-3 text-slate-500 dark:text-slate-400 font-mono font-bold cursor-not-allowed"
+                    />
+                    <input 
+                      type="text" 
+                      value={profile?.full_name || ''} 
+                      disabled 
+                      className="text-slate-900 dark:text-slate-100 w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-3 text-slate-500 dark:text-slate-400 font-bold cursor-not-allowed"
+                    />

@@ -123,7 +123,7 @@ const ProfilePage: React.FC = () => {
                       type="text" 
                       value={profile?.nip || ''} 
                       disabled 
-                      className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-3 text-slate-500 dark:text-slate-400 font-mono font-bold cursor-not-allowed"
+                      className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  dark: w-full dark: border border-slate-200 dark:border-slate-600 rounded-xl p-3 dark: font-mono font-bold cursor-not-allowed"
                     />
                   </div>
                   <div>
@@ -132,7 +132,7 @@ const ProfilePage: React.FC = () => {
                       type="text" 
                       value={profile?.full_name || ''} 
                       disabled 
-                      className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-3 text-slate-500 dark:text-slate-400 font-bold cursor-not-allowed"
+                      className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  dark: w-full dark: border border-slate-200 dark:border-slate-600 rounded-xl p-3 dark: font-bold cursor-not-allowed"
                     />
                   </div>
                 </div>

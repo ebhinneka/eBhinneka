@@ -275,11 +275,11 @@ const StudentsData: React.FC = () => {
         <div className="bg-slate-100 p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-center">
             <div className="flex-1 w-full relative">
                 <Search className="absolute left-4 top-3.5 text-slate-400" size={18} />
-                <input type="text" placeholder="Cari Nama / NISN..." className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium text-slate-900 dark:text-slate-100" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                <input type="text" placeholder="Cari Nama / NISN..." className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium dark: dark: dark:border-slate-600" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
             <div className="w-full md:w-64 relative">
                  <Filter className="absolute left-4 top-3.5 text-slate-400" size={18} />
-                 <select className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-100 text-sm font-bold text-slate-700 appearance-none dark:bg-slate-800 dark:border-slate-600" value={filterClass} onChange={e => setFilterClass(e.target.value)}>
+                 <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-bold appearance-none dark: dark:border-slate-600" value={filterClass} onChange={e => setFilterClass(e.target.value)}>
                     <option value="">Semua Kelas</option>
                     {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
                  </select>
@@ -350,15 +350,15 @@ const StudentsData: React.FC = () => {
 
                         {modalType === 'masuk' && (
                              <div className="space-y-4">
-                                <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Nama Lengkap</label><input className="w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Nama Murid" /></div>
+                                <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Nama Lengkap</label><input className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 dark: dark: dark:border-slate-600" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Nama Murid" /></div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">NISN</label><input className="w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100" value={formData.nisn} onChange={e => setFormData({...formData, nisn: e.target.value})} placeholder="001xxxx" /></div>
-                                    <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">NIS (Opsional)</label><input className="w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100" value={formData.nis} onChange={e => setFormData({...formData, nis: e.target.value})} placeholder="1234" /></div>
+                                    <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">NISN</label><input className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 dark: dark: dark:border-slate-600" value={formData.nisn} onChange={e => setFormData({...formData, nisn: e.target.value})} placeholder="001xxxx" /></div>
+                                    <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">NIS (Opsional)</label><input className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 dark: dark: dark:border-slate-600" value={formData.nis} onChange={e => setFormData({...formData, nis: e.target.value})} placeholder="1234" /></div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Kelas</label>
-                                        <select className="w-full border border-slate-200 rounded-xl p-3 bg-slate-100 focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={formData.kelas} onChange={e => setFormData({...formData, kelas: e.target.value})}>
+                                        <select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 dark: dark: dark:border-slate-600" value={formData.kelas} onChange={e => setFormData({...formData, kelas: e.target.value})}>
                                             <option value="">-- Pilih Kelas --</option>
                                             {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
                                         </select>
@@ -377,8 +377,8 @@ const StudentsData: React.FC = () => {
 
                         {modalType === 'keluar' && (
                              <div className="space-y-4">
-                                 <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Pilih Kelas</label><select className="w-full border border-slate-200 rounded-xl p-3 bg-slate-100 focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-600" value={mutasiKeluarData.kelas} onChange={e => setMutasiKeluarData({...mutasiKeluarData, kelas: e.target.value, studentId: ''})}><option value="">-- Pilih Kelas --</option>{availableClasses.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-                                <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Pilih Murid</label><select className="w-full border border-slate-200 rounded-xl p-3 bg-slate-100 disabled:bg-slate-50 disabled:text-slate-400 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-600" value={mutasiKeluarData.studentId} disabled={!mutasiKeluarData.kelas} onChange={e => setMutasiKeluarData({...mutasiKeluarData, studentId: e.target.value})}><option value="">-- Pilih Nama Murid --</option>{studentsForDropdown.map(s => (<option key={s.id} value={s.id}>{s.name} ({s.nisn})</option>))}</select></div>
+                                 <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Pilih Kelas</label><select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 dark: dark: dark:border-slate-600" value={mutasiKeluarData.kelas} onChange={e => setMutasiKeluarData({...mutasiKeluarData, kelas: e.target.value, studentId: ''})}><option value="">-- Pilih Kelas --</option>{availableClasses.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                                <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Pilih Murid</label><select className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  dark: w-full border border-slate-200 rounded-xl p-3 disabled: disabled: focus:ring-2 focus:ring-blue-500 dark: dark:border-slate-600" value={mutasiKeluarData.studentId} disabled={!mutasiKeluarData.kelas} onChange={e => setMutasiKeluarData({...mutasiKeluarData, studentId: e.target.value})}><option value="">-- Pilih Nama Murid --</option>{studentsForDropdown.map(s => (<option key={s.id} value={s.id}>{s.name} ({s.nisn})</option>))}</select></div>
                                 {mutasiKeluarData.studentId && (
                                     <div className="bg-sky-100 p-4 rounded-xl border border-blue-300 mt-2">
                                         <label className="block text-xs font-bold text-blue-600 mb-2">Konfirmasi Tindakan</label>
