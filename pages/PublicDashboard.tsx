@@ -27,6 +27,7 @@ const PublicDashboard: React.FC = () => {
   
   const [rawAttendance, setRawAttendance] = useState<any[]>([]);
   const [studentClassMap, setStudentClassMap] = useState<Record<string, string>>({});
+  const [studentNameMap, setStudentNameMap] = useState<Record<string, string>>({});
   const [modalOpen, setModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState<{
     title: string;
@@ -98,9 +99,9 @@ const PublicDashboard: React.FC = () => {
                 let from = 0;
                 let step = 1000;
                 while (true) {
-                    let res = await supabase.from('students').select('id, kelas').eq('academic_year', academicYear || '2025/2026').range(from, from + step - 1);
+                    let res = await supabase.from('students').select('id, name, kelas').eq('academic_year', academicYear || '2025/2026').range(from, from + step - 1);
                     if (res.error && (res.error.code === '42703' || res.error.message?.includes('academic_year'))) {
-                        res = await supabase.from('students').select('id, kelas').eq('academic_year', academicYear || '2025/2026').range(from, from + step - 1);
+                        res = await supabase.from('students').select('id, name, kelas').eq('academic_year', academicYear || '2025/2026').range(from, from + step - 1);
                     }
                     if (res.error) break;
                     if (!res.data || res.data.length === 0) break;
@@ -123,7 +124,8 @@ const PublicDashboard: React.FC = () => {
         ]);
 
         const classCounts: Record<string, number> = {};
-        const sClassMap: Record<string, string> = {}; 
+        const sClassMap: Record<string, string> = {};
+        const sNameMap: Record<string, string> = {}; 
         let c7 = 0, c8 = 0, c9 = 0;
         let calculatedTotalJp = 0;
         if (schedulesRes && schedulesRes.data) {
@@ -141,6 +143,7 @@ const PublicDashboard: React.FC = () => {
             studentsRes.data.forEach((s: any) => {
                 const rawKelas = s.kelas ? s.kelas.toUpperCase().trim() : '';
                 sClassMap[s.id] = rawKelas;
+                if (s.name) sNameMap[s.id] = s.name;
                 if (rawKelas) {
                     classCounts[rawKelas] = (classCounts[rawKelas] || 0) + 1;
                     if (rawKelas.startsWith('7')) c7++; else if (rawKelas.startsWith('8')) c8++; else if (rawKelas.startsWith('9')) c9++;
@@ -148,6 +151,7 @@ const PublicDashboard: React.FC = () => {
             });
         }
         setStudentClassMap(sClassMap);
+        setStudentNameMap(sNameMap);
 
         let completedJp = 0;
         if (journalsRes.data) {
@@ -288,7 +292,7 @@ const PublicDashboard: React.FC = () => {
       // Need to fetch real names if missing from Homeroom source
       // In a real app, I'd pre-fetch names map. For now, rely on teacher logs or generic.
       return absentStudents.map(s => ({
-          name: s.name === 'Loading...' ? 'Siswa (Data Wali)' : s.name, 
+          name: (s.name === 'Loading...' || s.name === 'Unknown') ? (studentNameMap[s.student_id] || 'Siswa (Data Wali)') : s.name, 
           status: s.status,
           source: s.source
       }));

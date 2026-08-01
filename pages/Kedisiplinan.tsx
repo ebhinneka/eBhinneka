@@ -391,12 +391,12 @@ const Kedisiplinan: React.FC = () => {
 
       return (
           <div className="relative" ref={wrapperRef}>
-              <button onClick={() => setIsOpen(!isOpen)} className="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-100 text-left flex justify-between items-center text-xs">
+              <button onClick={() => setIsOpen(!isOpen)} className="w-full border border-slate-200 dark:border-slate-600 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-700 text-left flex justify-between items-center text-xs">
                   <span className={`truncate ${selectedIds.length === 0 ? 'text-slate-400' : 'text-slate-700 font-bold'}`}>{selectedIds.length === 0 ? placeholder : `${selectedIds.length} Murid`}</span>
                   <ChevronDown size={14} className="text-slate-400" />
               </button>
               {isOpen && (
-                  <div className="absolute z-20 w-full mt-1 bg-slate-100 border border-slate-100 rounded-xl shadow-lg max-h-48 overflow-y-auto p-1 custom-scrollbar">
+                  <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-48 overflow-y-auto p-1 custom-scrollbar">
                       {options.map((opt: any) => (
                           <div key={opt.id} onClick={() => toggleSelection(opt.id)} className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer text-xs ${selectedIds.includes(opt.id) ? 'bg-sky-100 font-bold text-blue-600' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
                               {selectedIds.includes(opt.id) && <Check size={12} />} {opt.name}
@@ -436,7 +436,7 @@ const Kedisiplinan: React.FC = () => {
 
          {/* ACCORDION INPUT FORM */}
          {showInputForm && (
-             <div className="bg-slate-100 rounded-3xl p-6 shadow-lg border border-blue-300 animate-fade-in transition-all">
+             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-lg border border-blue-300 animate-fade-in transition-all">
                   <div className="flex items-center justify-between gap-2 text-blue-600 font-bold mb-4 pb-2 border-b border-blue-300">
                       <div className="flex items-center gap-2">
                         <Gavel size={20}/>

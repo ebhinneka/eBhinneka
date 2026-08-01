@@ -170,7 +170,7 @@ export const Layout: React.FC<{ children: React.ReactNode; showNav?: boolean; co
   const formattedTime = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(currentTime).replace(/\./g, ':');
 
   return (
-    <div className="min-h-screen flex bg-transparent  font-sans text-slate-100 transition-colors duration-300">
+    <div className="min-h-screen flex bg-transparent  font-sans text-slate-800 dark:text-slate-100 transition-colors duration-300">
       
       {/* --- DESKTOP SIDEBAR (Compact Mode Default) --- */}
       {showNav && (
