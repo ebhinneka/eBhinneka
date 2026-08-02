@@ -78,6 +78,7 @@ export interface PublicStats {
   absenceDetails: { S: number; I: number; A: number };
   absencePerClass: Record<string, number>;
   unfilledKbm: { guru: string; kelas: string; jam: string }[];
+  filledClasses?: string[];
 }
 
 export interface AppSetting {

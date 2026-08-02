@@ -112,7 +112,7 @@ const PublicDashboard: React.FC = () => {
                 return { data: allData, error: null };
             })()
 ,
-            supabase.from('journals').select('hours').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', startOfDay),
+            supabase.from('journals').select('hours, kelas').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', startOfDay),
             supabase.from('attendance_logs').select('student_id, student_name, status, created_at, subject').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', startOfDay),
             supabase.from('homeroom_attendance').select('student_id, status, kelas').gte('date', semesterStart ? `${semesterStart}` : '2000-01-01').lte('date', semesterEnd ? `${semesterEnd}` : '2100-01-01').eq('date', todayStr),
             supabase.from('schedules').select('hour, academic_year, semester').eq('day_of_week', dbDay).eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').eq('schedule_version', activeScheduleVersion || 'Utama').then(async (res) => {
@@ -153,12 +153,17 @@ const PublicDashboard: React.FC = () => {
         setStudentClassMap(sClassMap);
         setStudentNameMap(sNameMap);
 
+        const filledClassesSet = new Set<string>();
+
         let completedJp = 0;
         if (journalsRes.data) {
             journalsRes.data.forEach((j: any) => {
                 if (typeof j.hours === 'string') {
                     const parts = j.hours.split(',').filter((h: string) => h.trim().length > 0);
                     completedJp += parts.length;
+                }
+                if (j.kelas) {
+                    filledClassesSet.add(j.kelas.toUpperCase().trim());
                 }
             });
         }
@@ -169,6 +174,11 @@ const PublicDashboard: React.FC = () => {
         // 1. Homeroom Attendance (Absensi Wali Kelas - Mutlak)
         if (homeroomRes.data) {
             homeroomRes.data.forEach((h: any) => {
+                if (h.kelas) {
+                    filledClassesSet.add(h.kelas.toUpperCase().trim());
+                } else if (h.student_id && sClassMap[h.student_id]) {
+                    filledClassesSet.add(sClassMap[h.student_id]);
+                }
                 if (['S', 'I', 'A'].includes(h.status)) {
                     // We need name, but homeroom_attendance might not have it joined. 
                     // However, we have student ID. We can map it if needed, or rely on logic below.
@@ -189,6 +199,9 @@ const PublicDashboard: React.FC = () => {
         });
 
         validTeacherLogs.forEach((log: any) => {
+            if (log.student_id && sClassMap[log.student_id]) {
+                filledClassesSet.add(sClassMap[log.student_id]);
+            }
             if (!combinedAttendance[log.student_id]) {
                 if (['S', 'I', 'A'].includes(log.status)) {
                     combinedAttendance[log.student_id] = { 
@@ -229,7 +242,8 @@ const PublicDashboard: React.FC = () => {
             absenceCount: sCount + iCount + aCount,
             absenceDetails: { S: sCount, I: iCount, A: aCount },
             absencePerClass: absencePerClass,
-            unfilledKbm: []
+            unfilledKbm: [],
+            filledClasses: Array.from(filledClassesSet)
         });
     } catch (err) { console.error(err); }
   };
@@ -298,110 +312,213 @@ const PublicDashboard: React.FC = () => {
       }));
   };
 
-  const ClassCard = ({ label, count, colorClass, iconColorClass, onClick }: any) => (
-      <button 
-        onClick={onClick}
-        className="app-card p-5 flex flex-col items-center justify-center text-center transition-transform active:scale-95 h-36"
-      >
-          <div className={`mb-2 text-3xl ${iconColorClass}`}>
-              <School size={32} strokeWidth={1.5} />
-          </div>
-          <h2 className={`text-4xl font-extrabold ${colorClass} mb-1 tracking-tight`}>{count}</h2>
-          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">{label}</p>
-      </button>
-  );
+  const progressPercentage = stats && stats.totalJpRequired > 0 
+    ? Math.min((stats.completedJp / stats.totalJpRequired) * 100, 100) 
+    : 0;
 
   return (
-    <div className="min-h-[100dvh] flex flex-col items-center justify-center p-4 font-sans bg-transparent  transition-colors duration-300">
-      <main className="w-full max-w-md space-y-4 m-auto">
+    <div className="min-h-[100dvh] flex flex-col items-center justify-center p-3 sm:p-5 font-sans bg-[#f1f5f9] dark:bg-slate-900 transition-colors duration-300">
+      <main className="w-full max-w-[430px] space-y-3.5 m-auto">
         
-        {/* HEADER CARD */}
-        <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-blue-800 rounded-[2rem] p-5 flex items-center justify-between shadow-xl border-none text-white relative overflow-hidden">
+        {/* TOP HEADER CARD */}
+        <div className="bg-gradient-to-r from-[#0d47a1] via-[#1565c0] to-[#1976d2] rounded-[28px] p-5 shadow-[0_12px_30px_rgba(21,101,192,0.35)] border border-blue-400/20 text-white relative overflow-hidden flex items-center justify-between">
+             {/* Decorative Background Pattern */}
+             <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:12px_12px]"></div>
+             <div className="absolute -bottom-10 -right-10 w-44 h-44 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
+             
+             {/* Curved Light Stroke Watermark */}
+             <svg className="absolute right-0 bottom-0 w-36 h-36 opacity-20 pointer-events-none" viewBox="0 0 100 100" fill="none">
+               <circle cx="80" cy="80" r="60" stroke="white" strokeWidth="2" />
+               <circle cx="80" cy="80" r="45" stroke="white" strokeWidth="1" />
+             </svg>
+
+             {/* Left Section (Logo + School Title) */}
              <div className="flex items-center gap-3 relative z-10">
-                 <img src="https://i.imghippo.com/files/WXB3962h.png" alt="Logo" className="h-14 w-auto object-contain bg-slate-100/20 p-1 rounded-full shadow-inner backdrop-blur-md" />
+                 <div className="w-14 h-14 rounded-full bg-white/10 p-1 border-2 border-amber-300/80 shadow-[0_0_15px_rgba(252,211,77,0.3)] flex items-center justify-center backdrop-blur-sm flex-shrink-0">
+                    <img src="https://i.imghippo.com/files/WXB3962h.png" alt="Logo" className="w-full h-full object-contain" />
+                 </div>
                  <div>
-                    <h1 className="text-md font-extrabold text-white leading-tight drop-shadow-sm">SMP BHINNEKA <br/> TUNGGAL IKA</h1>
-                    <p className="text-xs font-bold text-white/90 mt-1 drop-shadow-sm">eBhinneka</p>
+                    <h1 className="text-[16px] font-extrabold text-white leading-[1.25] tracking-tight drop-shadow-sm uppercase">
+                      SMP BHINNEKA <br/> TUNGGAL IKA
+                    </h1>
+                    <p className="text-xs font-semibold text-blue-100/90 mt-1">eBhinneka</p>
                  </div>
              </div>
-             <div className="text-right relative z-10">
-                <p className="text-xs font-medium text-white/90 mb-0.5">{formatDateIndo(time)}</p>
-                <p className="text-3xl font-extrabold text-white font-mono tracking-tight leading-none drop-shadow-md">{formatTimeIndo(time)} <span className="text-xs font-bold">WIB</span></p>
+
+             {/* Vertical Divider */}
+             <div className="w-[1px] h-11 bg-white/20 mx-2 flex-shrink-0 relative z-10"></div>
+
+             {/* Right Section (Date & Clock) */}
+             <div className="text-right relative z-10 flex flex-col items-end justify-center">
+                <p className="text-[11px] font-medium text-blue-100/90 mb-0.5 whitespace-nowrap">{formatDateIndo(time)}</p>
+                <div className="flex items-center gap-1.5">
+                   <span className="text-3xl font-extrabold text-white font-sans tracking-tight leading-none drop-shadow-sm">
+                     {formatTimeIndo(time)}
+                   </span>
+                   <span className="bg-white/20 border border-white/30 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-lg backdrop-blur-md shadow-sm">
+                     WIB
+                   </span>
+                </div>
              </div>
         </div>
 
         {loading ? (
-            <div className="app-card p-10 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
+            <div className="bg-white dark:bg-slate-800 rounded-[24px] p-10 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 shadow-[0_6px_20px_rgba(0,0,0,0.04)] border border-slate-100 dark:border-slate-700/60">
                 <Loader2 className="animate-spin mb-3 text-blue-500" size={32} />
                 <p className="text-xs font-bold">Memuat Data...</p>
             </div> 
         ) : stats ? (
           <>
-            {/* ROW 1 */}
-            <div className="flex justify-center mb-4">
-                <div className="bg-white px-6 py-2.5 rounded-full shadow-sm text-xs font-bold text-slate-700 flex items-center justify-center gap-2 border border-slate-200/60"><Calendar size={14} className="text-blue-500"/> 
-                    Tahun Ajaran: {academicYear} | Semester: {semester}
+            {/* ACADEMIC YEAR PILL */}
+            <div className="flex justify-center">
+                <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-5 py-2.5 rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.03)] text-xs font-extrabold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2 border border-slate-100 dark:border-slate-700/60">
+                    <Calendar size={16} className="text-blue-600 dark:text-blue-400"/> 
+                    Tahun Ajaran: {academicYear} <span className="text-slate-300 dark:text-slate-600">|</span> Semester: {semester}
                 </div>
             </div>
+
+            {/* TOP 3 CLASS METRIC CARDS */}
             <div className="grid grid-cols-3 gap-3">
-               <ClassCard label="Kelas 7" count={stats.count7} colorClass="text-blue-600 dark:text-blue-400" iconColorClass="text-blue-400 dark:text-blue-500" onClick={() => handleClassClick('7')} />
-               <ClassCard label="Kelas 8" count={stats.count8} colorClass="text-blue-500 dark:text-blue-500" iconColorClass="text-blue-500 dark:text-blue-500" onClick={() => handleClassClick('8')} />
-               <ClassCard label="Kelas 9" count={stats.count9} colorClass="text-blue-500 dark:text-blue-500" iconColorClass="text-blue-500 dark:text-blue-500" onClick={() => handleClassClick('9')} />
+               {[
+                 { label: "KELAS 7", count: stats.count7, grade: '7' },
+                 { label: "KELAS 8", count: stats.count8, grade: '8' },
+                 { label: "KELAS 9", count: stats.count9, grade: '9' },
+               ].map((item) => (
+                  <button 
+                    key={item.grade}
+                    onClick={() => handleClassClick(item.grade)}
+                    className="bg-white dark:bg-slate-800/90 rounded-[22px] p-3.5 flex flex-col items-center justify-center text-center shadow-[0_6px_20px_rgba(0,0,0,0.04)] border border-slate-100 dark:border-slate-700/60 relative overflow-hidden h-[148px] hover:scale-[1.02] active:scale-95 transition-all duration-200 cursor-pointer group"
+                  >
+                      {/* Watermark dots */}
+                      <div className="absolute -bottom-1 -right-1 opacity-20 pointer-events-none">
+                         <div className="w-8 h-8 bg-[radial-gradient(#0284c7_1px,transparent_1px)] [background-size:4px_4px]"></div>
+                      </div>
+
+                      <div className="w-11 h-11 rounded-full bg-gradient-to-b from-blue-100 to-sky-50 dark:from-blue-900/40 dark:to-slate-800 border border-blue-200/60 dark:border-blue-700/50 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-inner mb-2 group-hover:scale-105 transition-transform">
+                          <School size={22} strokeWidth={2} />
+                      </div>
+                      <h2 className="text-3xl sm:text-[34px] font-extrabold text-[#0d47a1] dark:text-blue-400 tracking-tight leading-none mb-1">
+                        {item.count}
+                      </h2>
+                      <p className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                        {item.label}
+                      </p>
+                      <span className="w-7 h-[3px] bg-blue-500 rounded-full"></span>
+                  </button>
+               ))}
             </div>
 
-            {/* ROW 2 */}
+            {/* MIDDLE 2 METRIC CARDS */}
             <div className="grid grid-cols-2 gap-3">
-                <div className="app-card p-6 flex flex-col items-center justify-center text-center h-44">
-                     <div className="mb-3 text-blue-600 dark:text-blue-500">
-                        <BookOpen size={40} strokeWidth={1.5} />
+                {/* KBM TERLAKSANA */}
+                <div className="bg-white dark:bg-slate-800/90 rounded-[24px] p-5 flex flex-col items-center justify-center text-center shadow-[0_6px_20px_rgba(0,0,0,0.04)] border border-slate-100 dark:border-slate-700/60 relative overflow-hidden h-[160px]">
+                     {/* Watermark open book line art */}
+                     <BookOpen className="absolute -bottom-2 -left-2 size-24 opacity-10 text-blue-900 dark:text-blue-400 pointer-events-none stroke-[1]" />
+
+                     <div className="w-12 h-12 rounded-full bg-gradient-to-b from-[#1565c0] to-[#0d47a1] text-white flex items-center justify-center shadow-md shadow-blue-600/30 mb-2 relative z-10">
+                        <BookOpen size={22} strokeWidth={2.2} />
                      </div>
-                     <div className="flex items-baseline gap-1 mb-1">
-                        <span className="text-4xl font-extrabold text-blue-600 dark:text-blue-500">{stats.completedJp}</span>
-                        <span className="text-lg font-bold text-slate-400 dark:text-slate-500">/ {stats.totalJpRequired} JP</span>
+                     <div className="flex items-baseline gap-1 mb-1 relative z-10">
+                        <span className="text-3xl sm:text-[34px] font-extrabold text-[#0d47a1] dark:text-blue-400 tracking-tight leading-none">
+                          {stats.completedJp}
+                        </span>
+                        <span className="text-xs font-extrabold text-slate-400 dark:text-slate-500">
+                          / {stats.totalJpRequired} JP
+                        </span>
                      </div>
-                     <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mt-1">KBM Terlaksana</p>
+                     <p className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 relative z-10">
+                       KBM TERLAKSANA
+                     </p>
+                     <span className="w-7 h-[3px] bg-blue-500 rounded-full relative z-10"></span>
                 </div>
 
+                {/* KETIDAKHADIRAN MURID */}
                 <button 
                     onClick={handleAbsenceClick}
-                    className="app-card p-6 flex flex-col items-center justify-center text-center h-44 transition-transform active:scale-95 group"
+                    className="bg-white dark:bg-slate-800/90 rounded-[24px] p-5 flex flex-col items-center justify-center text-center shadow-[0_6px_20px_rgba(0,0,0,0.04)] border border-slate-100 dark:border-slate-700/60 relative overflow-hidden h-[160px] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer group"
                 >
-                     <div className="mb-3 text-blue-500 dark:text-blue-400 group-hover:scale-110 transition-transform">
-                        <AlertCircle size={40} strokeWidth={1.5} />
+                     {/* Watermark people line art */}
+                     <div className="absolute -bottom-2 -right-2 opacity-10 text-blue-900 dark:text-blue-400 pointer-events-none">
+                        <div className="flex items-end gap-1">
+                          <div className="w-6 h-10 rounded-t-full bg-current"></div>
+                          <div className="w-8 h-12 rounded-t-full bg-current"></div>
+                          <div className="w-6 h-8 rounded-t-full bg-current"></div>
+                        </div>
                      </div>
-                     <span className="text-4xl font-extrabold text-blue-500 dark:text-blue-400 mb-1">{stats.absenceCount}</span>
-                     <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mt-1 leading-tight">Ketidakhadiran <br/> Murid</p>
+
+                     <div className="w-12 h-12 rounded-full bg-gradient-to-b from-[#1565c0] to-[#0d47a1] text-white flex items-center justify-center shadow-md shadow-blue-600/30 mb-2 group-hover:scale-105 transition-transform relative z-10">
+                        <span className="text-xl font-extrabold leading-none">!</span>
+                     </div>
+                     <span className="text-3xl sm:text-[34px] font-extrabold text-[#0d47a1] dark:text-blue-400 tracking-tight leading-none mb-1 relative z-10">
+                       {stats.absenceCount}
+                     </span>
+                     <p className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 text-center leading-tight relative z-10">
+                       KETIDAKHADIRAN<br/>MURID
+                     </p>
+                     <span className="w-7 h-[3px] bg-blue-500 rounded-full relative z-10"></span>
                 </button>
             </div>
 
-            {/* PROGRESS BAR */}
-            <div className="app-card p-6">
-                <h3 className="font-bold text-slate-600 dark:text-slate-300 text-xs uppercase mb-3 text-center">Progress KBM Hari Ini</h3>
-                <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-4 mb-2 overflow-hidden shadow-inner">
-                    <div 
-                      className="bg-blue-500 h-4 rounded-full transition-all duration-700 ease-out"
-                      style={{ width: `${Math.min((stats.completedJp / stats.totalJpRequired) * 100, 100)}%` }}
-                    ></div>
+            {/* PROGRESS BAR CARD */}
+            <div className="bg-white dark:bg-slate-800/90 rounded-[24px] p-5 shadow-[0_6px_20px_rgba(0,0,0,0.04)] border border-slate-100 dark:border-slate-700/60 relative overflow-hidden">
+                {/* Header title with diamond accents */}
+                <div className="flex items-center justify-center gap-2 mb-3.5 text-center">
+                    <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-blue-300 dark:via-blue-700 to-transparent"></div>
+                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">◇</span>
+                    <h3 className="text-[11px] font-extrabold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                      PROGRESS KBM HARI INI
+                    </h3>
+                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">◇</span>
+                    <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-blue-300 dark:via-blue-700 to-transparent"></div>
                 </div>
-                <div className="text-left">
-                    <span className="text-sm font-bold text-slate-700 dark:text-white">
-                        {((stats.completedJp / stats.totalJpRequired) * 100).toFixed(1)}% Terlaksana
-                    </span>
+
+                {/* Progress bar track & bar */}
+                <div className="w-full bg-slate-100 dark:bg-slate-700/80 rounded-full h-7 p-1 shadow-inner relative overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-[#0d47a1] via-[#1565c0] to-[#2563eb] h-5 rounded-full flex items-center justify-end pr-3 transition-all duration-700 ease-out shadow-sm relative z-10"
+                      style={{ width: `${Math.max(progressPercentage, 12)}%` }}
+                    >
+                        <span className="text-[11px] font-extrabold text-white leading-none">
+                          {progressPercentage.toFixed(1)}%
+                        </span>
+                    </div>
+                </div>
+
+                {/* Bottom status & chart watermark */}
+                <div className="mt-3 flex justify-between items-end relative z-10">
+                    <div>
+                        <span className="text-sm font-extrabold text-[#0d47a1] dark:text-blue-400">
+                            {progressPercentage.toFixed(1)}%
+                        </span> 
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300 ml-1.5">
+                            Terlaksana
+                        </span>
+                    </div>
+                </div>
+
+                {/* Rising Bar Chart Graphic Watermark */}
+                <div className="absolute bottom-2.5 right-4 opacity-15 text-blue-900 dark:text-blue-300 pointer-events-none flex items-end gap-1">
+                    <div className="w-2.5 h-3 bg-current rounded-t-sm"></div>
+                    <div className="w-2.5 h-5 bg-current rounded-t-sm"></div>
+                    <div className="w-2.5 h-7 bg-current rounded-t-sm"></div>
+                    <div className="w-2.5 h-10 bg-current rounded-t-sm"></div>
                 </div>
             </div>
 
-            {/* LOGIN */}
-            <div className="pt-2">
-                <div className="relative group rounded-xl overflow-hidden p-[2px] shadow-xl">
-                    <div className="absolute inset-[-100%] z-0 animate-[spin_4s_linear_infinite]" style={{ background: 'conic-gradient(from 0deg, transparent 0 340deg, #ffffff 360deg)' }}></div>
-                    <button 
-                            onClick={() => setShowLoginModal(true)} 
-                            className="relative z-10 w-full bg-[#2563eb] hover:bg-blue-700 text-white font-extrabold text-lg py-4 rounded-[10px] flex items-center justify-center gap-2 transition-all"
-                        >
-                            <LogIn size={24} className="stroke-[2.5]" /> 
-                            <span>Login Sebagai</span>
-                        </button>
-                </div>
+            {/* LOGIN BUTTON */}
+            <div className="pt-1">
+                <button 
+                    onClick={() => setShowLoginModal(true)} 
+                    className="w-full bg-gradient-to-r from-[#0d47a1] via-[#1565c0] to-[#1d4ed8] hover:from-[#0c3b85] hover:to-[#1e40af] text-white font-extrabold text-base py-4 px-6 rounded-[22px] flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(21,101,192,0.35)] transition-all active:scale-[0.98] border border-blue-400/30 relative overflow-hidden group"
+                >
+                    {/* Pattern Overlay */}
+                    <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:10px_10px]"></div>
+                    
+                    <div className="w-7 h-7 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/20 group-hover:scale-105 transition-transform relative z-10">
+                        <LogIn size={18} className="stroke-[2.5]" />
+                    </div>
+                    <span className="text-base font-extrabold text-white tracking-wide relative z-10">Login Sebagai</span>
+                </button>
             </div>
           </>
         ) : <p className="text-center text-slate-400 text-sm mt-10">Gagal memuat data.</p>}
@@ -467,6 +584,7 @@ const PublicDashboard: React.FC = () => {
                                         const absentCount = modalContent.data.absencePerClass[cls] || 0;
                                         const presentCount = totalStudents - absentCount;
                                         const isExpanded = expandedClass === cls;
+                                        const isFilled = modalContent.data.filledClasses?.includes(cls) ?? false;
 
                                         return (
                                             <div key={cls} className="border border-slate-100 dark:border-slate-700 rounded-2xl overflow-hidden transition-all hover:shadow-sm">
@@ -479,11 +597,26 @@ const PublicDashboard: React.FC = () => {
                                                     </div>
                                                     <div className="flex-1 px-4 text-left">
                                                         <div className="flex items-center gap-2 text-xs font-bold">
-                                                            <span className="text-blue-500 dark:text-blue-500">{presentCount} Hadir</span>
-                                                            <span className="text-slate-300 dark:text-slate-600">|</span>
-                                                            <span className={absentCount > 0 ? "text-blue-500 dark:text-blue-500" : "text-slate-400 dark:text-slate-500"}>
-                                                                {absentCount} Tidak Hadir
-                                                            </span>
+                                                            {isFilled ? (
+                                                                <>
+                                                                    <span className="text-blue-600 dark:text-blue-400">{presentCount} Hadir</span>
+                                                                    <span className="text-slate-300 dark:text-slate-600">|</span>
+                                                                    <span className={absentCount > 0 ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}>
+                                                                        {absentCount} Tidak Hadir
+                                                                    </span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <span className="text-slate-400 dark:text-slate-500">{presentCount} Hadir</span>
+                                                                    <span className="text-slate-300 dark:text-slate-600">|</span>
+                                                                    <span className="text-slate-400 dark:text-slate-500">
+                                                                        0 Tidak Hadir
+                                                                    </span>
+                                                                    <span className="text-[10px] bg-slate-200/60 dark:bg-slate-700/80 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded font-normal ml-1">
+                                                                        Belum diisi
+                                                                    </span>
+                                                                </>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <div className="text-slate-300 dark:text-slate-600">
@@ -507,8 +640,12 @@ const PublicDashboard: React.FC = () => {
                                                     </div>
                                                 )}
                                                 {isExpanded && absentCount === 0 && (
-                                                    <div className="bg-sky-100 dark:bg-blue-500/20 p-3 text-center text-xs text-blue-500 dark:text-blue-500 font-bold border-t border-blue-300 dark:border-blue-500/30">
-                                                        Semua murid hadir.
+                                                    <div className={`p-3 text-center text-xs font-bold border-t ${
+                                                        isFilled 
+                                                            ? "bg-sky-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-500/30"
+                                                            : "bg-slate-100/80 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700"
+                                                    }`}>
+                                                        {isFilled ? "Semua murid hadir." : "Belum ada jurnal/absensi diisi hari ini."}
                                                     </div>
                                                 )}
                                             </div>
