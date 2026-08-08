@@ -16,6 +16,7 @@ import StudentsData from './pages/StudentsData';
 import ProfilePage from './pages/ProfilePage';
 import MySchedule from './pages/MySchedule';
 import SettingsPage from './pages/SettingsPage';
+import StaffSettings from './pages/StaffSettings';
 import Penyimpanan from './pages/Penyimpanan';
 import RekapAbsensi from './pages/RekapAbsensi';
 import LaporanJurnal from './pages/LaporanJurnal';
@@ -182,6 +183,11 @@ const AppContent: React.FC = () => {
              <Route path="/settings" element={
                <AdminRoute>
                   <SettingsPage />
+               </AdminRoute>
+            } />
+            <Route path="/staff-settings" element={
+               <AdminRoute>
+                  <StaffSettings />
                </AdminRoute>
             } />
 

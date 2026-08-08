@@ -95,7 +95,11 @@ const ProfilePage: React.FC = () => {
                 
               </div>
               <h3 className="font-bold text-slate-900 dark:text-slate-100">{profile?.full_name}</h3>
-              <p className="text-sm text-blue-500 dark:text-blue-400 font-mono">{profile?.role === 'admin' ? 'Administrator' : `NIPY. ${profile?.nip}`}</p>
+              <p className="text-sm text-blue-500 dark:text-blue-400 font-mono">
+                {profile?.role === 'admin' 
+                  ? 'Administrator' 
+                  : `NIPY. ${profile?.nip} ${profile?.jabatan_tambahan && profile?.jabatan_tambahan !== '-' ? `(${profile.jabatan_tambahan})` : ''}`}
+              </p>
               
             </div>
           </div>

@@ -2,6 +2,7 @@
   "name": "eBhinneka V.2",
   "description": "eBhinneka with Supabase",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "geolocation"
   ]
 }

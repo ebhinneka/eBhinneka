@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, isSupabaseConfigured } from '../services/supabase';
 import { PublicStats } from '../types';
-import { Bell,  LogIn, Loader2, BookOpen, AlertCircle, X, School, ChevronDown, ChevronRight, Bookmark, Lock, User, ArrowRight, ShieldCheck, GraduationCap, MonitorPlay, Shield, ChevronLeft, Eye, EyeOff, Calendar  } from 'lucide-react';
+import { Bell,  LogIn, Loader2, BookOpen, AlertCircle, X, School, ChevronDown, ChevronRight, Bookmark, Lock, User, ArrowRight, ShieldCheck, GraduationCap, MonitorPlay, Shield, ChevronLeft, Eye, EyeOff, Calendar, CheckCircle2, ClipboardList  } from 'lucide-react';
 import { getWIBDate, getWIBISOString, formatDateIndo, formatTimeIndo } from '../utils/dateUtils';
 
 const PublicDashboard: React.FC = () => {
@@ -47,269 +47,176 @@ const PublicDashboard: React.FC = () => {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'journals' }, () => { fetchStatsClientSide(); })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'homeroom_attendance' }, () => { fetchStatsClientSide(); })
             .subscribe();
-        return () => { clearInterval(timer); supabase.removeChannel(channel); };
+                return () => {
+            supabase.removeChannel(channel);
+            clearInterval(timer);
+        };
     }
     return () => clearInterval(timer);
-  }, [academicYear, semester, semesterStart, semesterEnd]);
+  }, [academicYear, semester]);
 
   const fetchData = async () => {
-    setLoading(true);
-    if (!isSupabaseConfigured) { useMockData(); setLoading(false); return; }
-    await fetchStatsClientSide();
-    setLoading(false);
-  };
-
-  const useMockData = () => { 
-      setStats({
-          count7: 0, count8: 0, count9: 0,
-          classDetails: {},
-          totalJpRequired: 100, completedJp: 0,
-          absenceCount: 0, absenceDetails: {S:0, I:0, A:0},
-          absencePerClass: {}, unfilledKbm: []
-      });
-  };
+      setLoading(true);
+      await fetchStatsClientSide();
+      setLoading(false);
+  }
 
   const fetchStatsClientSide = async () => {
-    const todayStr = getWIBISOString();
-    const startOfDay = `${todayStr}T00:00:00+07:00`;
-    const tempDate = new Date();
-    const jsDay = tempDate.getDay();
-    const dbDay = jsDay === 0 ? 7 : jsDay;
-    const activeScheduleVersion = 'Utama';
+      try {
+          const date = getWIBISOString().split('T')[0];
+          let statsData: any = {
+              count7: 0, count8: 0, count9: 0,
+              absenceCount: 0, completedJp: 0, totalJpRequired: 360
+          };
+          
+          if (!isSupabaseConfigured) {
+              setStats(statsData);
+              return;
+          }
 
-    
-    const todayObj = new Date(todayStr);
-    // removed duplicate jsDay
-    let jpPerClass = 0;
-    if (jsDay === 6) jpPerClass = 8; // Sabtu
-    else if (jsDay === 0) jpPerClass = 6; // Minggu
-    else if (jsDay === 1) jpPerClass = 4; // Senin
-    else if (jsDay === 2) jpPerClass = 6; // Selasa
-    else if (jsDay === 3) jpPerClass = 8; // Rabu
-    else if (jsDay === 4) jpPerClass = 4; // Kamis
-    else if (jsDay === 5) jpPerClass = 5; // Jumat default
-    
-    // Removed calculatedTotalJp = jpPerClass * 24
+                    let allStudents: any[] = [];
+          let hasMore = true;
+          let page = 0;
+          const pageSize = 1000;
+          while (hasMore) {
+              const { data, error } = await supabase
+                  .from('students')
+                  .select('id, kelas, name').eq('academic_year', academicYear || '2025/2026')
+                  .range(page * pageSize, (page + 1) * pageSize - 1);
+              
+              if (error) {
+                  console.error(error);
+                  break;
+              }
+              if (data) {
+                  allStudents = [...allStudents, ...data];
+                  if (data.length < pageSize) {
+                      hasMore = false;
+                  } else {
+                      page++;
+                  }
+              } else {
+                  hasMore = false;
+              }
+          }
 
-    try {
-        const [studentsRes, journalsRes, attendanceRes, homeroomRes, schedulesRes] = await Promise.all([
-            
-            (async () => {
-                let allData: any[] = [];
-                let from = 0;
-                let step = 1000;
-                while (true) {
-                    let res = await supabase.from('students').select('id, name, kelas').eq('academic_year', academicYear || '2025/2026').range(from, from + step - 1);
-                    if (res.error && (res.error.code === '42703' || res.error.message?.includes('academic_year'))) {
-                        res = await supabase.from('students').select('id, name, kelas').eq('academic_year', academicYear || '2025/2026').range(from, from + step - 1);
-                    }
-                    if (res.error) break;
-                    if (!res.data || res.data.length === 0) break;
-                    allData = allData.concat(res.data);
-                    if (res.data.length < step) break;
-                    from += step;
-                }
-                return { data: allData, error: null };
-            })()
-,
-            supabase.from('journals').select('hours, kelas').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', startOfDay),
-            supabase.from('attendance_logs').select('student_id, student_name, status, created_at, subject').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', startOfDay),
-            supabase.from('homeroom_attendance').select('student_id, status, kelas').gte('date', semesterStart ? `${semesterStart}` : '2000-01-01').lte('date', semesterEnd ? `${semesterEnd}` : '2100-01-01').eq('date', todayStr),
-            supabase.from('schedules').select('hour, academic_year, semester').eq('day_of_week', dbDay).eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').eq('schedule_version', activeScheduleVersion || 'Utama').then(async (res) => {
-                if (res.error && (res.error.code === '42703' || res.error.message?.includes('academic_year'))) {
-                    return await supabase.from('schedules').select('hour, academic_year, semester').eq('day_of_week', dbDay);
-                }
-                return res;
-            })
-        ]);
+          if (allStudents.length > 0) {
+              statsData.count7 = allStudents.filter((s: any) => s.kelas?.startsWith('7')).length;
+              statsData.count8 = allStudents.filter((s: any) => s.kelas?.startsWith('8')).length;
+              statsData.count9 = allStudents.filter((s: any) => s.kelas?.startsWith('9')).length;
+              
+              const cMap: Record<string, string> = {};
+              const nMap: Record<string, string> = {};
+              allStudents.forEach((s: any) => { cMap[s.id] = s.kelas || ''; nMap[s.id] = s.name || ''; });
+              setStudentClassMap(cMap);
+              setStudentNameMap(nMap);
+          }
 
-        const classCounts: Record<string, number> = {};
-        const sClassMap: Record<string, string> = {};
-        const sNameMap: Record<string, string> = {}; 
-        let c7 = 0, c8 = 0, c9 = 0;
-        let calculatedTotalJp = 0;
-        if (schedulesRes && schedulesRes.data) {
-            let scheds = schedulesRes.data;
-            if (scheds.length > 0 && scheds[0].academic_year !== undefined) {
-                scheds = scheds.filter(s => s.academic_year === (academicYear || '2025/2026') && s.semester === (semester || 'Ganjil'));
-            }
-            scheds.forEach((s: any) => {
-                calculatedTotalJp += s.hour.split(',').filter((h: string) => h.trim() !== '').length;
-            });
-        }
-        if (calculatedTotalJp === 0) calculatedTotalJp = jpPerClass * (Object.keys(classCounts).length || 45); // fallback
-        
-        if (studentsRes.data) {
-            studentsRes.data.forEach((s: any) => {
-                const rawKelas = s.kelas ? s.kelas.toUpperCase().trim() : '';
-                sClassMap[s.id] = rawKelas;
-                if (s.name) sNameMap[s.id] = s.name;
-                if (rawKelas) {
-                    classCounts[rawKelas] = (classCounts[rawKelas] || 0) + 1;
-                    if (rawKelas.startsWith('7')) c7++; else if (rawKelas.startsWith('8')) c8++; else if (rawKelas.startsWith('9')) c9++;
-                }
-            });
-        }
-        setStudentClassMap(sClassMap);
-        setStudentNameMap(sNameMap);
 
-        const filledClassesSet = new Set<string>();
+          const { data: homeroom } = await supabase.from('homeroom_attendance').select('*').eq('date', date);
+          const { data: attendance } = await supabase.from('attendance_logs').select('*').eq('date', date);
+          
+          let absentStudents: any[] = [];
+          if (homeroom) {
+              homeroom.forEach((h: any) => {
+                  if (h.absent_students) {
+                      Object.keys(h.absent_students).forEach((studentId: string) => {
+                          absentStudents.push({ id: studentId, status: h.absent_students[studentId], source: 'Wali', kelas: h.kelas });
+                      });
+                  }
+              });
+          }
+          if (attendance) {
+              attendance.forEach((a: any) => {
+                  if (a.status !== 'H') {
+                      absentStudents.push({ id: a.student_id, status: a.status, source: 'Guru', kelas: a.kelas });
+                  }
+              });
+          }
+          setRawAttendance(absentStudents);
+          statsData.absenceCount = absentStudents.length;
 
-        let completedJp = 0;
-        if (journalsRes.data) {
-            journalsRes.data.forEach((j: any) => {
-                if (typeof j.hours === 'string') {
-                    const parts = j.hours.split(',').filter((h: string) => h.trim().length > 0);
-                    completedJp += parts.length;
-                }
-                if (j.kelas) {
-                    filledClassesSet.add(j.kelas.toUpperCase().trim());
-                }
-            });
-        }
+          const { data: journals } = await supabase.from('journals').select('hours, kelas').eq('date', date);
+          if (journals) {
+              let completedJp = 0;
+              journals.forEach((j: any) => {
+                  if (j.kelas !== 'STAFF' && typeof j.hours === 'string') {
+                      completedJp += j.hours.split(',').filter((h: string) => h.trim().length > 0).length;
+                  }
+              });
+              statsData.completedJp = completedJp;
+          }
 
-        // --- MERGE ATTENDANCE LOGIC (Homeroom Priority) ---
-        const combinedAttendance: Record<string, {name: string, status: string, source: 'Wali' | 'Guru'}> = {};
-
-        // 1. Homeroom Attendance (Absensi Wali Kelas - Mutlak)
-        if (homeroomRes.data) {
-            homeroomRes.data.forEach((h: any) => {
-                if (h.kelas) {
-                    filledClassesSet.add(h.kelas.toUpperCase().trim());
-                } else if (h.student_id && sClassMap[h.student_id]) {
-                    filledClassesSet.add(sClassMap[h.student_id]);
-                }
-                if (['S', 'I', 'A'].includes(h.status)) {
-                    // We need name, but homeroom_attendance might not have it joined. 
-                    // However, we have student ID. We can map it if needed, or rely on logic below.
-                    combinedAttendance[h.student_id] = { 
-                        name: 'Loading...', // Name might be missing here if not joined, but handled in detail list
-                        status: h.status, 
-                        source: 'Wali' 
-                    };
-                }
-            });
-        }
-
-        // 2. Teacher Logs ( Guru Mapel) - Only if not already set by Homeroom
-        // FILTER: Exclude Salat Dhuha
-        const validTeacherLogs = (attendanceRes.data || []).filter((log: any) => {
-            const subject = log.subject ? log.subject.toLowerCase() : '';
-            return !subject.includes('dhuha');
-        });
-
-        validTeacherLogs.forEach((log: any) => {
-            if (log.student_id && sClassMap[log.student_id]) {
-                filledClassesSet.add(sClassMap[log.student_id]);
-            }
-            if (!combinedAttendance[log.student_id]) {
-                if (['S', 'I', 'A'].includes(log.status)) {
-                    combinedAttendance[log.student_id] = { 
-                        name: log.student_name, 
-                        status: log.status, 
-                        source: 'Guru' 
-                    };
-                }
-            }
-        });
-
-        // Convert back to Array for processing
-        const finalAttendanceList = Object.entries(combinedAttendance).map(([id, val]) => ({
-            student_id: id,
-            ...val
-        }));
-
-        setRawAttendance(finalAttendanceList);
-
-        let sCount = 0, iCount = 0, aCount = 0;
-        const absencePerClass: Record<string, number> = {};
-        Object.keys(classCounts).forEach(cls => absencePerClass[cls] = 0);
-
-        finalAttendanceList.forEach((log) => {
-            if (log.status === 'S') sCount++;
-            else if (log.status === 'I') iCount++;
-            else if (log.status === 'A') aCount++;
-            
-            const cls = sClassMap[log.student_id];
-            if (cls) absencePerClass[cls] = (absencePerClass[cls] || 0) + 1;
-        });
-
-        setStats({
-            count7: c7, count8: c8, count9: c9,
-            classDetails: classCounts,
-            totalJpRequired: calculatedTotalJp, 
-            completedJp: completedJp,
-            absenceCount: sCount + iCount + aCount,
-            absenceDetails: { S: sCount, I: iCount, A: aCount },
-            absencePerClass: absencePerClass,
-            unfilledKbm: [],
-            filledClasses: Array.from(filledClassesSet)
-        });
-    } catch (err) { console.error(err); }
-  };
-
-  
-  const handleRoleSelect = (role: 'guru' | 'operator' | 'admin') => {
-      if (role === 'operator') {
-          navigate('/operator-dashboard');
-      } else {
-          setSelectedRoleLabel(role === 'admin' ? 'Administrator' : 'Guru / Staf');
-          setLoginViewMode('form');
+          setStats(statsData);
+      } catch (err) {
+          console.error(err);
       }
-  };
-
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError('');
-    setIsSubmitting(true);
-    try {
-      const { error } = await signIn(userId, password);
-      if (error) {
-        if (error.message === 'Failed to fetch') {
-           setLoginError('Gagal terhubung ke Database.');
-        } else if (error.message.includes('Invalid login')) {
-           setLoginError('NIPY atau Password salah.');
-        } else {
-           setLoginError(error.message);
-        }
-      } else {
-        localStorage.setItem('saved_nip', userId);
-        setShowSuccessSplash(true);
-        setTimeout(() => navigate('/dashboard'), 1500);
-      }
-    } catch (err) {
-      setLoginError('Terjadi kesalahan sistem.');
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const handleClassClick = (grade: string) => {
-      if (!stats) return;
-      const details = Object.entries(stats.classDetails).filter(([cls]) => cls.startsWith(grade)).sort(); 
-      setModalContent({ title: `Rincian Murid Kelas ${grade}`, type: 'class', data: details });
+      const clsCounts: Record<string, number> = {};
+      Object.keys(studentClassMap).forEach(id => {
+          const cls = studentClassMap[id];
+          if (cls.startsWith(grade)) {
+              clsCounts[cls] = (clsCounts[cls] || 0) + 1;
+          }
+      });
+      setModalContent({ title: `Siswa Kelas ${grade}`, type: 'class', data: Object.entries(clsCounts).sort() });
       setModalOpen(true);
   };
 
   const handleAbsenceClick = () => {
-      if (!stats) return;
-      setExpandedClass(null);
-      setModalContent({ title: 'Rincian Ketidakhadiran Hari Ini', type: 'absence', data: stats });
+      const absenceDetails = { S: 0, I: 0, A: 0 };
+      const classDetails: Record<string, number> = {};
+      const absencePerClass: Record<string, number> = {};
+      
+      Object.keys(studentClassMap).forEach(id => {
+          const cls = studentClassMap[id];
+          classDetails[cls] = (classDetails[cls] || 0) + 1;
+      });
+
+      rawAttendance.forEach(a => {
+          if (a.status === 'S') absenceDetails.S++;
+          if (a.status === 'I') absenceDetails.I++;
+          if (a.status === 'A') absenceDetails.A++;
+          if (a.kelas) absencePerClass[a.kelas] = (absencePerClass[a.kelas] || 0) + 1;
+      });
+
+      setModalContent({ title: 'Ketidakhadiran Murid Hari Ini', type: 'absence', data: { absenceDetails, classDetails, absencePerClass, filledClasses: [] } });
       setModalOpen(true);
   };
 
   const getAbsentStudentsForClass = (cls: string) => {
-      // Find students in rawAttendance that belong to this class
-      // Note: rawAttendance now contains merged data
-      const absentStudents = rawAttendance.filter(log => studentClassMap[log.student_id] === cls);
-      
-      // Need to fetch real names if missing from Homeroom source
-      // In a real app, I'd pre-fetch names map. For now, rely on teacher logs or generic.
-      return absentStudents.map(s => ({
-          name: (s.name === 'Loading...' || s.name === 'Unknown') ? (studentNameMap[s.student_id] || 'Siswa (Data Wali)') : s.name, 
-          status: s.status,
-          source: s.source
-      }));
+      return rawAttendance.filter((a: any) => (a.kelas === cls || studentClassMap[a.id] === cls)).map((a: any) => ({ ...a, name: studentNameMap[a.id] || 'Unknown' }));
+  };
+
+  const handleRoleSelect = (role: string) => {
+      setSelectedRoleLabel(role === 'guru' ? 'Guru' : role === 'admin' ? 'Admin' : 'Operator');
+      setLoginViewMode('form');
+  };
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setLoginError('');
+      setIsSubmitting(true);
+      try {
+          const { error } = await signIn(userId, password);
+          if (error) throw error;
+          
+          localStorage.setItem('saved_nip', userId);
+          setShowLoginModal(false);
+          setShowSuccessSplash(true);
+          
+          setTimeout(() => {
+              if (selectedRoleLabel === 'Guru') navigate('/dashboard');
+              else if (selectedRoleLabel === 'Admin') navigate('/admin');
+              else navigate('/operator');
+          }, 1500);
+      } catch (err: any) {
+          setLoginError(err.message || 'Login failed');
+      } finally {
+          setIsSubmitting(false);
+      }
   };
 
   const progressPercentage = stats && stats.totalJpRequired > 0 
@@ -317,87 +224,91 @@ const PublicDashboard: React.FC = () => {
     : 0;
 
   return (
-    <div className="min-h-[100dvh] flex flex-col items-center justify-center p-3 sm:p-5 font-sans bg-[#f1f5f9] dark:bg-slate-900 transition-colors duration-300">
-      <main className="w-full max-w-[430px] space-y-3.5 m-auto">
+    <div className="min-h-[100dvh] flex flex-col items-center justify-center p-3 sm:p-5 font-sans bg-[#f1f5f9] dark:bg-slate-900 transition-colors duration-300 relative overflow-hidden">
+      <main className="w-full max-w-[420px] space-y-4 m-auto relative z-10">
         
-            {/* TOP HEADER CARD */}
-            <div className="bg-gradient-to-r from-[#063B9E] via-[#075FEA] to-[#EAF3FF] rounded-[28px] p-5 shadow-[0_12px_30px_rgba(21,101,192,0.15)] border border-white text-white relative overflow-hidden flex flex-col sm:flex-row items-center sm:items-stretch gap-4 justify-between">
-                 {/* Decorative Background Pattern */}
-                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:12px_12px] mix-blend-overlay"></div>
-                 
-                 {/* Left Section (Logo + School Title) */}
-                 <div className="flex items-center gap-3 relative z-10 w-full sm:w-auto justify-center sm:justify-start">
-                     <div className="w-16 h-16 rounded-full bg-white/10 p-1 border-[1.5px] border-white shadow-[0_0_20px_rgba(255,255,255,0.4)] flex items-center justify-center backdrop-blur-sm flex-shrink-0">
-                        <img src="https://i.imghippo.com/files/WXB3962h.png" alt="Logo" className="w-full h-full object-contain drop-shadow-sm" />
-                     </div>
-                     <div className="text-left">
-                        <h1 className="text-[17px] font-extrabold text-white leading-[1.2] tracking-tight drop-shadow-md">
-                          SMP BHINNEKA <br/> TUNGGAL IKA
-                        </h1>
-                        <p className="text-xs font-bold text-blue-100 mt-0.5">@Bhinneka</p>
-                     </div>
+        {/* TOP HEADER CARD */}
+        <div className="rounded-[28px] bg-white/70 backdrop-blur-md shadow-[0_8px_30px_rgba(37,99,235,0.06)] relative overflow-hidden flex items-center px-4 py-4 min-h-[130px] border border-white">
+             {/* Left side soft blue gradient */}
+             <div className="absolute inset-y-0 left-0 w-2/3 bg-gradient-to-r from-[#3b82f6]/90 via-[#60a5fa]/40 to-transparent pointer-events-none"></div>
+             
+             {/* Logo */}
+             <div className="w-[72px] h-[72px] rounded-full p-[2px] bg-gradient-to-br from-white/80 to-white/20 shadow-md flex-shrink-0 flex items-center justify-center relative z-10 border border-white/50 ml-1">
+                <div className="w-full h-full bg-white rounded-full p-1.5 border-[2px] border-white flex items-center justify-center overflow-hidden">
+                    <img src="https://i.imghippo.com/files/WXB3962h.png" alt="Logo" className="w-[85%] h-[85%] object-contain" />
+                </div>
+             </div>
+             
+             {/* Title */}
+             <div className="flex-1 flex flex-col justify-center ml-3 relative z-10 text-left">
+                 <h1 className="text-[17px] font-black text-[#0f172a] leading-[1.1] tracking-tight">
+                   SMP BHINNEKA<br/>TUNGGAL IKA
+                 </h1>
+                 <p className="text-[14px] font-semibold text-[#2563eb] mt-0.5">eBhinneka</p>
+             </div>
+             
+             {/* Time Card */}
+             <div className="bg-white/90 backdrop-blur-md rounded-[16px] px-3 py-2 shadow-sm border border-slate-100 flex flex-col items-center justify-center min-w-[95px] flex-shrink-0 relative z-10">
+                 <p className="text-[9px] font-bold text-slate-600 mb-0.5 whitespace-nowrap">{formatDateIndo(time)}</p>
+                 <div className="flex flex-col items-center">
+                     <span className="text-[28px] font-black text-[#2563eb] font-sans tracking-tighter leading-none">{formatTimeIndo(time)}</span>
+                     <span className="bg-[#eef3fa] text-[#2563eb] text-[10px] font-bold px-2 py-0.5 rounded-full mt-1">WIB</span>
                  </div>
-
-                 {/* Right Section (Date & Clock Floating Card) */}
-                 <div className="relative z-10 flex flex-col items-center justify-center bg-white/90 backdrop-blur-md rounded-2xl px-5 py-3 shadow-lg border border-white/50 min-w-[140px]">
-                    <div className="flex items-center gap-1.5 mb-1 text-slate-500">
-                        <Calendar size={12} strokeWidth={2.5} />
-                        <p className="text-[9px] font-bold uppercase tracking-wider">{formatDateIndo(time)}</p>
-                    </div>
-                    <div className="flex items-baseline gap-1.5">
-                       <span className="text-3xl font-extrabold text-[#075FEA] font-sans tracking-tight leading-none drop-shadow-sm">
-                         {formatTimeIndo(time)}
-                       </span>
-                       <span className="bg-blue-100 text-blue-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md">
-                         WIB
-                       </span>
-                    </div>
-                 </div>
-            </div>
+             </div>
+        </div>
 
         {loading ? (
-            <div className="bg-white dark:bg-slate-800 rounded-[24px] p-10 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 shadow-[0_6px_20px_rgba(0,0,0,0.04)] border border-slate-100 dark:border-slate-700/60">
+            <div className="bg-white/80 rounded-[24px] p-10 flex flex-col items-center justify-center text-slate-400 shadow-sm border border-slate-100">
                 <Loader2 className="animate-spin mb-3 text-blue-500" size={32} />
                 <p className="text-xs font-bold">Memuat Data...</p>
-            </div> 
-        ) : stats ? (
+            </div>
+         ) : stats ? (
           <>
             {/* ACADEMIC YEAR PILL */}
-            <div className="flex justify-center">
-                <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-5 py-2.5 rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.03)] text-xs font-extrabold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2 border border-slate-100 dark:border-slate-700/60">
-                    <Calendar size={16} className="text-blue-600 dark:text-blue-400"/> 
-                    Tahun Ajaran: {academicYear} <span className="text-slate-300 dark:text-slate-600">|</span> Semester: {semester}
+            <div className="bg-white/80 backdrop-blur-sm rounded-[16px] px-5 py-3 shadow-[0_4px_20px_rgba(37,99,235,0.04)] border border-white flex items-center justify-between text-[11px] font-semibold text-slate-600">
+                <div className="flex items-center gap-2">
+                    <Calendar size={16} className="text-[#3b82f6]" />
+                    <span>Tahun Ajaran: {academicYear}</span>
+                </div>
+                <div className="h-4 w-[1px] bg-slate-200"></div>
+                <div className="flex items-center gap-2">
+                    <span>Semester: {semester}</span>
+                    <BookOpen size={16} className="text-[#3b82f6]" />
                 </div>
             </div>
 
             {/* TOP 3 CLASS METRIC CARDS */}
             <div className="grid grid-cols-3 gap-3">
                {[
-                 { label: "KELAS 7", count: stats.count7, grade: '7', primary: '#1463FF', bg: '#EEF5FF' },
-                 { label: "KELAS 8", count: stats.count8, grade: '8', primary: '#13A9A5', bg: '#ECFAF9' },
-                 { label: "KELAS 9", count: stats.count9, grade: '9', primary: '#6366D9', bg: '#F1F1FF' },
+                 { label: "KELAS 7", count: stats.count7, grade: "7", color: "#22c55e" },
+                 { label: "KELAS 8", count: stats.count8, grade: "8", color: "#f97316" },
+                 { label: "KELAS 9", count: stats.count9, grade: "9", color: "#ef4444" },
                ].map((item) => (
                   <button 
-                    key={item.grade}
-                    onClick={() => handleClassClick(item.grade)}
-                    style={{ backgroundColor: item.bg }}
-                    className="rounded-[22px] p-3.5 flex flex-col items-center justify-center text-center shadow-[0_4px_15px_rgba(0,0,0,0.02)] border border-white relative overflow-hidden h-[148px] hover:scale-[1.02] active:scale-95 transition-all duration-200 cursor-pointer group"
+                     key={item.grade}
+                     onClick={() => handleClassClick(item.grade)}
+                     className="bg-white/90 backdrop-blur-sm rounded-[24px] pt-4 pb-4 flex flex-col items-center shadow-[0_4px_15px_rgba(37,99,235,0.05)] border border-white overflow-hidden relative group hover:-translate-y-0.5 active:translate-y-0 transition-all h-[155px]"
                   >
-                      {/* Watermark dots */}
-                      <div className="absolute -bottom-1 -right-1 opacity-20 pointer-events-none" style={{ color: item.primary }}>
-                         <div className="w-8 h-8 bg-[radial-gradient(currentColor_1px,transparent_1px)] [background-size:4px_4px]"></div>
-                      </div>
-
-                      <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center shadow-sm mb-2 group-hover:scale-105 transition-transform" style={{ color: item.primary }}>
+                      {/* Icon Circle */}
+                      <div className="w-[46px] h-[46px] rounded-full border border-slate-100 shadow-sm flex items-center justify-center mb-2 bg-white group-hover:scale-105 transition-transform" style={{ color: item.color }}>
                           <School size={22} strokeWidth={2} />
                       </div>
-                      <h2 className="text-3xl sm:text-[34px] font-extrabold tracking-tight leading-none mb-1" style={{ color: item.primary }}>
+                      
+                      <h2 className="text-[40px] font-black tracking-tighter leading-none mb-1" style={{ color: item.color }}>
                         {item.count}
                       </h2>
-                      <p className="text-[10px] font-extrabold uppercase tracking-wider mb-1.5" style={{ color: item.primary }}>
+                      
+                      {/* Dash */}
+                      <div className="w-[18px] h-[3px] rounded-full mb-1.5 opacity-80" style={{ backgroundColor: item.color }}></div>
+                      
+                      <p className="text-[10px] font-bold text-slate-800 uppercase tracking-widest">
                         {item.label}
                       </p>
-                      <span className="w-7 h-[3px] rounded-full" style={{ backgroundColor: item.primary }}></span>
+                      
+                      {/* Bottom right dots */}
+                      <div className="absolute -bottom-2 -right-2 opacity-20 pointer-events-none" style={{ color: item.color }}>
+                          <div className="w-12 h-12 bg-[radial-gradient(currentColor_2px,transparent_2px)] [background-size:6px_6px]"></div>
+                      </div>
                   </button>
                ))}
             </div>
@@ -405,121 +316,92 @@ const PublicDashboard: React.FC = () => {
             {/* MIDDLE 2 METRIC CARDS */}
             <div className="grid grid-cols-2 gap-3">
                 {/* KBM TERLAKSANA */}
-                <div className="bg-[rgba(255,255,255,0.88)] dark:bg-slate-800/90 rounded-[24px] p-5 flex flex-col justify-between shadow-[0_8px_30px_rgba(21,101,192,0.06)] border border-[rgba(91,155,255,0.20)] dark:border-slate-700/60 relative overflow-hidden h-[160px]">
-                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1463FF] to-[#073CCF] text-white flex items-center justify-center shadow-lg shadow-blue-500/30 relative z-10">
-                        <BookOpen size={18} strokeWidth={2.5} />
-                     </div>
-                     <div className="mt-auto relative z-10">
-                         <div className="flex items-baseline gap-1 mb-1">
-                            <span className="text-[28px] sm:text-3xl font-extrabold text-[#073CCF] dark:text-blue-400 tracking-tight leading-none">
-                              {stats.completedJp}
-                            </span>
-                            <span className="text-[11px] font-extrabold text-slate-400 dark:text-slate-500">
-                              / {stats.totalJpRequired} JP
-                            </span>
+                <div className="bg-white/90 backdrop-blur-sm rounded-[24px] p-4 shadow-[0_4px_15px_rgba(37,99,235,0.05)] border border-white flex items-center relative overflow-hidden h-[110px]">
+                     <div className="w-[45%] flex justify-center items-center relative">
+                         {/* Book 3D-like icon representation */}
+                         <div className="relative transform group-hover:scale-105 transition-transform">
+                            <BookOpen size={50} strokeWidth={1.5} className="text-[#3b82f6] drop-shadow-md" />
+                            <div className="absolute -bottom-1 -right-1 w-[26px] h-[26px] bg-[#2563eb] rounded-full border-[3px] border-white flex items-center justify-center text-white shadow-sm">
+                                <CheckCircle2 size={16} strokeWidth={3} />
+                            </div>
                          </div>
-                         <p className="text-[9px] font-extrabold text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2">
-                           KBM TERLAKSANA
-                         </p>
-                         <span className="w-8 h-[3px] bg-[#1463FF] rounded-full block"></span>
                      </div>
-                     {/* Decorative Icon on Right */}
-                     <div className="absolute right-0 bottom-2 text-blue-500 opacity-20 pointer-events-none transform rotate-[-15deg] translate-x-2">
-                         <BookOpen size={90} strokeWidth={1} />
+                     <div className="w-[55%] flex flex-col justify-center pl-1">
+                         <div className="flex items-baseline gap-1">
+                             <span className="text-[34px] font-black text-[#2563eb] leading-none tracking-tighter">{stats.completedJp}</span>
+                         </div>
+                         <span className="text-[10px] font-semibold text-slate-500 mb-1">/ {stats.totalJpRequired} JP</span>
+                         <div className="w-[18px] h-[3px] rounded-full bg-[#2563eb] mb-1.5 opacity-80"></div>
+                         <p className="text-[9px] font-bold text-slate-700 leading-[1.2] uppercase tracking-wider">KBM TERLAKSANA</p>
                      </div>
                 </div>
-
+                
                 {/* KETIDAKHADIRAN MURID */}
-                <button 
-                    onClick={handleAbsenceClick}
-                    className="bg-[rgba(255,255,255,0.88)] dark:bg-slate-800/90 rounded-[24px] p-5 flex flex-col justify-between shadow-[0_8px_30px_rgba(21,101,192,0.06)] border border-[rgba(91,155,255,0.20)] dark:border-slate-700/60 relative overflow-hidden h-[160px] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer group text-left"
-                >
-                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1463FF] to-[#073CCF] text-white flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:scale-105 transition-transform relative z-10">
-                        <span className="text-xl font-extrabold leading-none">!</span>
+                <button onClick={handleAbsenceClick} className="bg-white/90 backdrop-blur-sm rounded-[24px] p-4 shadow-[0_4px_15px_rgba(37,99,235,0.05)] border border-white flex items-center relative overflow-hidden h-[110px] hover:-translate-y-0.5 active:translate-y-0 transition-all text-left group">
+                     <div className="w-[45%] flex justify-center items-center relative">
+                         <div className="relative transform group-hover:scale-105 transition-transform">
+                             <ClipboardList size={50} strokeWidth={1.5} className="text-[#3b82f6] drop-shadow-md" />
+                             <div className="absolute -bottom-1 -right-1 w-[26px] h-[26px] bg-[#2563eb] rounded-full border-[3px] border-white flex items-center justify-center text-white shadow-sm font-black text-[14px]">!</div>
+                         </div>
                      </div>
-                     
-                     <div className="mt-auto relative z-10">
-                         <span className="text-[28px] sm:text-3xl font-extrabold text-[#073CCF] dark:text-blue-400 tracking-tight leading-none mb-1 block">
-                           {stats.absenceCount}
-                         </span>
-                         <p className="text-[9px] font-extrabold text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2 leading-[1.3]">
-                           KETIDAKHADIRAN<br/>MURID
-                         </p>
-                         <span className="w-8 h-[3px] bg-[#1463FF] rounded-full block"></span>
-                     </div>
-                     {/* Decorative Icon on Right */}
-                     <div className="absolute right-1 bottom-1 text-blue-500 opacity-20 pointer-events-none transform rotate-[10deg] translate-x-3">
-                         <svg width="80" height="90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                            <path d="M9 14h6"></path>
-                            <path d="M9 10h6"></path>
-                         </svg>
+                     <div className="w-[55%] flex flex-col justify-center pl-1">
+                         <span className="text-[34px] font-black text-[#2563eb] leading-none tracking-tighter block">{stats.absenceCount}</span>
+                         <div className="w-[18px] h-[3px] rounded-full bg-[#2563eb] mb-1.5 mt-[18px] opacity-80"></div>
+                         <p className="text-[9px] font-bold text-slate-700 leading-[1.2] uppercase tracking-wider">KETIDAKHADIRAN<br/>MURID</p>
                      </div>
                 </button>
             </div>
 
             {/* PROGRESS BAR CARD */}
-            <div className="bg-[rgba(255,255,255,0.88)] dark:bg-slate-800/90 rounded-[24px] p-5 shadow-[0_8px_30px_rgba(21,101,192,0.06)] border border-[rgba(91,155,255,0.20)] dark:border-slate-700/60 relative overflow-hidden">
-                {/* Header title with diamond accents */}
-                <div className="flex items-center justify-center gap-2 mb-4 text-center">
-                    <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-blue-200 dark:via-blue-700 to-transparent"></div>
-                    <span className="text-[10px] text-blue-500 font-bold">◇</span>
-                    <h3 className="text-[10px] font-extrabold text-slate-800 dark:text-slate-200 tracking-wider">
+            <div className="bg-white/90 backdrop-blur-sm rounded-[24px] p-4 pb-5 shadow-[0_4px_15px_rgba(37,99,235,0.05)] border border-white relative overflow-hidden flex flex-col justify-center">
+                <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-[11px] font-bold text-slate-800 tracking-wider">
                       PROGRESS KBM HARI INI
                     </h3>
-                    <span className="text-[10px] text-blue-500 font-bold">◇</span>
-                    <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent via-blue-200 dark:via-blue-700 to-transparent"></div>
                 </div>
-
-                {/* Progress bar track & bar */}
-                <div className="w-full bg-[#EAF3FF] dark:bg-slate-700/80 rounded-full h-8 shadow-inner relative overflow-hidden flex items-center justify-center">
-                    {/* The Bar */}
-                    <div 
-                      className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-[#1463FF] to-[#073CCF] rounded-full transition-all duration-700 ease-out"
-                      style={{ width: `${Math.max(progressPercentage, 5)}%` }}
-                    ></div>
-                    {/* The Text inside or outside depending on width */}
-                    <span className="text-[11px] font-extrabold text-white z-10 drop-shadow-sm">
-                        {progressPercentage.toFixed(1)}%
-                    </span>
-                </div>
-
-                {/* Bottom status & chart watermark */}
-                <div className="mt-3 flex justify-between items-end relative z-10">
-                    <div className="flex items-baseline gap-1">
-                        <span className="text-sm font-extrabold text-[#073CCF] dark:text-blue-400">
-                          {progressPercentage.toFixed(1)}%
-                        </span>
-                        <span className="text-xs font-bold text-slate-500 ml-1.5">
-                          Terlaksana
-                        </span>
+                
+                <div className="flex flex-col gap-1.5 w-full pr-12 relative">
+                    <div className="w-full bg-[#eef2ff] rounded-full h-[24px] shadow-inner relative overflow-hidden">
+                        {/* The Bar */}
+                        <div 
+                          className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-[#2563eb] to-[#3b82f6] rounded-full transition-all duration-700 flex items-center justify-end pr-3"
+                          style={{ width: `${Math.max(progressPercentage, 15)}%` }}
+                        >
+                           {progressPercentage > 15 && <span className="text-white text-[10px] font-bold">{progressPercentage.toFixed(1)}%</span>}
+                        </div>
                     </div>
-                </div>
+                    <div className="flex items-center gap-1 mt-1">
+                        <span className="text-[#2563eb] text-[12px] font-black">{progressPercentage.toFixed(1)}%</span>
+                        <span className="text-[12px] font-medium text-slate-600">Terlaksana</span>
+                    </div>
 
-                {/* Rising Bar Chart Graphic Watermark */}
-                <div className="absolute bottom-2.5 right-4 opacity-15 text-blue-900 dark:text-blue-300 pointer-events-none flex items-end gap-1">
-                    <div className="w-2.5 h-3 bg-current rounded-t-sm"></div>
-                    <div className="w-2.5 h-5 bg-current rounded-t-sm"></div>
-                    <div className="w-2.5 h-7 bg-current rounded-t-sm"></div>
-                    <div className="w-2.5 h-10 bg-current rounded-t-sm"></div>
+                    {/* Chart icon on the right absolute */}
+                    <div className="absolute right-0 bottom-0 flex items-end gap-[4px] text-[#93c5fd]">
+                         <div className="w-[8px] h-[12px] bg-current rounded-sm"></div>
+                         <div className="w-[8px] h-[20px] bg-current rounded-sm"></div>
+                         <div className="w-[8px] h-[28px] bg-current rounded-sm"></div>
+                         <div className="w-[8px] h-[36px] bg-current rounded-sm text-[#60a5fa]"></div>
+                     </div>
                 </div>
             </div>
 
-            {/* LOGIN BUTTON */}
-            <div className="pt-2 pb-4">
-                <button 
-                    onClick={() => setShowLoginModal(true)} 
-                    className="w-full bg-gradient-to-r from-[#073CCF] via-[#075FEA] to-[#1687FF] hover:opacity-95 text-white font-extrabold text-base py-4 px-6 rounded-2xl flex items-center justify-center gap-3 shadow-[0_10px_25px_rgba(7,95,234,0.4)] transition-all active:scale-[0.98] border-t border-white/20 relative overflow-hidden group"
-                >
-                    {/* Highlight Inner */}
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+            {/* LOGIN BUTTON with Glowing Border Animation */}
+            <div className="pt-2">
+                <div className="relative group rounded-full p-[2px] overflow-hidden bg-[#1e3a8a] shadow-[0_8px_20px_rgba(37,99,235,0.3)]">
+                    {/* Animated gradient border (the light glare) */}
+                    <div className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,transparent_0_340deg,white_360deg)] animate-[spin_2s_linear_infinite] opacity-100"></div>
+                    <div className="absolute inset-[-100%] bg-[conic-gradient(from_180deg,transparent_0_340deg,white_360deg)] animate-[spin_2s_linear_infinite] opacity-100"></div>
                     
-                    <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white group-hover:scale-105 transition-transform relative z-10 shadow-inner">
-                        <LogIn size={18} className="stroke-[2.5]" />
-                    </div>
-                    <span className="text-base font-extrabold text-white tracking-wide relative z-10 drop-shadow-sm">Login Sebagai</span>
-                </button>
+                    <button 
+                        onClick={() => setShowLoginModal(true)} 
+                        className="relative w-full bg-gradient-to-r from-[#1e40af] to-[#2563eb] hover:brightness-110 text-white font-bold text-[15px] py-4 rounded-full flex items-center justify-center gap-2 transition-all active:scale-[0.98] z-10"
+                    >
+                        <div className="w-6 h-6 rounded-full border-[1.5px] border-white/80 flex items-center justify-center">
+                            <ArrowRight size={14} className="text-white" strokeWidth={2.5} />
+                        </div>
+                        <span className="tracking-wide">Login Sebagai</span>
+                    </button>
+                </div>
             </div>
           </>
         ) : <p className="text-center text-slate-400 text-sm mt-10">Gagal memuat data.</p>}

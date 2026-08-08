@@ -83,6 +83,10 @@ const Dashboard: React.FC = () => {
   const [matrixDate, setMatrixDate] = useState(getWIBISOString());
 
   const [savingAttendance, setSavingAttendance] = useState(false);
+  const [staffAttendanceToday, setStaffAttendanceToday] = useState<{ id: string, created_at: string } | null>(null);
+  const [savingStaffAttendance, setSavingStaffAttendance] = useState(false);
+  const [staffGeolocations, setStaffGeolocations] = useState<{ lat: number, lng: number, radius: number, name: string }[]>([]);
+  const [attendanceErrorModal, setAttendanceErrorModal] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile) {
@@ -180,6 +184,36 @@ const Dashboard: React.FC = () => {
         const startOfDay = `${filterDate}T00:00:00+07:00`;
         const endOfDay = `${filterDate}T23:59:59+07:00`;
 
+        if (profile?.jabatan_tambahan === 'Staff') {
+            const todayStart = `${todayStr}T00:00:00+07:00`;
+            const todayEnd = `${todayStr}T23:59:59+07:00`;
+            
+            const [staffJRes, geoRes] = await Promise.all([
+                supabase.from('journals')
+                    .select('id, created_at')
+                    .eq('teacher_id', profile.id)
+                    .eq('kelas', 'STAFF')
+                    .eq('subject', 'KEHADIRAN')
+                    .gte('created_at', todayStart)
+                    .lte('created_at', todayEnd)
+                    .order('created_at', { ascending: false })
+                    .limit(1),
+                supabase.from('app_settings').select('value').eq('key', 'staff_geolocations').single()
+            ]);
+            
+            if (staffJRes.data && staffJRes.data.length > 0) {
+                setStaffAttendanceToday(staffJRes.data[0]);
+            } else {
+                setStaffAttendanceToday(null);
+            }
+            
+            if (geoRes.data && geoRes.data.value) {
+                try {
+                    setStaffGeolocations(JSON.parse(geoRes.data.value));
+                } catch(e) {}
+            }
+        }
+
         const { data: journals } = await supabase.from('journals').select('id, created_at, hours, kelas, material').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').eq('teacher_id', profile?.id).gte('created_at', firstDayStr);
 
         let jp = 0;
@@ -187,8 +221,9 @@ const Dashboard: React.FC = () => {
         const monthJournals: Array<{ id: string, kelas: string, date: string, material: string, count: number }> = [];
 
         if (journals) {
-            meetings = journals.length;
-            journals.forEach(j => {
+            const validJournals = journals.filter(j => j.kelas !== 'STAFF');
+            meetings = validJournals.length;
+            validJournals.forEach(j => {
                 const parts = j.hours.split(',').filter((h: string) => h.trim().length > 0);
                 jp += parts.length;
                 monthJournals.push({
@@ -440,6 +475,126 @@ const Dashboard: React.FC = () => {
       });
   };
 
+  const handleStaffAttendance = async () => {
+      if (!profile) return;
+      
+      setSavingStaffAttendance(true);
+      
+      const proceedInsert = async () => {
+          try {
+              const created_at = new Date().toISOString();
+              const { data, error } = await supabase.from('journals').insert([{
+                  teacher_id: profile.id,
+                  kelas: 'STAFF',
+                  subject: 'KEHADIRAN',
+                  hours: '0',
+                  material: 'Hadir',
+                  cleanliness: 'sudah_bersih',
+                  validation: 'hadir_kbm',
+                  created_at: created_at,
+                  academic_year: academicYear || '2025/2026',
+                  semester: semester || 'Ganjil'
+              }]).select('id, created_at').single();
+              
+              if (error) throw error;
+              
+              if (data) {
+                  setStaffAttendanceToday(data);
+              }
+          } catch (error: any) {
+              alert('Gagal mengkonfirmasi kehadiran: ' + error.message);
+          } finally {
+              setSavingStaffAttendance(false);
+          }
+      };
+
+      if (staffGeolocations.length === 0) {
+          // If no geolocation rules, allow bypass
+          proceedInsert();
+          return;
+      }
+      
+      if ("geolocation" in navigator) {
+          const timeoutId = setTimeout(() => {
+              if (savingStaffAttendance) {
+                  setAttendanceErrorModal("Waktu pencarian lokasi habis. Silakan pastikan GPS aktif dan coba lagi.");
+                  setSavingStaffAttendance(false);
+              }
+          }, 10000);
+
+          navigator.geolocation.getCurrentPosition(
+              async (position) => {
+                  clearTimeout(timeoutId);
+                  const userLat = position.coords.latitude;
+                  const userLng = position.coords.longitude;
+                  
+                  let isAllowed = false;
+                  let isOutOfTime = false;
+                  
+                  const now = new Date();
+                  const currentHour = now.getHours();
+                  const currentMinute = now.getMinutes();
+                  const currentTimeMinutes = currentHour * 60 + currentMinute;
+                  
+                  for (const loc of staffGeolocations as any[]) {
+                      const R = 6371e3;
+                      const φ1 = userLat * Math.PI/180;
+                      const φ2 = loc.lat * Math.PI/180;
+                      const Δφ = (loc.lat-userLat) * Math.PI/180;
+                      const Δλ = (loc.lng-userLng) * Math.PI/180;
+                      const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                                Math.cos(φ1) * Math.cos(φ2) *
+                                Math.sin(Δλ/2) * Math.sin(Δλ/2);
+                      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                      const d = R * c;
+                      
+                      if (d <= loc.radius) {
+                          let timeAllowed = true;
+                          
+                          if (loc.startTime) {
+                              const [h, m] = loc.startTime.split(':').map(Number);
+                              if (currentTimeMinutes < h * 60 + m) timeAllowed = false;
+                          }
+                          
+                          if (loc.endTime) {
+                              const [h, m] = loc.endTime.split(':').map(Number);
+                              if (currentTimeMinutes > h * 60 + m) timeAllowed = false;
+                          }
+                          
+                          if (timeAllowed) {
+                              isAllowed = true;
+                              break;
+                          } else {
+                              isOutOfTime = true;
+                          }
+                      }
+                  }
+                  
+                  if (!isAllowed) {
+                      if (isOutOfTime) {
+                          setAttendanceErrorModal('Anda hadir sangat terlambat, data anda tidak tersimpan');
+                      } else {
+                          setAttendanceErrorModal('Anda berada di luar kantor, data anda tidak tersimpan');
+                      }
+                      setSavingStaffAttendance(false);
+                      return;
+                  }
+                  
+                  proceedInsert();
+              },
+              (error) => {
+                  clearTimeout(timeoutId);
+                  setAttendanceErrorModal("Gagal mendapatkan lokasi Anda, pastikan GPS aktif dan browser diizinkan mengakses lokasi.");
+                  setSavingStaffAttendance(false);
+              },
+              { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+          );
+      } else {
+          setAttendanceErrorModal("Geolokasi tidak didukung di browser ini.");
+          setSavingStaffAttendance(false);
+      }
+  };
+
   const handleEditSpecific = (categoryName: string, list: WaliKelasAbsence[]) => {
       const editList: EditingStudent[] = list.map(item => ({
           student_id: item.student_id,
@@ -628,7 +783,14 @@ const Dashboard: React.FC = () => {
                     <div>
                         <p className="text-white text-sm font-bold opacity-90 mb-0.5 tracking-wide">{greeting}</p>
                         <h1 className="text-xl md:text-3xl font-extrabold leading-tight tracking-tight text-white mb-1 drop-shadow-md">{profile?.full_name}</h1>
-                        <p className="text-white/80 text-sm font-mono font-medium mb-3">{isAdmin ? 'Administrator' : (profile?.nip || 'NIPY -')}</p>
+                        <p className="text-white/80 text-sm font-mono font-medium mb-3">
+                            {isAdmin ? 'Administrator' : (
+                                <>
+                                    {profile?.nip || 'NIPY -'} 
+                                    {profile?.jabatan_tambahan && profile?.jabatan_tambahan !== '-' && ` (${profile.jabatan_tambahan})`}
+                                </>
+                            )}
+                        </p>
                         <div className="flex flex-wrap gap-2">
                             {!isAdmin && profile?.mengajar_mapel && <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/20 backdrop-blur-md border border-blue-400/30 text-[10px] font-bold text-blue-100 uppercase tracking-wider">{profile.mengajar_mapel}</span>}
                             {!isAdmin && profile?.wali_kelas && <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/20 backdrop-blur-md border border-blue-400/30 text-[10px] font-bold text-blue-100 uppercase tracking-wider shadow-sm">Wali Kelas {profile.wali_kelas}</span>}
@@ -817,6 +979,29 @@ const Dashboard: React.FC = () => {
                     </div>
                 )}
 
+                {/* STAFF ATTENDANCE BUTTON */}
+                {profile?.jabatan_tambahan === 'Staff' && (
+                    <div className="mb-6">
+                        <button
+                            onClick={handleStaffAttendance}
+                            disabled={!!staffAttendanceToday || savingStaffAttendance}
+                            className={`w-full p-4 rounded-2xl flex justify-center items-center gap-3 font-extrabold transition-all duration-300 shadow-md border ${
+                                staffAttendanceToday 
+                                ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed' 
+                                : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white border-blue-500 hover:shadow-xl hover:-translate-y-1'
+                            }`}
+                        >
+                            {savingStaffAttendance ? (
+                                <><Loader2 size={20} className="animate-spin" /> Memproses...</>
+                            ) : staffAttendanceToday ? (
+                                <><CheckCircle2 size={20} /> Hadir pada pukul {new Date(staffAttendanceToday.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</>
+                            ) : (
+                                <><CheckCircle2 size={20} /> Konfirmasi Kehadiran Hari Ini</>
+                            )}
+                        </button>
+                    </div>
+                )}
+
                 {/* KBM STATUS TABLE */}
                 <div className="app-card p-5">
                     <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-sm mb-4 uppercase tracking-wide flex items-center gap-2">
@@ -843,8 +1028,8 @@ const Dashboard: React.FC = () => {
                                                     status.className.split(' / ').map((cls, idx) => (
                                                         <span key={idx} className={`block font-extrabold text-xl md:text-2xl ${
                                                             status.isFilled 
-                                                            ? 'text-blue-500 dark:text-blue-500' 
-                                                            : 'text-blue-600 dark:text-blue-500'
+                                                            ? 'text-blue-500 dark:text-blue-400' 
+                                                            : 'text-red-500 dark:text-red-500'
                                                         }`}>
                                                             {cls}
                                                         </span>
@@ -961,6 +1146,31 @@ const Dashboard: React.FC = () => {
                         >
                             {savingAttendance ? <Loader2 className="animate-spin" size={18}/> : <Save size={18} />} 
                             Simpan Perubahan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* MODAL ERROR ATTENDANCE */}
+        {attendanceErrorModal && (
+            <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[calc(env(safe-area-inset-top)+1rem)] sm:pt-4 p-4 bg-slate-900/60 backdrop-blur-sm transition-all duration-300">
+                <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[24px] shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800 relative flex flex-col transform transition-all scale-100 animate-fade-in">
+                    <div className="p-8 flex flex-col items-center text-center">
+                        <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-6">
+                            <XCircle size={32} className="text-red-500" />
+                        </div>
+                        <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-xl mb-2">Gagal</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                            {attendanceErrorModal}
+                        </p>
+                    </div>
+                    <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                        <button 
+                            onClick={() => setAttendanceErrorModal(null)}
+                            className="w-full bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 py-3 rounded-xl font-bold transition-all"
+                        >
+                            Tutup
                         </button>
                     </div>
                 </div>
