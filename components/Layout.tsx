@@ -4,11 +4,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { getWIBISOString } from '../utils/dateUtils';
 import { Bell, CheckCircle2, XCircle, X } from 'lucide-react';
 import { supabase } from '../services/supabase';
-import { LogOut, LayoutDashboard, Grid, User, ChevronRight, MonitorPlay, Moon, Sun, Siren, Activity, Sunset, ArrowUp, AlertCircle, Settings, Database, Users, GraduationCap, Upload, Edit3, Calendar } from 'lucide-react';
+import { LogOut, LayoutDashboard, Grid, User, ChevronRight, MonitorPlay, Moon, Sun, Siren, Activity, Sunset, ArrowUp, AlertCircle, Settings, Database, Users, GraduationCap, Upload, Edit3, Calendar, Menu } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 // CHANGED: Default collapsed is now true for all pages
-export const Layout: React.FC<{ children: React.ReactNode; showNav?: boolean; collapsed?: boolean }> = ({ children, showNav = true, collapsed = true }) => {
+export const Layout: React.FC<{ children: React.ReactNode; showNav?: boolean; collapsed?: boolean }> = ({ children, showNav = true, collapsed: defaultCollapsed = true }) => {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const { signOut, profile, isOperator, isAdmin, academicYear, semester, activeScheduleVersion } = useAuth();
     const navigate = useNavigate();
   const location = useLocation();
@@ -176,31 +177,44 @@ export const Layout: React.FC<{ children: React.ReactNode; showNav?: boolean; co
       {showNav && (
         <aside className={`hidden md:flex flex-col h-screen sticky top-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 shadow-[2px_0_10px_-2px_rgba(0,0,0,0.05)] z-20 transition-all duration-300 ${collapsed ? 'w-20' : 'w-72'}`}>
             {/* Logo Area */}
-            <div className={`p-4 flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 ${collapsed ? 'justify-center' : ''} h-20`}>
-                 <img 
-                    src="https://i.imghippo.com/files/WXB3962h.png" 
-                    alt="Logo" 
-                    className="h-10 w-10 object-contain" 
-                  />
+            <div className={`p-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-700 h-20`}>
+                 <div className={`flex items-center gap-3 ${collapsed ? 'justify-center w-full' : ''}`}>
+                     <img 
+                        src="https://i.imghippo.com/files/WXB3962h.png" 
+                        alt="Logo" 
+                        className="h-10 w-10 object-contain cursor-pointer"
+                        onClick={() => setCollapsed(!collapsed)}
+                      />
+                     {!collapsed && (
+                         <div className="animate-fade-in">
+                            <h2 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 leading-none">SMP BHINNEKA</h2>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">eBhinneka Online</p>
+                         </div>
+                     )}
+                 </div>
                  {!collapsed && (
-                     <div className="animate-fade-in">
-                        <h2 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 leading-none">SMP BHINNEKA</h2>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">eBhinneka Online</p>
-                     </div>
+                     <button onClick={() => setCollapsed(true)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                         <Menu size={20} />
+                     </button>
                  )}
             </div>
 
             {/* Navigation Menu */}
             <div className="flex-1 space-y-1 p-3 overflow-y-auto">
-                {!collapsed && <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Menu Utama</div>}
-                
+                {!collapsed && <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Menu Utama</div>}
                 
                 {isAdmin ? (
                     <>
                         <NavItem path="/dashboard" label="Beranda" icon={LayoutDashboard} />
                         <NavItem path="/operator-dashboard" label="Monitor KBM" icon={MonitorPlay} />
-                        <NavItem path="/penyimpanan" label="Buat T.A" icon={Database} />
-                        <NavItem path="/settings" label="Pengaturan" icon={Settings} />
+                        <NavItem path="/profile" label="Profil Saya" icon={User} />
+
+                        <div className="pt-4 pb-1">
+                            {!collapsed && <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Akademik / KBM</div>}
+                        </div>
+                        <NavItem path="/input-jadwal" label="Input Jadwal" icon={Calendar} />
+                        <NavItem path="/kinerja" label="Kinerja 1 Bulan" icon={Activity} />
+                        
                         <div className="pt-4 pb-1">
                             {!collapsed && <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Data Master</div>}
                         </div>
@@ -208,8 +222,12 @@ export const Layout: React.FC<{ children: React.ReactNode; showNav?: boolean; co
                         <NavItem path="/students" label="Data Siswa" icon={GraduationCap} />
                         <NavItem path="/import-data" label="Import Data" icon={Upload} />
                         <NavItem path="/input-manual" label="Input Manual" icon={Edit3} />
-                        <NavItem path="/input-jadwal" label="Input Jadwal" icon={Calendar} />
-                        <NavItem path="/profile" label="Profil Saya" icon={User} />
+
+                        <div className="pt-4 pb-1">
+                            {!collapsed && <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Sistem</div>}
+                        </div>
+                        <NavItem path="/penyimpanan" label="Buat T.A" icon={Database} />
+                        <NavItem path="/settings" label="Pengaturan" icon={Settings} />
                     </>
                 ) : isOperator ? (
                     <>
@@ -219,10 +237,30 @@ export const Layout: React.FC<{ children: React.ReactNode; showNav?: boolean; co
                 ) : (
                     <>
                         <NavItem path="/dashboard" label="Beranda" icon={LayoutDashboard} />
-                        {isHeadmaster && <NavItem path="/kinerja" label="Kinerja" icon={Activity} />}
                         {!isHeadmaster && <NavItem path="/apps" label="KBM" icon={Grid} />}
-                        {isHeadmaster && <NavItem path="/kedisiplinan" label="Kedisiplinan" icon={Siren} />}
-                        {isDhuhaTeacher && <NavItem path="/rekap-dhuha" label="Rekap Dhuha" icon={Sunset} />}
+                        
+                        {isHeadmaster && (
+                            <>
+                                <div className="pt-4 pb-1">
+                                    {!collapsed && <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Laporan & Kinerja</div>}
+                                </div>
+                                <NavItem path="/kinerja" label="Kinerja Guru" icon={Activity} />
+                                <NavItem path="/kedisiplinan" label="Kedisiplinan" icon={Siren} />
+                            </>
+                        )}
+                        
+                        {isDhuhaTeacher && (
+                            <>
+                                <div className="pt-4 pb-1">
+                                    {!collapsed && <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Khusus</div>}
+                                </div>
+                                <NavItem path="/rekap-dhuha" label="Rekap Dhuha" icon={Sunset} />
+                            </>
+                        )}
+                        
+                        <div className="pt-4 pb-1">
+                            {!collapsed && <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Akun</div>}
+                        </div>
                         <NavItem path="/profile" label="Profil Saya" icon={User} />
                     </>
                 )}

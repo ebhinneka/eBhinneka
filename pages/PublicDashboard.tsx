@@ -320,47 +320,40 @@ const PublicDashboard: React.FC = () => {
     <div className="min-h-[100dvh] flex flex-col items-center justify-center p-3 sm:p-5 font-sans bg-[#f1f5f9] dark:bg-slate-900 transition-colors duration-300">
       <main className="w-full max-w-[430px] space-y-3.5 m-auto">
         
-        {/* TOP HEADER CARD */}
-        <div className="bg-gradient-to-r from-[#0d47a1] via-[#1565c0] to-[#1976d2] rounded-[28px] p-5 shadow-[0_12px_30px_rgba(21,101,192,0.35)] border border-blue-400/20 text-white relative overflow-hidden flex items-center justify-between">
-             {/* Decorative Background Pattern */}
-             <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:12px_12px]"></div>
-             <div className="absolute -bottom-10 -right-10 w-44 h-44 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
-             
-             {/* Curved Light Stroke Watermark */}
-             <svg className="absolute right-0 bottom-0 w-36 h-36 opacity-20 pointer-events-none" viewBox="0 0 100 100" fill="none">
-               <circle cx="80" cy="80" r="60" stroke="white" strokeWidth="2" />
-               <circle cx="80" cy="80" r="45" stroke="white" strokeWidth="1" />
-             </svg>
-
-             {/* Left Section (Logo + School Title) */}
-             <div className="flex items-center gap-3 relative z-10">
-                 <div className="w-14 h-14 rounded-full bg-white/10 p-1 border-2 border-amber-300/80 shadow-[0_0_15px_rgba(252,211,77,0.3)] flex items-center justify-center backdrop-blur-sm flex-shrink-0">
-                    <img src="https://i.imghippo.com/files/WXB3962h.png" alt="Logo" className="w-full h-full object-contain" />
+            {/* TOP HEADER CARD */}
+            <div className="bg-gradient-to-r from-[#063B9E] via-[#075FEA] to-[#EAF3FF] rounded-[28px] p-5 shadow-[0_12px_30px_rgba(21,101,192,0.15)] border border-white text-white relative overflow-hidden flex flex-col sm:flex-row items-center sm:items-stretch gap-4 justify-between">
+                 {/* Decorative Background Pattern */}
+                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:12px_12px] mix-blend-overlay"></div>
+                 
+                 {/* Left Section (Logo + School Title) */}
+                 <div className="flex items-center gap-3 relative z-10 w-full sm:w-auto justify-center sm:justify-start">
+                     <div className="w-16 h-16 rounded-full bg-white/10 p-1 border-[1.5px] border-white shadow-[0_0_20px_rgba(255,255,255,0.4)] flex items-center justify-center backdrop-blur-sm flex-shrink-0">
+                        <img src="https://i.imghippo.com/files/WXB3962h.png" alt="Logo" className="w-full h-full object-contain drop-shadow-sm" />
+                     </div>
+                     <div className="text-left">
+                        <h1 className="text-[17px] font-extrabold text-white leading-[1.2] tracking-tight drop-shadow-md">
+                          SMP BHINNEKA <br/> TUNGGAL IKA
+                        </h1>
+                        <p className="text-xs font-bold text-blue-100 mt-0.5">@Bhinneka</p>
+                     </div>
                  </div>
-                 <div>
-                    <h1 className="text-[16px] font-extrabold text-white leading-[1.25] tracking-tight drop-shadow-sm uppercase">
-                      SMP BHINNEKA <br/> TUNGGAL IKA
-                    </h1>
-                    <p className="text-xs font-semibold text-blue-100/90 mt-1">eBhinneka</p>
+
+                 {/* Right Section (Date & Clock Floating Card) */}
+                 <div className="relative z-10 flex flex-col items-center justify-center bg-white/90 backdrop-blur-md rounded-2xl px-5 py-3 shadow-lg border border-white/50 min-w-[140px]">
+                    <div className="flex items-center gap-1.5 mb-1 text-slate-500">
+                        <Calendar size={12} strokeWidth={2.5} />
+                        <p className="text-[9px] font-bold uppercase tracking-wider">{formatDateIndo(time)}</p>
+                    </div>
+                    <div className="flex items-baseline gap-1.5">
+                       <span className="text-3xl font-extrabold text-[#075FEA] font-sans tracking-tight leading-none drop-shadow-sm">
+                         {formatTimeIndo(time)}
+                       </span>
+                       <span className="bg-blue-100 text-blue-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md">
+                         WIB
+                       </span>
+                    </div>
                  </div>
-             </div>
-
-             {/* Vertical Divider */}
-             <div className="w-[1px] h-11 bg-white/20 mx-2 flex-shrink-0 relative z-10"></div>
-
-             {/* Right Section (Date & Clock) */}
-             <div className="text-right relative z-10 flex flex-col items-end justify-center">
-                <p className="text-[11px] font-medium text-blue-100/90 mb-0.5 whitespace-nowrap">{formatDateIndo(time)}</p>
-                <div className="flex items-center gap-1.5">
-                   <span className="text-3xl font-extrabold text-white font-sans tracking-tight leading-none drop-shadow-sm">
-                     {formatTimeIndo(time)}
-                   </span>
-                   <span className="bg-white/20 border border-white/30 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-lg backdrop-blur-md shadow-sm">
-                     WIB
-                   </span>
-                </div>
-             </div>
-        </div>
+            </div>
 
         {loading ? (
             <div className="bg-white dark:bg-slate-800 rounded-[24px] p-10 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 shadow-[0_6px_20px_rgba(0,0,0,0.04)] border border-slate-100 dark:border-slate-700/60">
@@ -380,30 +373,31 @@ const PublicDashboard: React.FC = () => {
             {/* TOP 3 CLASS METRIC CARDS */}
             <div className="grid grid-cols-3 gap-3">
                {[
-                 { label: "KELAS 7", count: stats.count7, grade: '7' },
-                 { label: "KELAS 8", count: stats.count8, grade: '8' },
-                 { label: "KELAS 9", count: stats.count9, grade: '9' },
+                 { label: "KELAS 7", count: stats.count7, grade: '7', primary: '#1463FF', bg: '#EEF5FF' },
+                 { label: "KELAS 8", count: stats.count8, grade: '8', primary: '#13A9A5', bg: '#ECFAF9' },
+                 { label: "KELAS 9", count: stats.count9, grade: '9', primary: '#6366D9', bg: '#F1F1FF' },
                ].map((item) => (
                   <button 
                     key={item.grade}
                     onClick={() => handleClassClick(item.grade)}
-                    className="bg-white dark:bg-slate-800/90 rounded-[22px] p-3.5 flex flex-col items-center justify-center text-center shadow-[0_6px_20px_rgba(0,0,0,0.04)] border border-slate-100 dark:border-slate-700/60 relative overflow-hidden h-[148px] hover:scale-[1.02] active:scale-95 transition-all duration-200 cursor-pointer group"
+                    style={{ backgroundColor: item.bg }}
+                    className="rounded-[22px] p-3.5 flex flex-col items-center justify-center text-center shadow-[0_4px_15px_rgba(0,0,0,0.02)] border border-white relative overflow-hidden h-[148px] hover:scale-[1.02] active:scale-95 transition-all duration-200 cursor-pointer group"
                   >
                       {/* Watermark dots */}
-                      <div className="absolute -bottom-1 -right-1 opacity-20 pointer-events-none">
-                         <div className="w-8 h-8 bg-[radial-gradient(#0284c7_1px,transparent_1px)] [background-size:4px_4px]"></div>
+                      <div className="absolute -bottom-1 -right-1 opacity-20 pointer-events-none" style={{ color: item.primary }}>
+                         <div className="w-8 h-8 bg-[radial-gradient(currentColor_1px,transparent_1px)] [background-size:4px_4px]"></div>
                       </div>
 
-                      <div className="w-11 h-11 rounded-full bg-gradient-to-b from-blue-100 to-sky-50 dark:from-blue-900/40 dark:to-slate-800 border border-blue-200/60 dark:border-blue-700/50 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-inner mb-2 group-hover:scale-105 transition-transform">
+                      <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center shadow-sm mb-2 group-hover:scale-105 transition-transform" style={{ color: item.primary }}>
                           <School size={22} strokeWidth={2} />
                       </div>
-                      <h2 className="text-3xl sm:text-[34px] font-extrabold text-[#0d47a1] dark:text-blue-400 tracking-tight leading-none mb-1">
+                      <h2 className="text-3xl sm:text-[34px] font-extrabold tracking-tight leading-none mb-1" style={{ color: item.primary }}>
                         {item.count}
                       </h2>
-                      <p className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                      <p className="text-[10px] font-extrabold uppercase tracking-wider mb-1.5" style={{ color: item.primary }}>
                         {item.label}
                       </p>
-                      <span className="w-7 h-[3px] bg-blue-500 rounded-full"></span>
+                      <span className="w-7 h-[3px] rounded-full" style={{ backgroundColor: item.primary }}></span>
                   </button>
                ))}
             </div>
@@ -411,87 +405,94 @@ const PublicDashboard: React.FC = () => {
             {/* MIDDLE 2 METRIC CARDS */}
             <div className="grid grid-cols-2 gap-3">
                 {/* KBM TERLAKSANA */}
-                <div className="bg-white dark:bg-slate-800/90 rounded-[24px] p-5 flex flex-col items-center justify-center text-center shadow-[0_6px_20px_rgba(0,0,0,0.04)] border border-slate-100 dark:border-slate-700/60 relative overflow-hidden h-[160px]">
-                     {/* Watermark open book line art */}
-                     <BookOpen className="absolute -bottom-2 -left-2 size-24 opacity-10 text-blue-900 dark:text-blue-400 pointer-events-none stroke-[1]" />
-
-                     <div className="w-12 h-12 rounded-full bg-gradient-to-b from-[#1565c0] to-[#0d47a1] text-white flex items-center justify-center shadow-md shadow-blue-600/30 mb-2 relative z-10">
-                        <BookOpen size={22} strokeWidth={2.2} />
+                <div className="bg-[rgba(255,255,255,0.88)] dark:bg-slate-800/90 rounded-[24px] p-5 flex flex-col justify-between shadow-[0_8px_30px_rgba(21,101,192,0.06)] border border-[rgba(91,155,255,0.20)] dark:border-slate-700/60 relative overflow-hidden h-[160px]">
+                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1463FF] to-[#073CCF] text-white flex items-center justify-center shadow-lg shadow-blue-500/30 relative z-10">
+                        <BookOpen size={18} strokeWidth={2.5} />
                      </div>
-                     <div className="flex items-baseline gap-1 mb-1 relative z-10">
-                        <span className="text-3xl sm:text-[34px] font-extrabold text-[#0d47a1] dark:text-blue-400 tracking-tight leading-none">
-                          {stats.completedJp}
-                        </span>
-                        <span className="text-xs font-extrabold text-slate-400 dark:text-slate-500">
-                          / {stats.totalJpRequired} JP
-                        </span>
+                     <div className="mt-auto relative z-10">
+                         <div className="flex items-baseline gap-1 mb-1">
+                            <span className="text-[28px] sm:text-3xl font-extrabold text-[#073CCF] dark:text-blue-400 tracking-tight leading-none">
+                              {stats.completedJp}
+                            </span>
+                            <span className="text-[11px] font-extrabold text-slate-400 dark:text-slate-500">
+                              / {stats.totalJpRequired} JP
+                            </span>
+                         </div>
+                         <p className="text-[9px] font-extrabold text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2">
+                           KBM TERLAKSANA
+                         </p>
+                         <span className="w-8 h-[3px] bg-[#1463FF] rounded-full block"></span>
                      </div>
-                     <p className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 relative z-10">
-                       KBM TERLAKSANA
-                     </p>
-                     <span className="w-7 h-[3px] bg-blue-500 rounded-full relative z-10"></span>
+                     {/* Decorative Icon on Right */}
+                     <div className="absolute right-0 bottom-2 text-blue-500 opacity-20 pointer-events-none transform rotate-[-15deg] translate-x-2">
+                         <BookOpen size={90} strokeWidth={1} />
+                     </div>
                 </div>
 
                 {/* KETIDAKHADIRAN MURID */}
                 <button 
                     onClick={handleAbsenceClick}
-                    className="bg-white dark:bg-slate-800/90 rounded-[24px] p-5 flex flex-col items-center justify-center text-center shadow-[0_6px_20px_rgba(0,0,0,0.04)] border border-slate-100 dark:border-slate-700/60 relative overflow-hidden h-[160px] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer group"
+                    className="bg-[rgba(255,255,255,0.88)] dark:bg-slate-800/90 rounded-[24px] p-5 flex flex-col justify-between shadow-[0_8px_30px_rgba(21,101,192,0.06)] border border-[rgba(91,155,255,0.20)] dark:border-slate-700/60 relative overflow-hidden h-[160px] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer group text-left"
                 >
-                     {/* Watermark people line art */}
-                     <div className="absolute -bottom-2 -right-2 opacity-10 text-blue-900 dark:text-blue-400 pointer-events-none">
-                        <div className="flex items-end gap-1">
-                          <div className="w-6 h-10 rounded-t-full bg-current"></div>
-                          <div className="w-8 h-12 rounded-t-full bg-current"></div>
-                          <div className="w-6 h-8 rounded-t-full bg-current"></div>
-                        </div>
-                     </div>
-
-                     <div className="w-12 h-12 rounded-full bg-gradient-to-b from-[#1565c0] to-[#0d47a1] text-white flex items-center justify-center shadow-md shadow-blue-600/30 mb-2 group-hover:scale-105 transition-transform relative z-10">
+                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1463FF] to-[#073CCF] text-white flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:scale-105 transition-transform relative z-10">
                         <span className="text-xl font-extrabold leading-none">!</span>
                      </div>
-                     <span className="text-3xl sm:text-[34px] font-extrabold text-[#0d47a1] dark:text-blue-400 tracking-tight leading-none mb-1 relative z-10">
-                       {stats.absenceCount}
-                     </span>
-                     <p className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 text-center leading-tight relative z-10">
-                       KETIDAKHADIRAN<br/>MURID
-                     </p>
-                     <span className="w-7 h-[3px] bg-blue-500 rounded-full relative z-10"></span>
+                     
+                     <div className="mt-auto relative z-10">
+                         <span className="text-[28px] sm:text-3xl font-extrabold text-[#073CCF] dark:text-blue-400 tracking-tight leading-none mb-1 block">
+                           {stats.absenceCount}
+                         </span>
+                         <p className="text-[9px] font-extrabold text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2 leading-[1.3]">
+                           KETIDAKHADIRAN<br/>MURID
+                         </p>
+                         <span className="w-8 h-[3px] bg-[#1463FF] rounded-full block"></span>
+                     </div>
+                     {/* Decorative Icon on Right */}
+                     <div className="absolute right-1 bottom-1 text-blue-500 opacity-20 pointer-events-none transform rotate-[10deg] translate-x-3">
+                         <svg width="80" height="90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                            <path d="M9 14h6"></path>
+                            <path d="M9 10h6"></path>
+                         </svg>
+                     </div>
                 </button>
             </div>
 
             {/* PROGRESS BAR CARD */}
-            <div className="bg-white dark:bg-slate-800/90 rounded-[24px] p-5 shadow-[0_6px_20px_rgba(0,0,0,0.04)] border border-slate-100 dark:border-slate-700/60 relative overflow-hidden">
+            <div className="bg-[rgba(255,255,255,0.88)] dark:bg-slate-800/90 rounded-[24px] p-5 shadow-[0_8px_30px_rgba(21,101,192,0.06)] border border-[rgba(91,155,255,0.20)] dark:border-slate-700/60 relative overflow-hidden">
                 {/* Header title with diamond accents */}
-                <div className="flex items-center justify-center gap-2 mb-3.5 text-center">
-                    <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-blue-300 dark:via-blue-700 to-transparent"></div>
-                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">◇</span>
-                    <h3 className="text-[11px] font-extrabold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                <div className="flex items-center justify-center gap-2 mb-4 text-center">
+                    <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-blue-200 dark:via-blue-700 to-transparent"></div>
+                    <span className="text-[10px] text-blue-500 font-bold">◇</span>
+                    <h3 className="text-[10px] font-extrabold text-slate-800 dark:text-slate-200 tracking-wider">
                       PROGRESS KBM HARI INI
                     </h3>
-                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">◇</span>
-                    <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-blue-300 dark:via-blue-700 to-transparent"></div>
+                    <span className="text-[10px] text-blue-500 font-bold">◇</span>
+                    <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent via-blue-200 dark:via-blue-700 to-transparent"></div>
                 </div>
 
                 {/* Progress bar track & bar */}
-                <div className="w-full bg-slate-100 dark:bg-slate-700/80 rounded-full h-7 p-1 shadow-inner relative overflow-hidden">
+                <div className="w-full bg-[#EAF3FF] dark:bg-slate-700/80 rounded-full h-8 shadow-inner relative overflow-hidden flex items-center justify-center">
+                    {/* The Bar */}
                     <div 
-                      className="bg-gradient-to-r from-[#0d47a1] via-[#1565c0] to-[#2563eb] h-5 rounded-full flex items-center justify-end pr-3 transition-all duration-700 ease-out shadow-sm relative z-10"
-                      style={{ width: `${Math.max(progressPercentage, 12)}%` }}
-                    >
-                        <span className="text-[11px] font-extrabold text-white leading-none">
-                          {progressPercentage.toFixed(1)}%
-                        </span>
-                    </div>
+                      className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-[#1463FF] to-[#073CCF] rounded-full transition-all duration-700 ease-out"
+                      style={{ width: `${Math.max(progressPercentage, 5)}%` }}
+                    ></div>
+                    {/* The Text inside or outside depending on width */}
+                    <span className="text-[11px] font-extrabold text-white z-10 drop-shadow-sm">
+                        {progressPercentage.toFixed(1)}%
+                    </span>
                 </div>
 
                 {/* Bottom status & chart watermark */}
                 <div className="mt-3 flex justify-between items-end relative z-10">
-                    <div>
-                        <span className="text-sm font-extrabold text-[#0d47a1] dark:text-blue-400">
-                            {progressPercentage.toFixed(1)}%
-                        </span> 
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300 ml-1.5">
-                            Terlaksana
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-sm font-extrabold text-[#073CCF] dark:text-blue-400">
+                          {progressPercentage.toFixed(1)}%
+                        </span>
+                        <span className="text-xs font-bold text-slate-500 ml-1.5">
+                          Terlaksana
                         </span>
                     </div>
                 </div>
@@ -506,18 +507,18 @@ const PublicDashboard: React.FC = () => {
             </div>
 
             {/* LOGIN BUTTON */}
-            <div className="pt-1">
+            <div className="pt-2 pb-4">
                 <button 
                     onClick={() => setShowLoginModal(true)} 
-                    className="w-full bg-gradient-to-r from-[#0d47a1] via-[#1565c0] to-[#1d4ed8] hover:from-[#0c3b85] hover:to-[#1e40af] text-white font-extrabold text-base py-4 px-6 rounded-[22px] flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(21,101,192,0.35)] transition-all active:scale-[0.98] border border-blue-400/30 relative overflow-hidden group"
+                    className="w-full bg-gradient-to-r from-[#073CCF] via-[#075FEA] to-[#1687FF] hover:opacity-95 text-white font-extrabold text-base py-4 px-6 rounded-2xl flex items-center justify-center gap-3 shadow-[0_10px_25px_rgba(7,95,234,0.4)] transition-all active:scale-[0.98] border-t border-white/20 relative overflow-hidden group"
                 >
-                    {/* Pattern Overlay */}
-                    <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:10px_10px]"></div>
+                    {/* Highlight Inner */}
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
                     
-                    <div className="w-7 h-7 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/20 group-hover:scale-105 transition-transform relative z-10">
+                    <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white group-hover:scale-105 transition-transform relative z-10 shadow-inner">
                         <LogIn size={18} className="stroke-[2.5]" />
                     </div>
-                    <span className="text-base font-extrabold text-white tracking-wide relative z-10">Login Sebagai</span>
+                    <span className="text-base font-extrabold text-white tracking-wide relative z-10 drop-shadow-sm">Login Sebagai</span>
                 </button>
             </div>
           </>
@@ -601,7 +602,7 @@ const PublicDashboard: React.FC = () => {
                                                                 <>
                                                                     <span className="text-blue-600 dark:text-blue-400">{presentCount} Hadir</span>
                                                                     <span className="text-slate-300 dark:text-slate-600">|</span>
-                                                                    <span className={absentCount > 0 ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}>
+                                                                    <span className={absentCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-blue-600 dark:text-blue-400"}>
                                                                         {absentCount} Tidak Hadir
                                                                     </span>
                                                                 </>
@@ -610,7 +611,7 @@ const PublicDashboard: React.FC = () => {
                                                                     <span className="text-slate-400 dark:text-slate-500">{presentCount} Hadir</span>
                                                                     <span className="text-slate-300 dark:text-slate-600">|</span>
                                                                     <span className="text-slate-400 dark:text-slate-500">
-                                                                        0 Tidak Hadir
+                                                                        {absentCount} Tidak Hadir
                                                                     </span>
                                                                     <span className="text-[10px] bg-slate-200/60 dark:bg-slate-700/80 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded font-normal ml-1">
                                                                         Belum diisi

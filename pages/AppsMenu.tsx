@@ -78,6 +78,13 @@ const AppsMenu: React.FC = () => {
                         gradientClass="bg-gradient-to-br from-blue-400 to-blue-500" 
                     />
                     <AppCard 
+                        label="Kinerja (1 Bulan)" 
+                        subLabel="Monitoring Kinerja"
+                        icon={TrendingUp} 
+                        path="/kinerja" 
+                        gradientClass="bg-gradient-to-br from-indigo-500 to-indigo-600" 
+                    />
+                    <AppCard 
                         label="Pengaturan" 
                         subLabel="Konfigurasi Umum"
                         icon={Settings} 

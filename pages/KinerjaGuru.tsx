@@ -9,6 +9,7 @@ import { Profile, Schedule } from '../types';
 interface TeacherPerformanceData extends Profile {
     targetJp: number;
     actualJp: number;
+    percentage: number;
     statusKinerja: string;
     statusColor: string;
 }
@@ -20,16 +21,18 @@ const KinerjaGuru: React.FC = () => {
   const [filteredTeachers, setFilteredTeachers] = useState<TeacherPerformanceData[]>([]);
   const [hmSearch, setHmSearch] = useState('');
   
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth()); 
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const todayObj = new Date();
+  const firstDayOfMonth = new Date(todayObj.getFullYear(), todayObj.getMonth(), 1).toISOString().split('T')[0];
+  const todayStr = todayObj.toISOString().split('T')[0];
 
+  const [startDate, setStartDate] = useState(firstDayOfMonth);
+  const [endDate, setEndDate] = useState(todayStr);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [selectedTeacherSchedule, setSelectedTeacherSchedule] = useState<{teacher: Profile, schedules: Schedule[] } | null>(null);
 
-  const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   const dayName = (num: number) => ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'][num];
 
-  useEffect(() => { fetchHeadmasterData(); }, [selectedMonth, selectedYear]);
+  useEffect(() => { fetchHeadmasterData(); }, [startDate, endDate]);
 
   useEffect(() => {
       if (hmSearch) {
@@ -41,14 +44,13 @@ const KinerjaGuru: React.FC = () => {
   const fetchHeadmasterData = async () => {
       setLoading(true);
       try {
-          const firstDayDate = new Date(selectedYear, selectedMonth, 1);
-          const firstDayStr = firstDayDate.toISOString();
-          const lastDayDate = new Date(selectedYear, selectedMonth + 1, 0); 
-          const endDayStr = lastDayDate.toISOString();
+          const firstDayDate = new Date(startDate);
+          const lastDayDate = new Date(endDate);
+          const firstDayStr = startDate + 'T00:00:00+07:00';
+          const endDayStr = endDate + 'T23:59:59+07:00';
           const today = new Date();
-          let endCalculationDay = lastDayDate.getDate(); 
-          if (selectedYear === today.getFullYear() && selectedMonth === today.getMonth()) endCalculationDay = today.getDate(); 
-          else if (selectedYear > today.getFullYear() || (selectedYear === today.getFullYear() && selectedMonth > today.getMonth())) endCalculationDay = lastDayDate.getDate(); 
+          let calcEndDate = new Date(lastDayDate);
+          if (calcEndDate > today) calcEndDate = today;
 
           const [profilesRes, schedulesRes, journalsRes] = await Promise.all([
               supabase.from('profiles').select('*').neq('role', 'operator').order('full_name'),
@@ -71,9 +73,12 @@ const KinerjaGuru: React.FC = () => {
           const allJournals = journalsRes.data || [];
           const dayCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 };
           
-          for (let d = 1; d <= endCalculationDay; d++) {
-              const tempDate = new Date(selectedYear, selectedMonth, d);
-              const jsDay = tempDate.getDay(); const dbDay = jsDay === 0 ? 7 : jsDay; dayCounts[dbDay]++;
+          let d = new Date(firstDayDate);
+          while (d <= calcEndDate) {
+              const jsDay = d.getDay(); 
+              const dbDay = jsDay === 0 ? 7 : jsDay; 
+              dayCounts[dbDay]++;
+              d.setDate(d.getDate() + 1);
           }
 
           const processed: TeacherPerformanceData[] = allTeachers.map(t => {
@@ -95,7 +100,7 @@ const KinerjaGuru: React.FC = () => {
               if (target === 0 && actual === 0) { status = "Tidak Ada Jadwal"; color = "text-slate-500 bg-gray-50 border-slate-100"; } 
               else if (percentage > 85) { status = "Di Atas Ekspektasi"; color = "text-blue-500 bg-sky-100 border-blue-300"; } 
               else if (percentage >= 70) { status = "Sesuai Ekspektasi"; color = "text-blue-600 bg-blue-50 border-blue-100"; }
-              return { ...t, targetJp: target, actualJp: actual, statusKinerja: status, statusColor: color };
+              return { ...t, targetJp: target, actualJp: actual, percentage, statusKinerja: status, statusColor: color };
           });
           setTeachersData(processed);
       } catch(e) { console.error("Headmaster Fetch Error", e); } finally { setLoading(false); }
@@ -126,20 +131,69 @@ const KinerjaGuru: React.FC = () => {
                 <div className="flex flex-wrap gap-2 items-center bg-slate-100 p-2 rounded-xl border border-slate-200 shadow-sm">
                     <div className="relative"><Search className="absolute left-3 top-2.5 text-slate-400" size={16}/><input type="text" placeholder="Cari Guru..." className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 w-40 dark:border-slate-600" value={hmSearch} onChange={(e) => setHmSearch(e.target.value)}/></div>
                     <div className="h-6 w-px bg-slate-200 mx-1"></div>
-                    <select className="bg-white text-slate-800 border-slate-200 dark: dark: py-2 px-3 border border-slate-200 rounded-lg text-sm font-bold dark: dark:border-slate-600" value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))}>{monthNames.map((m, i) => <option key={i} value={i}>{m}</option>)}</select>
-                    <select className="bg-white text-slate-800 border-slate-200 dark: dark: py-2 px-3 border border-slate-200 rounded-lg text-sm font-bold dark: dark:border-slate-600" value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))}>{[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}</select>
+                    <div className="flex items-center gap-2">
+                        <input type="date" className="bg-white text-slate-800 border-slate-200 py-2 px-3 border rounded-lg text-sm font-bold" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                        <span className="text-slate-400 text-sm font-bold">s/d</span>
+                        <input type="date" className="bg-white text-slate-800 border-slate-200 py-2 px-3 border rounded-lg text-sm font-bold" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                    </div>
                 </div>
             </div>
 
             {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" size={40}/></div> : filteredTeachers.length === 0 ? <div className="text-center py-20 text-slate-400 italic">Tidak ada data guru ditemukan.</div> : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {filteredTeachers.map((teacher) => (
-                        <div key={teacher.id} className="bg-slate-100 rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col gap-4">
-                            <div className="flex items-center gap-3 border-b border-slate-100 pb-3"><div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-lg">{teacher.full_name?.charAt(0)}</div><div className="flex-1 min-w-0"><h3 className="font-bold text-slate-800 truncate" title={teacher.full_name}>{teacher.full_name}</h3><p className="text-xs text-slate-500 truncate">{teacher.mengajar_mapel || 'Guru Mapel'}</p></div><div className={`text-[10px] font-bold px-2 py-1 rounded border ${teacher.statusColor}`}>{teacher.statusKinerja}</div></div>
-                            <div className="grid grid-cols-2 gap-3 text-center"><div className="bg-slate-50 p-2 rounded-xl border border-slate-100"><span className="text-xs text-slate-400 font-bold uppercase block">Target JP</span><span className="text-xl font-extrabold text-slate-700">{teacher.targetJp}</span></div><div className="bg-slate-50 p-2 rounded-xl border border-slate-100"><span className="text-xs text-slate-400 font-bold uppercase block">Realisasi</span><span className={`text-xl font-extrabold ${teacher.actualJp >= teacher.targetJp ? 'text-blue-500' : 'text-blue-600'}`}>{teacher.actualJp}</span></div></div>
-                            <button onClick={() => handleViewSchedule(teacher)} className="w-full py-2 bg-blue-50 text-blue-600 rounded-xl font-bold text-sm hover:bg-blue-100 transition-colors mt-auto">Lihat Jadwal</button>
-                        </div>
-                    ))}
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
+                            <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+                                <tr>
+                                    <th className="px-6 py-4 font-bold text-slate-800 dark:text-slate-200">Nama Guru</th>
+                                    <th className="px-6 py-4 font-bold text-slate-800 dark:text-slate-200">Mata Pelajaran</th>
+                                    <th className="px-6 py-4 font-bold text-center text-slate-800 dark:text-slate-200">Target JP</th>
+                                    <th className="px-6 py-4 font-bold text-center text-slate-800 dark:text-slate-200">Realisasi JP</th>
+                                    <th className="px-6 py-4 font-bold text-center text-slate-800 dark:text-slate-200">Prosentase</th>
+                                    <th className="px-6 py-4 font-bold text-slate-800 dark:text-slate-200">Kriteria</th>
+                                    <th className="px-6 py-4 font-bold text-center text-slate-800 dark:text-slate-200">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredTeachers.map((teacher, index) => (
+                                    <tr key={teacher.id} className="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300 font-bold text-xs flex-shrink-0">
+                                                    {teacher.full_name?.charAt(0)}
+                                                </div>
+                                                <span className="font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">{teacher.full_name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{teacher.mengajar_mapel || '-'}</td>
+                                        <td className="px-6 py-4 text-center font-bold">{teacher.targetJp}</td>
+                                        <td className="px-6 py-4 text-center font-bold text-blue-600 dark:text-blue-400">{teacher.actualJp}</td>
+                                        <td className="px-6 py-4 text-center">
+                                            <div className="flex flex-col items-center gap-1">
+                                                <span className="font-bold">{teacher.percentage.toFixed(1)}%</span>
+                                                <div className="w-20 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(teacher.percentage, 100)}%` }}></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`text-[10px] font-bold px-2 py-1 rounded border whitespace-nowrap ${teacher.statusColor}`}>
+                                                {teacher.statusKinerja}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <button 
+                                                onClick={() => handleViewSchedule(teacher)} 
+                                                className="text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-lg font-bold transition-colors whitespace-nowrap"
+                                            >
+                                                Jadwal
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 
