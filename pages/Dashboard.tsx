@@ -87,7 +87,45 @@ const Dashboard: React.FC = () => {
   const [staffAttendancePulang, setStaffAttendancePulang] = useState<{ id: string, created_at: string } | null>(null);
   const [savingStaffAttendance, setSavingStaffAttendance] = useState(false);
   const [staffGeolocations, setStaffGeolocations] = useState<{ lat: number, lng: number, radius: number, name: string }[]>([]);
+  
   const [attendanceErrorModal, setAttendanceErrorModal] = useState<string | null>(null);
+
+  const [currentTimeMinutes, setCurrentTimeMinutes] = useState(() => {
+      const now = new Date();
+      return now.getHours() * 60 + now.getMinutes();
+  });
+
+  useEffect(() => {
+      const interval = setInterval(() => {
+          const now = new Date();
+          setCurrentTimeMinutes(now.getHours() * 60 + now.getMinutes());
+      }, 60000);
+      return () => clearInterval(interval);
+  }, []);
+
+  let isDatangMissed = false;
+  let isPulangMissed = false;
+
+  if (staffGeolocations.length > 0) {
+      const hasDatangEndTime = staffGeolocations.some((g: any) => g.endTime);
+      if (hasDatangEndTime) {
+          isDatangMissed = staffGeolocations.every((g: any) => {
+              if (!g.endTime) return false;
+              const [h, m] = g.endTime.split(':').map(Number);
+              return currentTimeMinutes > h * 60 + m;
+          });
+      }
+
+      const hasPulangEndTime = staffGeolocations.some((g: any) => g.pulangEndTime);
+      if (hasPulangEndTime) {
+          isPulangMissed = staffGeolocations.every((g: any) => {
+              if (!g.pulangEndTime) return false;
+              const [h, m] = g.pulangEndTime.split(':').map(Number);
+              return currentTimeMinutes > h * 60 + m;
+          });
+      }
+  }
+
 
   useEffect(() => {
     if (profile) {
@@ -534,7 +572,8 @@ const Dashboard: React.FC = () => {
                   const userLng = position.coords.longitude;
                   
                   let isAllowed = false;
-                  let isOutOfTime = false;
+                  let isTooEarly = false;
+                  let isTooLate = false;
                   
                   const now = new Date();
                   const currentHour = now.getHours();
@@ -573,16 +612,25 @@ const Dashboard: React.FC = () => {
                               isAllowed = true;
                               break;
                           } else {
-                              isOutOfTime = true;
+                              if (targetStartTime) {
+                                  const [sh, sm] = targetStartTime.split(':').map(Number);
+                                  if (currentTimeMinutes < sh * 60 + sm) isTooEarly = true;
+                              }
+                              if (targetEndTime) {
+                                  const [eh, em] = targetEndTime.split(':').map(Number);
+                                  if (currentTimeMinutes > eh * 60 + em) isTooLate = true;
+                              }
                           }
                       }
                   }
                   
                   if (!isAllowed) {
-                      if (isOutOfTime) {
-                          setAttendanceErrorModal('Anda hadir sangat terlambat, data anda tidak tersimpan');
+                      if (isTooEarly) {
+                          setAttendanceErrorModal('Belum waktunya presensi untuk lokasi ini.');
+                      } else if (isTooLate) {
+                          setAttendanceErrorModal('Waktu presensi sudah habis untuk lokasi ini.');
                       } else {
-                          setAttendanceErrorModal('Anda berada di luar kantor, data anda tidak tersimpan');
+                          setAttendanceErrorModal('Anda berada di luar jangkauan lokasi kantor.');
                       }
                       setSavingStaffAttendance(false);
                       return;
@@ -992,9 +1040,9 @@ const Dashboard: React.FC = () => {
                     <div className="mb-6 grid grid-cols-2 gap-3">
                         <button
                             onClick={() => handleStaffAttendance('DATANG')}
-                            disabled={!!staffAttendanceDatang || savingStaffAttendance}
+                            disabled={!!staffAttendanceDatang || savingStaffAttendance || (!staffAttendanceDatang && isDatangMissed)}
                             className={`w-full p-4 rounded-2xl flex flex-col justify-center items-center gap-2 font-extrabold transition-all duration-300 shadow-md border ${
-                                staffAttendanceDatang 
+                                staffAttendanceDatang || (!staffAttendanceDatang && isDatangMissed)
                                 ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed' 
                                 : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white border-blue-500 hover:shadow-xl hover:-translate-y-1'
                             }`}
@@ -1003,6 +1051,8 @@ const Dashboard: React.FC = () => {
                                 <><Loader2 size={20} className="animate-spin" /> Memproses...</>
                             ) : staffAttendanceDatang ? (
                                 <><CheckCircle2 size={20} /> Datang {new Date(staffAttendanceDatang.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</>
+                            ) : isDatangMissed ? (
+                                <><XCircle size={20} /> Anda tidak Presensi</>
                             ) : (
                                 <><CheckCircle2 size={20} /> Presensi Datang</>
                             )}
@@ -1010,17 +1060,19 @@ const Dashboard: React.FC = () => {
 
                         <button
                             onClick={() => handleStaffAttendance('PULANG')}
-                            disabled={!!staffAttendancePulang || savingStaffAttendance || !staffAttendanceDatang}
+                            disabled={!!staffAttendancePulang || savingStaffAttendance || (!staffAttendancePulang && isPulangMissed)}
                             className={`w-full p-4 rounded-2xl flex flex-col justify-center items-center gap-2 font-extrabold transition-all duration-300 shadow-md border ${
-                                staffAttendancePulang || !staffAttendanceDatang
+                                staffAttendancePulang || (!staffAttendancePulang && isPulangMissed)
                                 ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed' 
                                 : 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white border-emerald-500 hover:shadow-xl hover:-translate-y-1'
                             }`}
                         >
-                            {savingStaffAttendance && !!staffAttendanceDatang && !staffAttendancePulang ? (
+                            {savingStaffAttendance && !staffAttendancePulang ? (
                                 <><Loader2 size={20} className="animate-spin" /> Memproses...</>
                             ) : staffAttendancePulang ? (
                                 <><CheckCircle2 size={20} /> Pulang {new Date(staffAttendancePulang.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</>
+                            ) : isPulangMissed ? (
+                                <><XCircle size={20} /> Anda tidak Presensi</>
                             ) : (
                                 <><CheckCircle2 size={20} /> Presensi Pulang</>
                             )}
