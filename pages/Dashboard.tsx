@@ -83,7 +83,8 @@ const Dashboard: React.FC = () => {
   const [matrixDate, setMatrixDate] = useState(getWIBISOString());
 
   const [savingAttendance, setSavingAttendance] = useState(false);
-  const [staffAttendanceToday, setStaffAttendanceToday] = useState<{ id: string, created_at: string } | null>(null);
+  const [staffAttendanceDatang, setStaffAttendanceDatang] = useState<{ id: string, created_at: string } | null>(null);
+  const [staffAttendancePulang, setStaffAttendancePulang] = useState<{ id: string, created_at: string } | null>(null);
   const [savingStaffAttendance, setSavingStaffAttendance] = useState(false);
   const [staffGeolocations, setStaffGeolocations] = useState<{ lat: number, lng: number, radius: number, name: string }[]>([]);
   const [attendanceErrorModal, setAttendanceErrorModal] = useState<string | null>(null);
@@ -190,21 +191,24 @@ const Dashboard: React.FC = () => {
             
             const [staffJRes, geoRes] = await Promise.all([
                 supabase.from('journals')
-                    .select('id, created_at')
+                    .select('id, created_at, material')
                     .eq('teacher_id', profile.id)
                     .eq('kelas', 'STAFF')
                     .eq('subject', 'KEHADIRAN')
                     .gte('created_at', todayStart)
                     .lte('created_at', todayEnd)
-                    .order('created_at', { ascending: false })
-                    .limit(1),
+                    .order('created_at', { ascending: false }),
                 supabase.from('app_settings').select('value').eq('key', 'staff_geolocations').single()
             ]);
             
             if (staffJRes.data && staffJRes.data.length > 0) {
-                setStaffAttendanceToday(staffJRes.data[0]);
+                const datang = staffJRes.data.find(d => d.material === 'Datang' || d.material === 'Hadir');
+                const pulang = staffJRes.data.find(d => d.material === 'Pulang');
+                setStaffAttendanceDatang(datang || null);
+                setStaffAttendancePulang(pulang || null);
             } else {
-                setStaffAttendanceToday(null);
+                setStaffAttendanceDatang(null);
+                setStaffAttendancePulang(null);
             }
             
             if (geoRes.data && geoRes.data.value) {
@@ -475,7 +479,7 @@ const Dashboard: React.FC = () => {
       });
   };
 
-  const handleStaffAttendance = async () => {
+  const handleStaffAttendance = async (type: 'DATANG' | 'PULANG') => {
       if (!profile) return;
       
       setSavingStaffAttendance(true);
@@ -488,7 +492,7 @@ const Dashboard: React.FC = () => {
                   kelas: 'STAFF',
                   subject: 'KEHADIRAN',
                   hours: '0',
-                  material: 'Hadir',
+                  material: type === 'DATANG' ? 'Datang' : 'Pulang',
                   cleanliness: 'sudah_bersih',
                   validation: 'hadir_kbm',
                   created_at: created_at,
@@ -499,7 +503,8 @@ const Dashboard: React.FC = () => {
               if (error) throw error;
               
               if (data) {
-                  setStaffAttendanceToday(data);
+                  if (type === 'DATANG') setStaffAttendanceDatang(data);
+                  else setStaffAttendancePulang(data);
               }
           } catch (error: any) {
               alert('Gagal mengkonfirmasi kehadiran: ' + error.message);
@@ -551,13 +556,16 @@ const Dashboard: React.FC = () => {
                       if (d <= loc.radius) {
                           let timeAllowed = true;
                           
-                          if (loc.startTime) {
-                              const [h, m] = loc.startTime.split(':').map(Number);
+                          const targetStartTime = type === 'DATANG' ? loc.startTime : loc.pulangStartTime;
+                          const targetEndTime = type === 'DATANG' ? loc.endTime : loc.pulangEndTime;
+                          
+                          if (targetStartTime) {
+                              const [h, m] = targetStartTime.split(':').map(Number);
                               if (currentTimeMinutes < h * 60 + m) timeAllowed = false;
                           }
-                          
-                          if (loc.endTime) {
-                              const [h, m] = loc.endTime.split(':').map(Number);
+                             
+                          if (targetEndTime) {
+                              const [h, m] = targetEndTime.split(':').map(Number);
                               if (currentTimeMinutes > h * 60 + m) timeAllowed = false;
                           }
                           
@@ -981,22 +989,40 @@ const Dashboard: React.FC = () => {
 
                 {/* STAFF ATTENDANCE BUTTON */}
                 {profile?.jabatan_tambahan === 'Staff' && (
-                    <div className="mb-6">
+                    <div className="mb-6 grid grid-cols-2 gap-3">
                         <button
-                            onClick={handleStaffAttendance}
-                            disabled={!!staffAttendanceToday || savingStaffAttendance}
-                            className={`w-full p-4 rounded-2xl flex justify-center items-center gap-3 font-extrabold transition-all duration-300 shadow-md border ${
-                                staffAttendanceToday 
+                            onClick={() => handleStaffAttendance('DATANG')}
+                            disabled={!!staffAttendanceDatang || savingStaffAttendance}
+                            className={`w-full p-4 rounded-2xl flex flex-col justify-center items-center gap-2 font-extrabold transition-all duration-300 shadow-md border ${
+                                staffAttendanceDatang 
                                 ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed' 
                                 : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white border-blue-500 hover:shadow-xl hover:-translate-y-1'
                             }`}
                         >
-                            {savingStaffAttendance ? (
+                            {savingStaffAttendance && !staffAttendanceDatang ? (
                                 <><Loader2 size={20} className="animate-spin" /> Memproses...</>
-                            ) : staffAttendanceToday ? (
-                                <><CheckCircle2 size={20} /> Hadir pada pukul {new Date(staffAttendanceToday.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</>
+                            ) : staffAttendanceDatang ? (
+                                <><CheckCircle2 size={20} /> Datang {new Date(staffAttendanceDatang.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</>
                             ) : (
-                                <><CheckCircle2 size={20} /> Konfirmasi Kehadiran Hari Ini</>
+                                <><CheckCircle2 size={20} /> Presensi Datang</>
+                            )}
+                        </button>
+
+                        <button
+                            onClick={() => handleStaffAttendance('PULANG')}
+                            disabled={!!staffAttendancePulang || savingStaffAttendance || !staffAttendanceDatang}
+                            className={`w-full p-4 rounded-2xl flex flex-col justify-center items-center gap-2 font-extrabold transition-all duration-300 shadow-md border ${
+                                staffAttendancePulang || !staffAttendanceDatang
+                                ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed' 
+                                : 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white border-emerald-500 hover:shadow-xl hover:-translate-y-1'
+                            }`}
+                        >
+                            {savingStaffAttendance && !!staffAttendanceDatang && !staffAttendancePulang ? (
+                                <><Loader2 size={20} className="animate-spin" /> Memproses...</>
+                            ) : staffAttendancePulang ? (
+                                <><CheckCircle2 size={20} /> Pulang {new Date(staffAttendancePulang.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</>
+                            ) : (
+                                <><CheckCircle2 size={20} /> Presensi Pulang</>
                             )}
                         </button>
                     </div>

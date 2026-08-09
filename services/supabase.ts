@@ -31,3 +31,51 @@ export const supabase = createClient(
   SUPABASE_URL || 'https://placeholder.supabase.co', 
   SUPABASE_ANON_KEY || 'placeholder'
 );
+
+// Utility to fetch all students with pagination
+export const fetchAllStudents = async (academicYear: string) => {
+    let allStudents: any[] = [];
+    let hasMore = true;
+    let page = 0;
+    const pageSize = 1000;
+    
+    while (hasMore) {
+        const { data, error } = await supabase
+            .from('students')
+            .select('*')
+            .eq('academic_year', academicYear || '2025/2026')
+            .range(page * pageSize, (page + 1) * pageSize - 1);
+            
+        if (error) {
+            console.error('Error fetching students:', error);
+            // Fallback for cases where academic_year column might not exist or causes error (some components had this fallback)
+            if (error.code === '42703' || error.message?.includes('academic_year')) {
+               const fallbackRes = await supabase.from('students').select('*').range(page * pageSize, (page + 1) * pageSize - 1);
+               if (fallbackRes.data) {
+                   allStudents = [...allStudents, ...fallbackRes.data];
+                   if (fallbackRes.data.length < pageSize) {
+                       hasMore = false;
+                   } else {
+                       page++;
+                   }
+                   continue;
+               } else {
+                   break;
+               }
+            }
+            break;
+        }
+        if (data) {
+            allStudents = [...allStudents, ...data];
+            if (data.length < pageSize) {
+                hasMore = false;
+            } else {
+                page++;
+            }
+        } else {
+            hasMore = false;
+        }
+    }
+    
+    return allStudents;
+};

@@ -13,6 +13,8 @@ interface GeoLocation {
     radius: number; // in meters
     startTime?: string;
     endTime?: string;
+    pulangStartTime?: string;
+    pulangEndTime?: string;
 }
 
 const StaffSettings: React.FC = () => {
@@ -29,6 +31,8 @@ const StaffSettings: React.FC = () => {
     const [newRadius, setNewRadius] = useState('100');
     const [newStartTime, setNewStartTime] = useState('');
     const [newEndTime, setNewEndTime] = useState('');
+    const [newPulangStartTime, setNewPulangStartTime] = useState('');
+    const [newPulangEndTime, setNewPulangEndTime] = useState('');
 
     useEffect(() => {
         if (isAdmin === false) {
@@ -90,7 +94,9 @@ const StaffSettings: React.FC = () => {
             lng: lngNum,
             radius: radNum,
             startTime: newStartTime || undefined,
-            endTime: newEndTime || undefined
+            endTime: newEndTime || undefined,
+            pulangStartTime: newPulangStartTime || undefined,
+            pulangEndTime: newPulangEndTime || undefined
         };
 
         const updated = [...locations, newLoc];
@@ -172,8 +178,13 @@ const StaffSettings: React.FC = () => {
                                             Radius: {loc.radius}m
                                         </div>
                                         {(loc.startTime || loc.endTime) && (
-                                            <div className="text-[10px] font-bold mt-1 ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded-full inline-block">
-                                                Waktu: {loc.startTime || '00:00'} - {loc.endTime || '23:59'}
+                                            <div className="text-[10px] font-bold mt-1 bg-green-100 text-green-700 px-2 py-0.5 rounded-full inline-block mr-1">
+                                                Datang: {loc.startTime || '...'} - {loc.endTime || '...'}
+                                            </div>
+                                        )}
+                                        {(loc.pulangStartTime || loc.pulangEndTime) && (
+                                            <div className="text-[10px] font-bold mt-1 bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full inline-block">
+                                                Pulang: {loc.pulangStartTime || '...'} - {loc.pulangEndTime || '...'}
                                             </div>
                                         )}
                                     </div>
@@ -241,23 +252,52 @@ const StaffSettings: React.FC = () => {
                                     </button>
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">Waktu Mulai (Opsional)</label>
-                                <input 
-                                    type="time" 
-                                    value={newStartTime} 
-                                    onChange={e => setNewStartTime(e.target.value)} 
-                                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500"
-                                />
+                                                        <div>
+                                <label className="block text-sm font-bold text-slate-800 mb-2 mt-4">Jam Kehadiran (Presensi Datang)</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">Waktu Mulai (Opsional)</label>
+                                        <input 
+                                            type="time" 
+                                            value={newStartTime} 
+                                            onChange={e => setNewStartTime(e.target.value)} 
+                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">Waktu Selesai (Opsional)</label>
+                                        <input 
+                                            type="time" 
+                                            value={newEndTime} 
+                                            onChange={e => setNewEndTime(e.target.value)} 
+                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                </div>
                             </div>
+                            
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">Waktu Selesai (Opsional)</label>
-                                <input 
-                                    type="time" 
-                                    value={newEndTime} 
-                                    onChange={e => setNewEndTime(e.target.value)} 
-                                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500"
-                                />
+                                <label className="block text-sm font-bold text-slate-800 mb-2 mt-4">Jam Pulang (Presensi Pulang)</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">Waktu Mulai (Opsional)</label>
+                                        <input 
+                                            type="time" 
+                                            value={newPulangStartTime} 
+                                            onChange={e => setNewPulangStartTime(e.target.value)} 
+                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">Waktu Selesai (Opsional)</label>
+                                        <input 
+                                            type="time" 
+                                            value={newPulangEndTime} 
+                                            onChange={e => setNewPulangEndTime(e.target.value)} 
+                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <button 

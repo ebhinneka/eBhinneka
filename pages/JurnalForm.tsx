@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Layout } from '../components/Layout';
-import { supabase } from '../services/supabase';
+import { supabase , fetchAllStudents } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Student, Schedule, Journal } from '../types';
 import { getWIBISOString, getWIBDate } from '../utils/dateUtils';
@@ -166,12 +166,7 @@ const JurnalForm: React.FC = () => {
         setLastMaterials(materialMap);
 
         if (schedules && schedules.length > 0) { setTodaySchedules(schedules); setInputMode('auto'); } else { setInputMode('manual'); }
-        let { data: studentData, error: errSt } = await supabase.from('students').select('kelas').eq('academic_year', academicYear || '2025/2026');
-        if (errSt && (errSt.code === '42703' || errSt.message?.includes('academic_year'))) {
-            const res = await supabase.from('students').select('kelas').eq('academic_year', academicYear || '2025/2026');
-            if (academicYear === '2025/2026') studentData = res.data;
-            else studentData = [];
-        }
+        let studentData = await fetchAllStudents(academicYear || '2025/2026');
         
     } catch (err) { console.error(err); } finally { setInitLoading(false); }
   };

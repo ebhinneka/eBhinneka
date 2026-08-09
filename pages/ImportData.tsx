@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../services/supabase';
+import { supabase , fetchAllStudents } from '../services/supabase';
 import { createClient } from '@supabase/supabase-js';
 import Papa from 'papaparse';
 import { Upload, FileText, CheckCircle, AlertCircle, Download, Users, Calendar, GraduationCap, X, KeyRound, ShieldAlert, Eye, EyeOff } from 'lucide-react';
@@ -170,7 +170,7 @@ const ImportData: React.FC = () => {
             if (studentsToInsert.length > 0) {
                 
             const target = targetYear || academicYear || '2025/2026';
-            const { data: existing } = await supabase.from('students').select('id, nisn').eq('academic_year', target);
+            const existing = await fetchAllStudents(target);
             const existingMap = new Map((existing || []).map(s => [s.nisn, s.id]));
 
             const toInsert = [];

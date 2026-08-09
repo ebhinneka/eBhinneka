@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { Layout } from '../components/Layout';
-import { supabase } from '../services/supabase';
+import { supabase , fetchAllStudents } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Student } from '../types';
 import { Printer, Loader2, Sunset, CalendarDays, Search, Eye, X } from 'lucide-react';
@@ -59,12 +59,7 @@ const RekapDhuha: React.FC = () => {
       const newSettings: any = {};
       settingsData?.forEach(item => newSettings[item.key] = item.value);
       setSettings(prev => ({ ...prev, ...newSettings }));
-      let { data: studentsData, error: errSt } = await supabase.from('students').select('kelas').eq('academic_year', academicYear || '2025/2026');
-      if (errSt && (errSt.code === '42703' || errSt.message?.includes('academic_year'))) {
-          const res = await supabase.from('students').select('kelas').eq('academic_year', academicYear || '2025/2026');
-          if (settings.academic_year === '2025/2026' || !settings.academic_year) studentsData = res.data;
-          else studentsData = [];
-      }
+      let studentsData = await fetchAllStudents(academicYear || '2025/2026');
       if (studentsData) {
         const uniqueClasses = Array.from(new Set(studentsData.map((s:any) => s.kelas))).sort();
         

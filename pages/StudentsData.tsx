@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
-import { supabase } from '../services/supabase';
+import { supabase , fetchAllStudents } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Student } from '../types';
 import { Search, GraduationCap, Edit, UserPlus, UserMinus, Trash2, Save, X, Loader2, Filter, ArrowRight , TrendingUp } from 'lucide-react';
@@ -59,25 +59,15 @@ const StudentsData: React.FC = () => {
   const fetchStudents = async () => {
     setLoading(true);
     try {
-      let query = supabase.from('students').select('*').eq('academic_year', academicYear || '2025/2026');
-      if (filterClass) query = query.eq('kelas', filterClass);
-      let { data, error } = await query.order('kelas', { ascending: true }).order('name', { ascending: true });
-      if (error && (error.code === '42703' || error.message?.includes('academic_year'))) {
-          // Fallback if column missing
-          let fallbackQuery = supabase.from('students').select('*').eq('academic_year', academicYear || '2025/2026');
-          if (filterClass) fallbackQuery = fallbackQuery.eq('kelas', filterClass);
-          const res = await fallbackQuery.order('kelas', { ascending: true }).order('name', { ascending: true });
-          
-          // Assume old data belongs to 2025/2026
-          if (academicYear === '2025/2026') {
-             data = res.data;
-          } else {
-             data = [];
-          }
-          error = res.error;
-      }
-      if (error) throw error;
-      setStudents(data || []);
+      let all = await fetchAllStudents(academicYear || '2025/2026');
+      if (filterClass) all = all.filter(s => s.kelas === filterClass);
+      
+      // Sort
+      all.sort((a, b) => {
+          if (a.kelas !== b.kelas) return (a.kelas || '').localeCompare(b.kelas || '');
+          return (a.name || '').localeCompare(b.name || '');
+      });
+      setStudents(all);
     } catch (err: any) {
       alert('Gagal mengambil data murid: ' + err.message);
     } finally {

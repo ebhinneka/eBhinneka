@@ -2,17 +2,18 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, isSupabaseConfigured } from '../services/supabase';
+import { supabase, isSupabaseConfigured, fetchAllStudents } from '../services/supabase';
 import { PublicStats } from '../types';
 import { Bell,  LogIn, Loader2, BookOpen, AlertCircle, X, School, ChevronDown, ChevronRight, Bookmark, Lock, User, ArrowRight, ShieldCheck, GraduationCap, MonitorPlay, Shield, ChevronLeft, Eye, EyeOff, Calendar, CheckCircle2, ClipboardList  } from 'lucide-react';
 import { getWIBDate, getWIBISOString, formatDateIndo, formatTimeIndo } from '../utils/dateUtils';
 
 const PublicDashboard: React.FC = () => {
-  const { academicYear, semester , semesterStart, semesterEnd } = useAuth();
+  const { academicYear, semester , semesterStart, semesterEnd, activeScheduleVersion } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<PublicStats | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginViewMode, setLoginViewMode] = useState<'selection' | 'form'>('selection');
+  const [selectedAbsenceFilter, setSelectedAbsenceFilter] = useState<string | null>(null);
   const [selectedRoleLabel, setSelectedRoleLabel] = useState('');
   const [userId, setUserId] = useState(() => localStorage.getItem('saved_nip') || '');
   const [password, setPassword] = useState('');
@@ -64,6 +65,9 @@ const PublicDashboard: React.FC = () => {
   const fetchStatsClientSide = async () => {
       try {
           const date = getWIBISOString().split('T')[0];
+          const startOfDay = `${date}T00:00:00+07:00`;
+          const endOfDay = `${date}T23:59:59+07:00`;
+
           let statsData: any = {
               count7: 0, count8: 0, count9: 0,
               absenceCount: 0, completedJp: 0, totalJpRequired: 360
@@ -74,78 +78,111 @@ const PublicDashboard: React.FC = () => {
               return;
           }
 
-                    let allStudents: any[] = [];
-          let hasMore = true;
-          let page = 0;
-          const pageSize = 1000;
-          while (hasMore) {
-              const { data, error } = await supabase
-                  .from('students')
-                  .select('id, kelas, name').eq('academic_year', academicYear || '2025/2026')
-                  .range(page * pageSize, (page + 1) * pageSize - 1);
-              
-              if (error) {
-                  console.error(error);
-                  break;
-              }
-              if (data) {
-                  allStudents = [...allStudents, ...data];
-                  if (data.length < pageSize) {
-                      hasMore = false;
-                  } else {
-                      page++;
-                  }
-              } else {
-                  hasMore = false;
-              }
-          }
+          let allStudents = await fetchAllStudents(academicYear || '2025/2026');
 
+          let cMap: Record<string, string> = {};
+          let nMap: Record<string, string> = {};
+          
           if (allStudents.length > 0) {
               statsData.count7 = allStudents.filter((s: any) => s.kelas?.startsWith('7')).length;
               statsData.count8 = allStudents.filter((s: any) => s.kelas?.startsWith('8')).length;
               statsData.count9 = allStudents.filter((s: any) => s.kelas?.startsWith('9')).length;
               
-              const cMap: Record<string, string> = {};
-              const nMap: Record<string, string> = {};
               allStudents.forEach((s: any) => { cMap[s.id] = s.kelas || ''; nMap[s.id] = s.name || ''; });
               setStudentClassMap(cMap);
               setStudentNameMap(nMap);
           }
 
-
-          const { data: homeroom } = await supabase.from('homeroom_attendance').select('*').eq('date', date);
-          const { data: attendance } = await supabase.from('attendance_logs').select('*').eq('date', date);
-          
-          let absentStudents: any[] = [];
+          const { data: homeroom } = await supabase.from('homeroom_attendance').select('student_id, status, kelas').eq('date', date);
+          const { data: attendance } = await supabase.from('attendance_logs').select('student_id, student_name, status, created_at').gte('created_at', startOfDay).lte('created_at', endOfDay).neq('status', 'D');
+           
+          const uniqueAbsences: Record<string, any> = {};
           if (homeroom) {
               homeroom.forEach((h: any) => {
-                  if (h.absent_students) {
-                      Object.keys(h.absent_students).forEach((studentId: string) => {
-                          absentStudents.push({ id: studentId, status: h.absent_students[studentId], source: 'Wali', kelas: h.kelas });
-                      });
+                  if (['S', 'I', 'A'].includes(h.status)) {
+                      uniqueAbsences[h.student_id] = { id: h.student_id, name: nMap ? (nMap[h.student_id] || 'Siswa') : 'Siswa', status: h.status, source: 'Wali', kelas: cMap ? (cMap[h.student_id] || h.kelas || '?') : (h.kelas || '?') };
                   }
               });
           }
           if (attendance) {
               attendance.forEach((a: any) => {
-                  if (a.status !== 'H') {
-                      absentStudents.push({ id: a.student_id, status: a.status, source: 'Guru', kelas: a.kelas });
+                  if (!uniqueAbsences[a.student_id]) {
+                      if (['S', 'I', 'A'].includes(a.status)) {
+                          uniqueAbsences[a.student_id] = { id: a.student_id, name: a.student_name || (nMap ? nMap[a.student_id] : '') || 'Siswa', status: a.status, source: 'Guru', kelas: cMap ? (cMap[a.student_id] || '?') : '?' };
+                      }
                   }
               });
           }
+          let absentStudents = Object.values(uniqueAbsences);
           setRawAttendance(absentStudents);
           statsData.absenceCount = absentStudents.length;
 
-          const { data: journals } = await supabase.from('journals').select('hours, kelas').eq('date', date);
-          if (journals) {
-              let completedJp = 0;
-              journals.forEach((j: any) => {
-                  if (j.kelas !== 'STAFF' && typeof j.hours === 'string') {
-                      completedJp += j.hours.split(',').filter((h: string) => h.trim().length > 0).length;
+          
+          const dateObj = new Date(date);
+          const jsDay = dateObj.getDay();
+          const dbDay = jsDay === 0 ? 7 : jsDay;
+
+          const [schedulesRes, journalsRes] = await Promise.all([
+              supabase.from('schedules').select('*').eq('day_of_week', dbDay).eq('schedule_version', activeScheduleVersion || 'Utama').then(async (res) => {
+                  if (res.error && (res.error.code === '42703' || res.error.message?.includes('academic_year') || res.error.message?.includes('schedule_version'))) {
+                      const fallback = await supabase.from('schedules').select('*').eq('day_of_week', dbDay).eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Genap');
+                      if (fallback.error) {
+                          const ultraFallback = await supabase.from('schedules').select('*').eq('day_of_week', dbDay);
+                          if (ultraFallback.data) {
+                              ultraFallback.data = ultraFallback.data.filter(s => s.academic_year === academicYear && s.semester === semester);
+                          }
+                          return ultraFallback;
+                      }
+                      return fallback;
                   }
+                  return res;
+              }),
+              supabase.from('journals').select('teacher_id, kelas, subject, hours').gte('created_at', startOfDay).lte('created_at', endOfDay)
+          ]);
+
+          let schedules = schedulesRes.data || [];
+          const validHoursMap: Record<number, number[]> = {
+              1: [3, 4, 5, 6],
+              2: [1, 2, 3, 4, 5, 6],
+              3: [1, 2, 3, 4, 5, 6, 7, 8],
+              4: [3, 4, 5, 6],
+              6: [1, 2, 3, 4, 5, 6, 7, 8],
+              7: [1, 2, 3, 4, 5, 6]
+          };
+          if (validHoursMap[dbDay]) {
+              const validHours = validHoursMap[dbDay];
+              schedules = schedules.filter(sch => {
+                  const schHours = sch.hour.split(',').map((h: any) => parseInt(h.trim())).filter((h: number) => !isNaN(h));
+                  return schHours.some((h: number) => validHours.includes(h));
               });
-              statsData.completedJp = completedJp;
           }
+
+          const journals = journalsRes.data || [];
+          let totalSchedules = 0;
+          let filledSchedules = 0;
+          
+          const processed = schedules.map(sch => {
+              const schHours = sch.hour.split(',').map((h: string) => h.trim());
+              const jp = schHours.length;
+              totalSchedules += jp;
+
+              const isFilled = journals.some(j => {
+                  if (j.kelas !== sch.kelas || j.subject !== sch.subject) return false;
+                  if (j.teacher_id && j.teacher_id === sch.teacher_id) return true;
+                  const jHours = j.hours.split(',').map((h: string) => h.trim());
+                  return schHours.some((h: string) => jHours.includes(h));
+              });
+              
+              if (isFilled) filledSchedules += jp;
+              return { isFilled };
+          });
+
+          const filledClasses = [...new Set(journals.map((j: any) => j.kelas))];
+
+          statsData.completedJp = filledSchedules;
+          statsData.totalJpRequired = totalSchedules;
+          statsData.filledClasses = filledClasses;
+
 
           setStats(statsData);
       } catch (err) {
@@ -182,7 +219,7 @@ const PublicDashboard: React.FC = () => {
           if (a.kelas) absencePerClass[a.kelas] = (absencePerClass[a.kelas] || 0) + 1;
       });
 
-      setModalContent({ title: 'Ketidakhadiran Murid Hari Ini', type: 'absence', data: { absenceDetails, classDetails, absencePerClass, filledClasses: [] } });
+      setModalContent({ title: 'Ketidakhadiran Murid Hari Ini', type: 'absence', data: { absenceDetails, classDetails, absencePerClass, filledClasses: stats?.filledClasses || [], rawAttendance } });
       setModalOpen(true);
   };
 
@@ -191,6 +228,7 @@ const PublicDashboard: React.FC = () => {
   };
 
   const handleRoleSelect = (role: string) => {
+      if (role === 'operator') { navigate('/operator-dashboard'); return; }
       setSelectedRoleLabel(role === 'guru' ? 'Guru' : role === 'admin' ? 'Admin' : 'Operator');
       setLoginViewMode('form');
   };
@@ -209,8 +247,8 @@ const PublicDashboard: React.FC = () => {
           
           setTimeout(() => {
               if (selectedRoleLabel === 'Guru') navigate('/dashboard');
-              else if (selectedRoleLabel === 'Admin') navigate('/admin');
-              else navigate('/operator');
+              else if (selectedRoleLabel === 'Admin') navigate('/dashboard');
+              else navigate('/operator-dashboard');
           }, 1500);
       } catch (err: any) {
           setLoginError(err.message || 'Login failed');
@@ -224,8 +262,8 @@ const PublicDashboard: React.FC = () => {
     : 0;
 
   return (
-    <div className="min-h-[100dvh] flex flex-col items-center justify-center p-3 sm:p-5 font-sans bg-[#f1f5f9] dark:bg-slate-900 transition-colors duration-300 relative overflow-hidden">
-      <main className="w-full max-w-[420px] space-y-4 m-auto relative z-10">
+    <div className="min-h-[100dvh] flex flex-col items-center justify-start p-3 sm:p-5 font-sans bg-[#f1f5f9] dark:bg-slate-900 transition-colors duration-300 relative overflow-hidden">
+      <main className="w-full max-w-[420px] space-y-4 mx-auto my-2 md:my-6 relative z-10">
         
         {/* TOP HEADER CARD */}
         <div className="rounded-[28px] bg-white/70 backdrop-blur-md shadow-[0_8px_30px_rgba(37,99,235,0.06)] relative overflow-hidden flex items-center px-4 py-4 min-h-[130px] border border-white">
@@ -233,8 +271,10 @@ const PublicDashboard: React.FC = () => {
              <div className="absolute inset-y-0 left-0 w-2/3 bg-gradient-to-r from-[#3b82f6]/90 via-[#60a5fa]/40 to-transparent pointer-events-none"></div>
              
              {/* Logo */}
-             <div className="w-[72px] h-[72px] rounded-full p-[2px] bg-gradient-to-br from-white/80 to-white/20 shadow-md flex-shrink-0 flex items-center justify-center relative z-10 border border-white/50 ml-1">
-                <div className="w-full h-full bg-white rounded-full p-1.5 border-[2px] border-white flex items-center justify-center overflow-hidden">
+             <div className="w-[72px] h-[72px] rounded-full p-[2.5px] shadow-[0_4px_15px_rgba(37,99,235,0.2)] flex-shrink-0 flex items-center justify-center relative z-10 ml-1 overflow-hidden bg-slate-100/50">
+                 <div className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,transparent_0_340deg,#3b82f6_360deg)] animate-[spin_2s_linear_infinite] opacity-100"></div>
+                 <div className="absolute inset-[-100%] bg-[conic-gradient(from_180deg,transparent_0_340deg,#3b82f6_360deg)] animate-[spin_2s_linear_infinite] opacity-100"></div>
+                <div className="w-full h-full bg-white rounded-full p-1.5 border-[2px] border-white flex items-center justify-center overflow-hidden relative z-10">
                     <img src="https://i.imghippo.com/files/WXB3962h.png" alt="Logo" className="w-[85%] h-[85%] object-contain" />
                 </div>
              </div>
@@ -409,13 +449,13 @@ const PublicDashboard: React.FC = () => {
 
       {/* MODAL - FIXED VIEWPORT (Z-9999) */}
       {modalOpen && modalContent && (
-          <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center sm:p-4 bg-black/40 backdrop-blur-sm animate-fade-in w-screen h-[100dvh]" onClick={() => setModalOpen(false)}>
+          <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center sm:p-4 bg-black/40 backdrop-blur-sm animate-fade-in w-screen h-[100dvh]" onClick={() => { setModalOpen(false); setSelectedAbsenceFilter(null); }}>
               <div className="app-card w-full md:w-full md:max-w-sm flex flex-col max-h-[85vh] overflow-hidden bg-slate-100 dark:bg-slate-900 rounded-t-3xl md:rounded-3xl shadow-2xl mb-0 md:mb-auto transition-transform transform scale-100" onClick={e => e.stopPropagation()}>
                   
                   {/* Modal Header */}
                   <div className="flex justify-between items-center px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex-shrink-0">
                       <h3 className="font-extrabold text-slate-800 dark:text-white text-lg leading-tight">{modalContent.title}</h3>
-                      <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 p-1 bg-gray-50 dark:bg-slate-700 rounded-full">
+                      <button onClick={() => { setModalOpen(false); setSelectedAbsenceFilter(null); }} className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 p-1 bg-gray-50 dark:bg-slate-700 rounded-full">
                           <X size={20} />
                       </button>
                   </div>
@@ -435,19 +475,44 @@ const PublicDashboard: React.FC = () => {
                       ) : (
                         <>
                             <div className="grid grid-cols-3 gap-3">
-                                <div className="flex flex-col items-center justify-center p-3 bg-sky-100 dark:bg-blue-500/30 rounded-2xl border border-blue-300 dark:border-blue-500/50">
-                                    <span className="text-blue-500 dark:text-blue-500 font-bold text-[10px] uppercase mb-1">Sakit</span>
-                                    <span className="text-3xl font-extrabold text-blue-500 dark:text-blue-500">{modalContent.data.absenceDetails.S}</span>
-                                </div>
-                                <div className="flex flex-col items-center justify-center p-3 bg-blue-50 dark:bg-blue-900/30 rounded-2xl border border-blue-100 dark:border-blue-800/50">
-                                    <span className="text-blue-700 dark:text-blue-400 font-bold text-[10px] uppercase mb-1">Izin</span>
-                                    <span className="text-3xl font-extrabold text-blue-600 dark:text-blue-400">{modalContent.data.absenceDetails.I}</span>
-                                </div>
-                                <div className="flex flex-col items-center justify-center p-3 bg-sky-100 dark:bg-blue-600/30 rounded-2xl border border-blue-300 dark:border-blue-600/50">
-                                    <span className="text-blue-600 dark:text-blue-500 font-bold text-[10px] uppercase mb-1">Alpa</span>
-                                    <span className="text-3xl font-extrabold text-blue-600 dark:text-blue-500">{modalContent.data.absenceDetails.A}</span>
-                                </div>
+                                <button onClick={() => setSelectedAbsenceFilter(selectedAbsenceFilter === 'S' ? null : 'S')} className={`flex flex-col items-center justify-start p-3 rounded-2xl border transition-all ${selectedAbsenceFilter === 'S' ? 'bg-blue-500 border-blue-600 shadow-md transform scale-[1.02]' : 'bg-sky-100 dark:bg-blue-500/30 border-blue-300 dark:border-blue-500/50 hover:bg-blue-100'}`}>
+                                    <span className={`font-bold text-[10px] uppercase mb-1 ${selectedAbsenceFilter === 'S' ? 'text-white' : 'text-blue-500 dark:text-blue-500'}`}>Sakit</span>
+                                    <span className={`text-3xl font-extrabold ${selectedAbsenceFilter === 'S' ? 'text-white' : 'text-blue-500 dark:text-blue-500'}`}>{modalContent.data.absenceDetails.S}</span>
+                                </button>
+                                <button onClick={() => setSelectedAbsenceFilter(selectedAbsenceFilter === 'I' ? null : 'I')} className={`flex flex-col items-center justify-start p-3 rounded-2xl border transition-all ${selectedAbsenceFilter === 'I' ? 'bg-blue-600 border-blue-700 shadow-md transform scale-[1.02]' : 'bg-blue-50 dark:bg-blue-900/30 border-blue-100 dark:border-blue-800/50 hover:bg-blue-100'}`}>
+                                    <span className={`font-bold text-[10px] uppercase mb-1 ${selectedAbsenceFilter === 'I' ? 'text-white' : 'text-blue-700 dark:text-blue-400'}`}>Izin</span>
+                                    <span className={`text-3xl font-extrabold ${selectedAbsenceFilter === 'I' ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`}>{modalContent.data.absenceDetails.I}</span>
+                                </button>
+                                <button onClick={() => setSelectedAbsenceFilter(selectedAbsenceFilter === 'A' ? null : 'A')} className={`flex flex-col items-center justify-start p-3 rounded-2xl border transition-all ${selectedAbsenceFilter === 'A' ? 'bg-red-500 border-red-600 shadow-md transform scale-[1.02]' : 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800/50 hover:bg-red-100'}`}>
+                                    <span className={`font-bold text-[10px] uppercase mb-1 ${selectedAbsenceFilter === 'A' ? 'text-white' : 'text-red-600 dark:text-red-500'}`}>Alpa</span>
+                                    <span className={`text-3xl font-extrabold ${selectedAbsenceFilter === 'A' ? 'text-white' : 'text-red-600 dark:text-red-500'}`}>{modalContent.data.absenceDetails.A}</span>
+                                </button>
                             </div>
+                            
+                            {selectedAbsenceFilter && (
+                                <div className="mt-4 bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-100 dark:border-slate-700 shadow-inner max-h-[300px] overflow-y-auto custom-scrollbar">
+                                    <h4 className="font-bold text-sm text-slate-700 dark:text-slate-300 mb-3 border-b border-slate-100 dark:border-slate-700 pb-2">
+                                        Data Siswa {selectedAbsenceFilter === 'S' ? 'Sakit' : selectedAbsenceFilter === 'I' ? 'Izin' : 'Alpa'}
+                                    </h4>
+                                    {modalContent.data.rawAttendance && modalContent.data.rawAttendance.filter((a: any) => a.status === selectedAbsenceFilter).length > 0 ? (
+                                        <div className="space-y-2">
+                                            {modalContent.data.rawAttendance.filter((a: any) => a.status === selectedAbsenceFilter).map((s: any, idx: number) => (
+                                                <div key={idx} className="flex justify-between items-center bg-slate-50 dark:bg-slate-700 p-3 rounded-lg border border-slate-100 dark:border-slate-600 text-xs shadow-sm">
+                                                    <div>
+                                                        <span className="font-bold text-slate-700 dark:text-white block">{studentNameMap[s.id] || s.student_name || 'Unknown'}</span>
+                                                        <span className="text-[10px] text-slate-500 font-medium">Kelas {s.kelas || studentClassMap[s.id] || '-'}</span>
+                                                    </div>
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${s.status === 'S' ? 'bg-blue-300 text-blue-500' : s.status === 'I' ? 'bg-blue-100 text-blue-700' : 'bg-red-300 text-red-600'}`}>
+                                                        {s.status === 'S' ? 'Sakit' : s.status === 'I' ? 'Izin' : 'Alpa'}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-center text-slate-400 text-xs italic py-4">Tidak ada data murid.</p>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="p-3 bg-slate-50 dark:bg-slate-700/30 border border-slate-100 dark:border-slate-600 rounded-xl text-center">
                                 <span className="text-[10px] text-blue-100/70 font-bold uppercase">*Termasuk input dari Wali Kelas & Guru Mapel.</span>
@@ -470,12 +535,12 @@ const PublicDashboard: React.FC = () => {
                                         const isFilled = modalContent.data.filledClasses?.includes(cls) ?? false;
 
                                         return (
-                                            <div key={cls} className="border border-slate-100 dark:border-slate-700 rounded-2xl overflow-hidden transition-all hover:shadow-sm">
+                                            <div key={cls} className={`border ${!isFilled ? 'border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-slate-800/30' : 'border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50'} rounded-2xl overflow-hidden transition-all hover:shadow-sm`}>
                                                 <button 
                                                     onClick={() => setExpandedClass(isExpanded ? null : cls)} 
-                                                    className="w-full flex items-center p-3 bg-slate-100 dark:bg-slate-700/30"
+                                                    className={`w-full flex items-center p-3 ${!isFilled ? 'bg-gray-100/70 dark:bg-gray-800/50' : 'bg-slate-100 dark:bg-slate-700/30'}`}
                                                 >
-                                                    <div className="w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-900 border border-slate-100 dark:border-slate-600 rounded-xl font-bold text-slate-700 dark:text-white text-sm shadow-sm">
+                                                    <div className={`w-10 h-10 flex items-center justify-center rounded-xl font-bold text-sm shadow-sm ${!isFilled ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 border border-gray-300 dark:border-gray-600' : 'bg-slate-100 dark:bg-slate-900 border border-slate-100 dark:border-slate-600 text-slate-700 dark:text-white'}`}>
                                                         {cls}
                                                     </div>
                                                     <div className="flex-1 px-4 text-left">

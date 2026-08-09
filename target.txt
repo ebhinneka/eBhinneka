@@ -1,0 +1,33 @@
+          if (!isSupabaseConfigured) {
+              setStats(statsData);
+              return;
+          }
+
+          let allStudents: any[] = [];
+          let hasMore = true;
+          let page = 0;
+          const pageSize = 1000;
+          while (hasMore) {
+              const { data, error } = await supabase
+                  .from('students')
+                  .select('id, kelas, name').eq('academic_year', academicYear || '2025/2026')
+                  .range(page * pageSize, (page + 1) * pageSize - 1);
+              
+              if (error) {
+                  console.error(error);
+                  break;
+              }
+              if (data) {
+                  allStudents = [...allStudents, ...data];
+                  if (data.length < pageSize) {
+                      hasMore = false;
+                  } else {
+                      page++;
+                  }
+              } else {
+                  hasMore = false;
+              }
+          }
+
+          let cMap: Record<string, string> = {};
+          let nMap: Record<string, string> = {};

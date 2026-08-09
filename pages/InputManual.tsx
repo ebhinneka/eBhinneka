@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../services/supabase';
+import { supabase , fetchAllStudents } from '../services/supabase';
 import { Upload, FileText, CheckCircle, AlertCircle, Download, BookOpen, X, Loader2, Database, HelpCircle } from 'lucide-react';
 
 const InputManual: React.FC = () => {
@@ -116,12 +116,7 @@ const InputManual: React.FC = () => {
 
       try {
           // 1. Pre-fetch ALL Students to minimize DB calls inside loop
-          let { data: allStudents, error: errSt } = await supabase.from('students').select('id, name, kelas').eq('academic_year', academicYear || '2025/2026');
-          if (errSt && (errSt.code === '42703' || errSt.message?.includes('academic_year'))) {
-              const res = await supabase.from('students').select('id, name, kelas').eq('academic_year', academicYear || '2025/2026');
-              if (academicYear === '2025/2026') allStudents = res.data;
-              else allStudents = [];
-          }
+          let allStudents = await fetchAllStudents(academicYear || '2025/2026');
           const studentLookup: Record<string, string> = {}; // "nama|kelas" -> id
           allStudents?.forEach(s => {
               const key = `${s.name.trim().toLowerCase()}|${s.kelas.trim().toLowerCase()}`;

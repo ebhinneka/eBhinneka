@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Layout } from '../components/Layout';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../services/supabase';
+import { supabase, fetchAllStudents } from '../services/supabase';
 import { Profile } from '../types';
 import { getWIBISOString, formatDateIndo } from '../utils/dateUtils';
 import { 
@@ -51,6 +51,7 @@ const OperatorDashboard: React.FC = () => {
   const [absenceStats, setAbsenceStats] = useState({ S: 0, I: 0, A: 0 });
   const [modalOpen, setModalOpen] = useState(false);
   const [expandedClass, setExpandedClass] = useState<string | null>(null);
+  const [filledClasses, setFilledClasses] = useState<string[]>([]);
 
   const [missingTeachers, setMissingTeachers] = useState<{name: string, kelas: string}[]>([]);
   
@@ -117,12 +118,7 @@ const OperatorDashboard: React.FC = () => {
               }),
               supabase.from('journals').select('teacher_id, kelas, subject, hours, cleanliness').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', startOfDay).lte('created_at', endOfDay),
               supabase.from('attendance_logs').select('student_id, student_name, status, created_at').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', startOfDay).lte('created_at', endOfDay).neq('status', 'D'),
-              supabase.from('students').select('id, kelas, name').eq('academic_year', academicYear || '2025/2026').then(async (res) => {
-                  if (res.error && (res.error.code === '42703' || res.error.message?.includes('academic_year'))) {
-                      return supabase.from('students').select('id, kelas, name').eq('academic_year', academicYear || '2025/2026');
-                  }
-                  return res;
-              }),
+              fetchAllStudents(academicYear || '2025/2026'),
               supabase.from('homeroom_attendance').select('student_id, status, kelas').gte('date', semesterStart ? `${semesterStart}` : '2000-01-01').lte('date', semesterEnd ? `${semesterEnd}` : '2100-01-01').eq('date', filterDate)
           ]);
 
@@ -145,7 +141,7 @@ const OperatorDashboard: React.FC = () => {
 
           const journals = journalsRes.data || [];
           const attendanceLogs = attendanceRes.data || [];
-          const studentsData = studentsRes.data || [];
+          const studentsData = studentsRes as any[];
           const homeroomLogs = homeroomRes.data || [];
 
           const processed: MonitorItem[] = schedules.map(sch => {
@@ -194,9 +190,14 @@ const OperatorDashboard: React.FC = () => {
           setAbsenceList(absenceListFinal);
           setAbsenceStats({ S: sCount, I: iCount, A: aCount });
 
-          const totalSchedules = processed.length;
-          const filledSchedules = processed.filter(i => i.isFilled).length;
-          const kbmPct = totalSchedules > 0 ? Math.round((filledSchedules / totalSchedules) * 100) : 0;
+          let totalJP = 0;
+          let filledJP = 0;
+          processed.forEach(i => {
+              const jp = i.jam.split(',').length;
+              totalJP += jp;
+              if (i.isFilled) filledJP += jp;
+          });
+          const kbmPct = totalJP > 0 ? Math.round((filledJP / totalJP) * 100) : 0;
 
           const cleanCounts: Record<string, number> = {};
           journals.forEach(j => { if (j.cleanliness === 'sudah_bersih') cleanCounts[j.kelas] = (cleanCounts[j.kelas] || 0) + 1; });
@@ -208,6 +209,9 @@ const OperatorDashboard: React.FC = () => {
           let emptiest = '-'; let maxEmpty = -1;
           Object.entries(emptyCounts).forEach(([cls, count]) => { if (count > maxEmpty) { maxEmpty = count; emptiest = cls; } });
 
+                    const currentFilledClasses = [...new Set(journals.map(j => j.kelas))];
+          setFilledClasses(currentFilledClasses);
+          
           setStats({ alpaCount: aCount + iCount + sCount, kbmPercentage: `${kbmPct}%`, cleanestClass: cleanest, mostEmptyClass: emptiest });
 
           const missing = processed.filter(i => !i.isFilled).map(i => ({ name: i.teacherName, kelas: i.kelas }));
@@ -320,9 +324,25 @@ const OperatorDashboard: React.FC = () => {
                                         const isExpanded = expandedClass === cls;
                                         const hasAbsence = absentCount > 0;
                                         return (
-                                            <div key={cls} className="border border-slate-100 rounded-2xl overflow-hidden transition-all hover:shadow-sm">
-                                                <button onClick={() => hasAbsence && setExpandedClass(isExpanded ? null : cls)} className={`w-full flex items-center justify-between p-3 bg-slate-100 ${!hasAbsence ? 'cursor-default' : ''}`}><div className="flex items-center gap-3"><div className={`w-10 h-10 flex items-center justify-center rounded-xl font-bold text-sm shadow-sm ${hasAbsence ? 'bg-sky-100 border border-blue-300 text-blue-600' : 'bg-sky-100 border border-blue-300 text-blue-500'}`}>{cls}</div><div className="text-xs font-bold text-slate-700"><span className="text-blue-500">{presentCount} Hadir</span><span className="text-slate-300 mx-2">|</span><span className={hasAbsence ? 'text-blue-500' : 'text-slate-300'}>{absentCount} Tidak Hadir</span></div></div>{hasAbsence && (<div className="text-slate-300">{isExpanded ? <ChevronDown size={18}/> : <ChevronRight size={18}/>}</div>)}</button>
-                                                {isExpanded && hasAbsence && (<div className="bg-gray-50 p-3 border-t border-slate-100 space-y-2 animate-fade-in">{studentsInClass.map((s: any, idx: number) => (<div key={idx} className="flex justify-between items-center bg-slate-100 p-3 rounded-xl border border-slate-100 text-xs shadow-sm"><span className="font-bold text-slate-700">{s.name}</span><span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${s.status === 'S' ? 'bg-blue-300 text-blue-500' : s.status === 'I' ? 'bg-blue-100 text-blue-700' : 'bg-blue-300 text-blue-600'}`}>{s.status === 'S' ? 'Sakit' : s.status === 'I' ? 'Izin' : 'Alpa'}</span></div>))}</div>)}
+                                            <div key={cls} className={`border ${!filledClasses.includes(cls) ? 'border-gray-200' : 'border-slate-100'} rounded-2xl overflow-hidden transition-all hover:shadow-sm`}>
+                                                                                                <button onClick={() => hasAbsence && setExpandedClass(isExpanded ? null : cls)} className={`w-full flex items-center justify-between p-3 ${!filledClasses.includes(cls) ? 'bg-gray-100' : 'bg-slate-100'} ${!hasAbsence ? 'cursor-default' : ''}`}>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-10 h-10 flex items-center justify-center rounded-xl font-bold text-sm shadow-sm ${!filledClasses.includes(cls) ? 'bg-gray-200 text-gray-500 border border-gray-300' : hasAbsence ? 'bg-sky-100 border border-blue-300 text-blue-600' : 'bg-sky-100 border border-blue-300 text-blue-500'}`}>{cls}</div>
+                                                        <div className="text-xs font-bold text-slate-700">
+                                                            {!filledClasses.includes(cls) ? (
+                                                                <span className="text-gray-500 italic">Belum mengisi jurnal</span>
+                                                            ) : (
+                                                                <>
+                                                                    <span className="text-blue-500">{presentCount} Hadir</span>
+                                                                    <span className="text-slate-300 mx-2">|</span>
+                                                                    <span className={hasAbsence ? 'text-blue-500' : 'text-slate-300'}>{absentCount} Tidak Hadir</span>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    {hasAbsence && filledClasses.includes(cls) && (<div className="text-slate-300">{isExpanded ? <ChevronDown size={18}/> : <ChevronRight size={18}/>}</div>)}
+                                                </button>
+                                                {isExpanded && hasAbsence && filledClasses.includes(cls) && (<div className="bg-gray-50 p-3 border-t border-slate-100 space-y-2 animate-fade-in">{studentsInClass.map((s: any, idx: number) => (<div key={idx} className="flex justify-between items-center bg-slate-100 p-3 rounded-xl border border-slate-100 text-xs shadow-sm"><span className="font-bold text-slate-700">{s.name}</span><span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${s.status === 'S' ? 'bg-blue-300 text-blue-500' : s.status === 'I' ? 'bg-blue-100 text-blue-700' : 'bg-blue-300 text-blue-600'}`}>{s.status === 'S' ? 'Sakit' : s.status === 'I' ? 'Izin' : 'Alpa'}</span></div>))}</div>)}
                                             </div>
                                         );
                                     })}
