@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { supabase } from '../services/supabase';
-import { MapPin, Plus, Trash2, Save, Loader2 } from 'lucide-react';
+import { MapPin, Plus, Trash2, Save, Loader2, Edit2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -33,6 +33,7 @@ const StaffSettings: React.FC = () => {
     const [newEndTime, setNewEndTime] = useState('');
     const [newPulangStartTime, setNewPulangStartTime] = useState('');
     const [newPulangEndTime, setNewPulangEndTime] = useState('');
+    const [editingId, setEditingId] = useState<string | null>(null);
 
     useEffect(() => {
         if (isAdmin === false) {
@@ -72,7 +73,7 @@ const StaffSettings: React.FC = () => {
         }
     };
 
-    const handleAddLocation = () => {
+    const handleSaveForm = () => {
         if (!newName || !newLat || !newLng || !newRadius) {
             alert('Lengkapi semua data geolokasi!');
             return;
@@ -87,8 +88,8 @@ const StaffSettings: React.FC = () => {
             return;
         }
 
-        const newLoc: GeoLocation = {
-            id: Date.now().toString(),
+        const locData: GeoLocation = {
+            id: editingId || Date.now().toString(),
             name: newName,
             lat: latNum,
             lng: lngNum,
@@ -99,15 +100,40 @@ const StaffSettings: React.FC = () => {
             pulangEndTime: newPulangEndTime || undefined
         };
 
-        const updated = [...locations, newLoc];
+        let updated;
+        if (editingId) {
+            updated = locations.map(l => l.id === editingId ? locData : l);
+        } else {
+            updated = [...locations, locData];
+        }
+        
         handleSave(updated);
+        handleCancelEdit();
+    };
 
+    
+    const handleEditClick = (loc: GeoLocation) => {
+        setEditingId(loc.id);
+        setNewName(loc.name);
+        setNewLat(loc.lat.toString());
+        setNewLng(loc.lng.toString());
+        setNewRadius(loc.radius.toString());
+        setNewStartTime(loc.startTime || '');
+        setNewEndTime(loc.endTime || '');
+        setNewPulangStartTime(loc.pulangStartTime || '');
+        setNewPulangEndTime(loc.pulangEndTime || '');
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
         setNewName('');
         setNewLat('');
         setNewLng('');
         setNewRadius('100');
         setNewStartTime('');
         setNewEndTime('');
+        setNewPulangStartTime('');
+        setNewPulangEndTime('');
     };
 
     const handleDeleteLocation = (id: string) => {
@@ -188,20 +214,31 @@ const StaffSettings: React.FC = () => {
                                             </div>
                                         )}
                                     </div>
-                                    <button 
-                                        onClick={() => handleDeleteLocation(loc.id)}
-                                        disabled={saving}
-                                        className="p-2 text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={() => handleEditClick(loc)}
+                                            disabled={saving}
+                                            className="p-2 text-blue-500 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                                            title="Edit Lokasi"
+                                        >
+                                            <Edit2 size={18} />
+                                        </button>
+                                        <button 
+                                            onClick={() => handleDeleteLocation(loc.id)}
+                                            disabled={saving}
+                                            className="p-2 text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                            title="Hapus Lokasi"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     )}
 
                     <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                        <h3 className="font-bold text-slate-700 dark:text-slate-300 text-sm mb-3">Tambah Lokasi Baru</h3>
+                        <h3 className="font-bold text-slate-700 dark:text-slate-300 text-sm mb-3">{editingId ? 'Edit Lokasi' : 'Tambah Lokasi Baru'}</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">Nama Tempat</label>
@@ -300,14 +337,26 @@ const StaffSettings: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                        <button 
-                            onClick={handleAddLocation}
-                            disabled={saving}
-                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
-                        >
-                            {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                            Tambahkan Lokasi
-                        </button>
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={handleSaveForm}
+                                disabled={saving}
+                                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
+                            >
+                                {saving ? <Loader2 size={16} className="animate-spin" /> : (editingId ? <Save size={16} /> : <Plus size={16} />)}
+                                {editingId ? 'Update Lokasi' : 'Tambahkan Lokasi'}
+                            </button>
+                            {editingId && (
+                                <button 
+                                    onClick={handleCancelEdit}
+                                    disabled={saving}
+                                    className="flex items-center gap-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
+                                >
+                                    <X size={16} />
+                                    Batal
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

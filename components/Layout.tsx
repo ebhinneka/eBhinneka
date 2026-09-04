@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getWIBISOString } from '../utils/dateUtils';
-import { Bell, CheckCircle2, XCircle, X } from 'lucide-react';
+import { Bell, CheckCircle2, XCircle, X , FileText} from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { LogOut, LayoutDashboard, Grid, User, ChevronRight, MonitorPlay, Moon, Sun, Siren, Activity, Sunset, ArrowUp, AlertCircle, Settings, Database, Users, GraduationCap, Upload, Edit3, Calendar, Menu, MapPin } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -228,6 +228,7 @@ export const Layout: React.FC<{ children: React.ReactNode; showNav?: boolean; co
                         </div>
                         <NavItem path="/penyimpanan" label="Buat T.A" icon={Database} />
                         <NavItem path="/settings" label="Pengaturan" icon={Settings} />
+                        <NavItem path="/staff-recap" label="Rekap Kehadiran Staff" icon={FileText} />
                         <NavItem path="/staff-settings" label="Pengaturan Staff" icon={MapPin} />
                     </>
                 ) : isOperator ? (

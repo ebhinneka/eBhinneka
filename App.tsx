@@ -17,6 +17,7 @@ import ProfilePage from './pages/ProfilePage';
 import MySchedule from './pages/MySchedule';
 import SettingsPage from './pages/SettingsPage';
 import StaffSettings from './pages/StaffSettings';
+import StaffRecap from './pages/StaffRecap';
 import Penyimpanan from './pages/Penyimpanan';
 import RekapAbsensi from './pages/RekapAbsensi';
 import LaporanJurnal from './pages/LaporanJurnal';
@@ -188,6 +189,11 @@ const AppContent: React.FC = () => {
             <Route path="/staff-settings" element={
                <AdminRoute>
                   <StaffSettings />
+               </AdminRoute>
+            } />
+            <Route path="/staff-recap" element={
+               <AdminRoute>
+                  <StaffRecap />
                </AdminRoute>
             } />
 
