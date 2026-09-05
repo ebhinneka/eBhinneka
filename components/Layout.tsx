@@ -9,8 +9,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 // CHANGED: Default collapsed is now true for all pages
 export const Layout: React.FC<{ children: React.ReactNode; showNav?: boolean; collapsed?: boolean }> = ({ children, showNav = true, collapsed: defaultCollapsed = true }) => {
-  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const { signOut, profile, isOperator, isAdmin, academicYear, semester, activeScheduleVersion } = useAuth();
+  const [collapsed, setCollapsed] = useState(isAdmin ? false : defaultCollapsed);
     const navigate = useNavigate();
   const location = useLocation();
   
