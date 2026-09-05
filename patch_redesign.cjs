@@ -1,261 +1,28 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase, isSupabaseConfigured, fetchAllStudents } from '../services/supabase';
-import { PublicStats } from '../types';
-import { Bell, LogIn, Loader2, BookOpen, AlertCircle, X, School, ChevronDown, ChevronRight, Bookmark, Lock, User, ArrowRight, ShieldCheck, GraduationCap, MonitorPlay, Shield, ChevronLeft, Eye, EyeOff, Calendar, CheckCircle2, ClipboardList } from 'lucide-react';
-import { getWIBDate, getWIBISOString, formatDateIndo, formatTimeIndo } from '../utils/dateUtils';
+const fs = require('fs');
 
-const PublicDashboard: React.FC = () => {
-  const { academicYear, semester, activeScheduleVersion, signIn } = useAuth();
-  const navigate = useNavigate();
-  const [stats, setStats] = useState<PublicStats | null>(null);
-  
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [loginViewMode, setLoginViewMode] = useState<'selection' | 'form'>('selection');
-  const [selectedRoleLabel, setSelectedRoleLabel] = useState('');
-  const [userId, setUserId] = useState(() => localStorage.getItem('saved_nip') || '');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loginError, setLoginError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccessSplash, setShowSuccessSplash] = useState(false);
-  
-  const [loading, setLoading] = useState(true);
-  const [time, setTime] = useState(getWIBDate());
-  const [rawAttendance, setRawAttendance] = useState<any[]>([]);
-  const [studentClassMap, setStudentClassMap] = useState<Record<string, string>>({});
-  const [studentNameMap, setStudentNameMap] = useState<Record<string, string>>({});
-  
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalContent, setModalContent] = useState<{
-    title: string;
-    type: 'class' | 'absence';
-    data: any;
-  } | null>(null);
-  const [expandedClass, setExpandedClass] = useState<string | null>(null);
+const file = 'pages/PublicDashboard.tsx';
+let code = fs.readFileSync(file, 'utf-8');
 
-  useEffect(() => {
-    const timer = setInterval(() => setTime(getWIBDate()), 1000);
-    fetchData();
+// Find the start of the return statement
+const returnIndex = code.indexOf('  return (');
+if (returnIndex === -1) {
+    console.log("Could not find return statement");
+    process.exit(1);
+}
 
-    if (isSupabaseConfigured) {
-        const channel = supabase
-            .channel('public-dashboard-changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_logs' }, () => { fetchStatsClientSide(); })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'journals' }, () => { fetchStatsClientSide(); })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'homeroom_attendance' }, () => { fetchStatsClientSide(); })
-            .subscribe();
-            
-        return () => {
-            supabase.removeChannel(channel);
-            clearInterval(timer);
-        };
-    }
-    return () => clearInterval(timer);
-  }, [academicYear, semester]);
+// Find the end of the return statement. It ends right before `export default PublicDashboard;` or the component's closing `};`
+const endOfComponent = code.lastIndexOf('export default PublicDashboard;');
+const endOfReturn = code.lastIndexOf('  );', endOfComponent);
 
-  const fetchData = async () => {
-      setLoading(true);
-      await fetchStatsClientSide();
-      setLoading(false);
-  }
+if (endOfReturn === -1) {
+    console.log("Could not find end of return statement");
+    process.exit(1);
+}
 
-  const fetchStatsClientSide = async () => {
-      try {
-          const date = getWIBISOString().split('T')[0];
-          const startOfDay = `${date}T00:00:00+07:00`;
-          const endOfDay = `${date}T23:59:59+07:00`;
-          
-          let statsData: any = {
-              count7: 0, count8: 0, count9: 0,
-              absenceCount: 0, completedJp: 0, totalJpRequired: 360,
-              filledClasses: []
-          };
-          
-          if (!isSupabaseConfigured) {
-              setStats(statsData);
-              return;
-          }
+const beforeReturn = code.substring(0, returnIndex);
+const afterReturn = code.substring(endOfReturn + 4);
 
-          let allStudents = await fetchAllStudents(academicYear || '2025/2026');
-          let cMap: Record<string, string> = {};
-          let nMap: Record<string, string> = {};
-          
-          if (allStudents.length > 0) {
-              statsData.count7 = allStudents.filter((s: any) => s.kelas?.startsWith('7')).length;
-              statsData.count8 = allStudents.filter((s: any) => s.kelas?.startsWith('8')).length;
-              statsData.count9 = allStudents.filter((s: any) => s.kelas?.startsWith('9')).length;
-              
-              allStudents.forEach((s: any) => { cMap[s.id] = s.kelas || ''; nMap[s.id] = s.name || ''; });
-              setStudentClassMap(cMap);
-              setStudentNameMap(nMap);
-          }
-
-          const { data: homeroom } = await supabase.from('homeroom_attendance').select('student_id, status, kelas').eq('date', date);
-          const { data: attendance } = await supabase.from('attendance_logs').select('student_id, student_name, status, created_at').gte('created_at', startOfDay).lte('created_at', endOfDay).neq('status', 'D');
-           
-          const uniqueAbsences: Record<string, any> = {};
-          if (homeroom) {
-              homeroom.forEach((h: any) => {
-                  if (['S', 'I', 'A'].includes(h.status)) {
-                      uniqueAbsences[h.student_id] = { id: h.student_id, name: nMap[h.student_id] || 'Siswa', status: h.status, source: 'Wali Kelas', kelas: h.kelas || cMap[h.student_id] || '?' };
-                  }
-              });
-          }
-          if (attendance) {
-              attendance.forEach((a: any) => {
-                  if (!uniqueAbsences[a.student_id]) {
-                      if (['S', 'I', 'A'].includes(a.status)) {
-                          uniqueAbsences[a.student_id] = { id: a.student_id, name: a.student_name || nMap[a.student_id] || 'Siswa', status: a.status, source: 'Guru', kelas: cMap[a.student_id] || '?' };
-                      }
-                  }
-              });
-          }
-          
-          let absentStudents = Object.values(uniqueAbsences);
-          setRawAttendance(absentStudents);
-          statsData.absenceCount = absentStudents.length;
-          
-          const dateObj = new Date(date);
-          const jsDay = dateObj.getDay();
-          const dbDay = jsDay === 0 ? 7 : jsDay;
-          
-          const [schedulesRes, journalsRes] = await Promise.all([
-              supabase.from('schedules').select('*').eq('day_of_week', dbDay).eq('schedule_version', activeScheduleVersion || 'Utama').then(async (res) => {
-                  if (res.error && (res.error.code === '42703' || res.error.message?.includes('academic_year') || res.error.message?.includes('schedule_version'))) {
-                      const fallback = await supabase.from('schedules').select('*').eq('day_of_week', dbDay).eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Genap');
-                      if (fallback.error) {
-                          const ultraFallback = await supabase.from('schedules').select('*').eq('day_of_week', dbDay);
-                          if (ultraFallback.data) {
-                              ultraFallback.data = ultraFallback.data.filter(s => s.academic_year === academicYear && s.semester === semester);
-                          }
-                          return ultraFallback;
-                      }
-                      return fallback;
-                  }
-                  return res;
-              }),
-              supabase.from('journals').select('teacher_id, kelas, subject, hours').gte('created_at', startOfDay).lte('created_at', endOfDay)
-          ]);
-
-          let schedules = schedulesRes.data || [];
-          const validHoursMap: Record<number, number[]> = {
-              1: [3, 4, 5, 6],
-              2: [1, 2, 3, 4, 5, 6],
-              3: [1, 2, 3, 4, 5, 6, 7, 8],
-              4: [3, 4, 5, 6],
-              6: [1, 2, 3, 4, 5, 6, 7, 8],
-              7: [1, 2, 3, 4, 5, 6]
-          };
-          if (validHoursMap[dbDay]) {
-              const validHours = validHoursMap[dbDay];
-              schedules = schedules.filter(sch => {
-                  const schHours = sch.hour.split(',').map((h: any) => parseInt(h.trim())).filter((h: number) => !isNaN(h));
-                  return schHours.some((h: number) => validHours.includes(h));
-              });
-          }
-          const journals = journalsRes.data || [];
-          let totalSchedules = 0;
-          let filledSchedules = 0;
-          
-          const processed = schedules.map(sch => {
-              const schHours = sch.hour.split(',').map((h: string) => h.trim());
-              const jp = schHours.length;
-              totalSchedules += jp;
-              const isFilled = journals.some(j => {
-                  if (j.kelas !== sch.kelas || j.subject !== sch.subject) return false;
-                  if (j.teacher_id && j.teacher_id === sch.teacher_id) return true;
-                  const jHours = j.hours.split(',').map((h: string) => h.trim());
-                  return schHours.some((h: string) => jHours.includes(h));
-              });
-              
-              if (isFilled) filledSchedules += jp;
-              return { isFilled };
-          });
-          
-          const filledClasses = [...new Set(journals.map((j: any) => j.kelas))];
-          statsData.completedJp = filledSchedules;
-          statsData.totalJpRequired = totalSchedules;
-          statsData.filledClasses = filledClasses;
-          
-          setStats(statsData);
-      } catch (err) {
-          console.error(err);
-      }
-  };
-
-  const handleClassClick = (grade: string) => {
-      const clsCounts: Record<string, number> = {};
-      Object.keys(studentClassMap).forEach(id => {
-          const cls = studentClassMap[id];
-          if (cls.startsWith(grade)) {
-              clsCounts[cls] = (clsCounts[cls] || 0) + 1;
-          }
-      });
-      setModalContent({ title: `Siswa Kelas ${grade}`, type: 'class', data: Object.entries(clsCounts).sort() });
-      setModalOpen(true);
-  };
-
-  const handleAbsenceClick = () => {
-      const absenceDetails = { S: 0, I: 0, A: 0 };
-      const classDetails: Record<string, number> = {};
-      const absencePerClass: Record<string, number> = {};
-      
-      Object.keys(studentClassMap).forEach(id => {
-          const cls = studentClassMap[id];
-          classDetails[cls] = (classDetails[cls] || 0) + 1;
-      });
-      
-      rawAttendance.forEach(a => {
-          if (a.status === 'S') absenceDetails.S++;
-          if (a.status === 'I') absenceDetails.I++;
-          if (a.status === 'A') absenceDetails.A++;
-          if (a.kelas) absencePerClass[a.kelas] = (absencePerClass[a.kelas] || 0) + 1;
-      });
-      
-      setModalContent({ title: 'Ketidakhadiran Murid Hari Ini', type: 'absence', data: { absenceDetails, classDetails, absencePerClass, filledClasses: stats?.filledClasses || [], rawAttendance } });
-      setModalOpen(true);
-  };
-
-  const getAbsentStudentsForClass = (cls: string) => {
-      return rawAttendance.filter((a: any) => (a.kelas === cls || studentClassMap[a.id] === cls)).map((a: any) => ({ ...a, name: studentNameMap[a.id] || 'Unknown' }));
-  };
-
-  const handleRoleSelect = (role: string) => {
-      if (role === 'operator') { navigate('/operator-dashboard'); return; }
-      setSelectedRoleLabel(role === 'guru' ? 'Guru' : role === 'admin' ? 'Admin' : 'Operator');
-      setLoginViewMode('form');
-  };
-
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setLoginError('');
-      setIsSubmitting(true);
-      try {
-          const { error } = await signIn(userId, password);
-          if (error) throw error;
-          
-          localStorage.setItem('saved_nip', userId);
-          setShowLoginModal(false);
-          setShowSuccessSplash(true);
-          
-          setTimeout(() => {
-              if (selectedRoleLabel === 'Guru') navigate('/dashboard');
-              else if (selectedRoleLabel === 'Admin') navigate('/dashboard');
-              else navigate('/operator-dashboard');
-          }, 1500);
-      } catch (err: any) {
-          setLoginError(err.message || 'Login failed');
-      } finally {
-          setIsSubmitting(false);
-      }
-  };
-
-  const progressPercentage = stats && stats.totalJpRequired > 0 
-    ? Math.min((stats.completedJp / stats.totalJpRequired) * 100, 100) 
-    : 0;
-
+const newReturn = `
   return (
     <div className="min-h-[100dvh] relative overflow-hidden bg-[#eaf4fc] font-sans flex flex-col items-center pb-10 transition-colors duration-300">
       {/* Background SVG Waves */}
@@ -316,8 +83,8 @@ const PublicDashboard: React.FC = () => {
         </div>
 
         {/* Mottos */}
-        <div className="flex items-center justify-center mb-6 w-full">
-            <div className="text-[9px] text-white/95 font-medium tracking-[0.2em] flex items-center gap-2 mt-1 uppercase justify-center text-center">
+        <div className="flex items-start justify-start mb-6">
+            <div className="text-[9px] text-white/95 font-medium tracking-[0.2em] ml-1 flex items-center gap-2 mt-1 uppercase">
                 <span className="relative">
                     BELAJAR
                     <span className="absolute -bottom-1.5 left-0 w-full h-[2px] bg-[#fde047]"></span>
@@ -339,9 +106,7 @@ const PublicDashboard: React.FC = () => {
         ) : stats ? (
             <>
                 {/* ACADEMIC YEAR PILL */}
-                <div className="relative rounded-[18px] p-[2.5px] overflow-hidden shadow-sm mt-1">
-                    <div className="absolute inset-[-300%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,transparent_60%,#fef08a_80%,#eab308_100%)] opacity-90"></div>
-                    <div className="relative bg-white rounded-2xl px-5 py-4 flex items-center justify-between w-full h-full">
+                <div className="bg-white rounded-2xl px-5 py-4 shadow-sm flex items-center justify-between border border-slate-100/50">
                     <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-blue-600">
                             <Calendar size={22} strokeWidth={2} />
@@ -361,7 +126,6 @@ const PublicDashboard: React.FC = () => {
                             <span className="text-[14px] font-black text-[#1e293b] leading-tight capitalize">{semester}</span>
                         </div>
                     </div>
-                    </div>
                 </div>
 
                 {/* 3 CLASS METRICS */}
@@ -374,7 +138,7 @@ const PublicDashboard: React.FC = () => {
                         <button
                             key={item.grade}
                             onClick={() => handleClassClick(item.grade)}
-                            className={`bg-white rounded-[20px] flex flex-col shadow-sm border border-slate-100 overflow-hidden relative group hover:-translate-y-0.5 active:translate-y-0 transition-all h-[180px] bg-gradient-to-br ${item.gradient}`}
+                            className={\`bg-white rounded-[20px] flex flex-col shadow-sm border border-slate-100 overflow-hidden relative group hover:-translate-y-0.5 active:translate-y-0 transition-all h-[180px] bg-gradient-to-br \${item.gradient}\`}
                         >
                             {/* Decorative Top Right Wave */}
                             <svg className="absolute top-0 right-0 w-full h-12 pointer-events-none opacity-40" viewBox="0 0 100 50" preserveAspectRatio="none">
@@ -385,19 +149,19 @@ const PublicDashboard: React.FC = () => {
                                 <path fill={item.bottomWave} d="M0,50 L0,0 C30,30 60,10 80,40 C90,55 100,50 100,50 Z" />
                             </svg>
 
-                            <div className="w-full flex-1 flex flex-col items-center justify-center pt-3 relative z-10">
-                                <div className="w-8 h-8 rounded-full flex items-center justify-center mb-1" style={{ color: item.accent }}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            <div className="w-full flex-1 flex flex-col items-center justify-center pt-5 relative z-10">
+                                <div className="w-10 h-10 rounded-full flex items-center justify-center mb-1" style={{ color: item.accent }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                                 </div>
-                                <h2 className="text-[36px] font-black tracking-tighter leading-none" style={{ color: item.color }}>
+                                <h2 className="text-[48px] font-black tracking-tighter leading-none" style={{ color: item.color }}>
                                     {item.count}
                                 </h2>
-                                <div className="w-[30px] h-[3px] rounded-full mt-1.5 mb-1.5" style={{ backgroundColor: item.color }}></div>
+                                <div className="w-[30px] h-[4px] rounded-full mt-2 mb-2" style={{ backgroundColor: item.color }}></div>
                                 <p className="text-[12px] font-black text-slate-800 tracking-tight">
                                     {item.label}
                                 </p>
                             </div>
-                            <div className={`w-full ${item.lightBg} p-2.5 flex items-center justify-between mt-auto border-t border-white/50 relative z-10`}>
+                            <div className={\`w-full \${item.lightBg} p-2.5 flex items-center justify-between mt-auto border-t border-white/50 relative z-10\`}>
                                 <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-700 leading-[1.2] text-left ml-1">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: item.color }} className="flex-shrink-0"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                                     <span>Peserta Didik<br/>Aktif</span>
@@ -425,7 +189,7 @@ const PublicDashboard: React.FC = () => {
                             <span className="text-xs font-semibold text-slate-400">/ {stats.totalJpRequired} JP</span>
                         </div>
                         <div className="w-full h-1.5 bg-slate-100 rounded-full mt-2 mb-2 overflow-hidden">
-                            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${progressPercentage}%` }}></div>
+                            <div className="h-full bg-blue-500 rounded-full" style={{ width: \`\${progressPercentage}%\` }}></div>
                         </div>
                         <span className="text-[10px] font-bold text-[#0c4a9a] tracking-wide mt-1">KBM TERLAKSANA</span>
                     </div>
@@ -461,7 +225,7 @@ const PublicDashboard: React.FC = () => {
                     </div>
                     
                     <div className="w-full h-8 bg-[#f1f5f9] rounded-full overflow-hidden flex items-center p-1 shadow-inner mb-3 relative">
-                        <div className="h-full bg-[#2563eb] rounded-full transition-all duration-1000 ease-out" style={{ width: `${Math.max(15, progressPercentage)}%` }}></div>
+                        <div className="h-full bg-[#2563eb] rounded-full transition-all duration-1000 ease-out" style={{ width: \`\${Math.max(15, progressPercentage)}%\` }}></div>
                     </div>
                     
                     <div className="flex justify-between items-end mt-2">
@@ -480,19 +244,13 @@ const PublicDashboard: React.FC = () => {
                 {/* LOGIN BUTTON */}
                 <button 
                     onClick={() => setShowLoginModal(true)}
-                    className="relative w-full mt-5 rounded-full p-[3px] overflow-hidden group active:scale-[0.98] transition-all shadow-[0_8px_20px_rgba(37,99,235,0.3)]"
+                    className="w-full mt-4 bg-gradient-to-r from-[#0c4a9a] to-[#1d4ed8] hover:from-[#0a3a7a] hover:to-[#153a99] text-white p-4 rounded-full flex items-center justify-between shadow-[0_8px_20px_rgba(37,99,235,0.3)] transition-all group active:scale-[0.98]"
                 >
-                    {/* Spinning glow effect */}
-                    <div className="absolute inset-[-300%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,transparent_60%,#60a5fa_80%,#ffffff_100%)] opacity-100"></div>
-                    
-                    {/* Actual button surface */}
-                    <div className="relative bg-gradient-to-r from-[#0c4a9a] to-[#1d4ed8] group-hover:from-[#0a3a7a] group-hover:to-[#153a99] text-white p-4 rounded-full flex items-center justify-between transition-all w-full h-full">
                     <div className="w-8 h-8 rounded-full border border-white/40 flex items-center justify-center flex-shrink-0 group-hover:bg-white/10 transition-colors ml-2">
                         <ArrowRight size={18} strokeWidth={2} />
                     </div>
                     <span className="text-[16px] font-bold tracking-wide">Login Sebagai</span>
-                        <ChevronRight size={22} className="text-white mr-4 group-hover:translate-x-1 transition-transform" />
-                    </div>
+                    <ChevronRight size={22} className="text-white mr-4 group-hover:translate-x-1 transition-transform" />
                 </button>
             </>
         ) : null}
@@ -533,7 +291,7 @@ const PublicDashboard: React.FC = () => {
                                            <p className="text-xs text-slate-500 mt-0.5">{teacherName}</p>
                                        </div>
                                        <div className="flex items-center gap-3">
-                                           <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${isFilled ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}>
+                                           <div className={\`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 \${isFilled ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}\`}>
                                                {isFilled ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
                                                {isFilled ? 'Terisi' : 'Kosong'}
                                            </div>
@@ -576,7 +334,7 @@ const PublicDashboard: React.FC = () => {
                                                <span className="font-bold text-slate-700">Kelas {cls}</span>
                                                <div className="flex items-center gap-3">
                                                    <span className="text-sm font-bold text-orange-600 bg-orange-100 px-2.5 py-0.5 rounded-lg">{String(count)} Siswa</span>
-                                                   <ChevronDown size={18} className={`text-slate-400 transition-transform ${expandedClass === cls ? 'rotate-180' : ''}`} />
+                                                   <ChevronDown size={18} className={\`text-slate-400 transition-transform \${expandedClass === cls ? 'rotate-180' : ''}\`} />
                                                </div>
                                            </button>
                                            {expandedClass === cls && (
@@ -584,7 +342,7 @@ const PublicDashboard: React.FC = () => {
                                                    {getAbsentStudentsForClass(cls).map((student: any, i: number) => (
                                                        <div key={i} className="py-2 flex justify-between items-center first:pt-0 last:pb-0">
                                                            <span className="text-sm text-slate-600">{student.name}</span>
-                                                           <span className={`text-xs font-bold px-2 py-1 rounded-md ${student.status === 'S' ? 'bg-blue-100 text-blue-700' : student.status === 'I' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                                                           <span className={\`text-xs font-bold px-2 py-1 rounded-md \${student.status === 'S' ? 'bg-blue-100 text-blue-700' : student.status === 'I' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}\`}>
                                                                {student.status === 'S' ? 'Sakit' : student.status === 'I' ? 'Izin' : 'Alfa'}
                                                            </span>
                                                        </div>
@@ -779,5 +537,7 @@ const PublicDashboard: React.FC = () => {
       )}
     </div>
   );
-};
-export default PublicDashboard;
+`;
+
+fs.writeFileSync(file, beforeReturn + newReturn + '\n' + afterReturn);
+console.log("Patched successfully");

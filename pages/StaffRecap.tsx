@@ -85,15 +85,17 @@ const StaffRecap: React.FC = () => {
     
     
     const getWorkingDays = (start: string, end: string) => {
+        if (!start || !end) return [];
         const days = [];
         let curr = new Date(start);
         const last = new Date(end);
+        if (isNaN(curr.getTime()) || isNaN(last.getTime())) return [];
         while (curr <= last) {
             // Exclude Fridays (5)
-            if (curr.getDay() !== 5) {
+            if (curr.getUTCDay() !== 5) {
                 days.push(curr.toISOString().split('T')[0]);
             }
-            curr.setDate(curr.getDate() + 1);
+            curr.setUTCDate(curr.getUTCDate() + 1);
         }
         return days;
     };
