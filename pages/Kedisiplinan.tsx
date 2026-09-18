@@ -419,7 +419,7 @@ const Kedisiplinan: React.FC = () => {
                 </div>
                 <div>
                     <h2 className="text-2xl font-bold text-slate-900">Data Kedisiplinan & Pelanggaran</h2>
-                    <p className="text-slate-500 text-sm">Monitoring Alpa dan catatan perilaku siswa.</p>
+                    <p className="text-slate-500 text-sm">Monitoring Alpa dan catatan perilaku murid.</p>
                 </div>
              </div>
              
@@ -682,7 +682,7 @@ const Kedisiplinan: React.FC = () => {
                  </table>
              </div>
              <div className="p-4 bg-slate-50 border-t border-slate-100 text-xs text-slate-400 text-center">
-                 Menampilkan {reportData.length} siswa dengan catatan kedisiplinan.
+                 Menampilkan {reportData.length} murid dengan catatan kedisiplinan.
              </div>
          </div>
       </div>

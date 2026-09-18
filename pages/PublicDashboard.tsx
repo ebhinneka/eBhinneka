@@ -99,7 +99,7 @@ const PublicDashboard: React.FC = () => {
           if (homeroom) {
               homeroom.forEach((h: any) => {
                   if (['S', 'I', 'A'].includes(h.status)) {
-                      uniqueAbsences[h.student_id] = { id: h.student_id, name: nMap[h.student_id] || 'Siswa', status: h.status, source: 'Wali Kelas', kelas: h.kelas || cMap[h.student_id] || '?' };
+                      uniqueAbsences[h.student_id] = { id: h.student_id, name: nMap[h.student_id] || 'Murid', status: h.status, source: 'Wali Kelas', kelas: h.kelas || cMap[h.student_id] || '?' };
                   }
               });
           }
@@ -107,7 +107,7 @@ const PublicDashboard: React.FC = () => {
               attendance.forEach((a: any) => {
                   if (!uniqueAbsences[a.student_id]) {
                       if (['S', 'I', 'A'].includes(a.status)) {
-                          uniqueAbsences[a.student_id] = { id: a.student_id, name: a.student_name || nMap[a.student_id] || 'Siswa', status: a.status, source: 'Guru', kelas: cMap[a.student_id] || '?' };
+                          uniqueAbsences[a.student_id] = { id: a.student_id, name: a.student_name || nMap[a.student_id] || 'Murid', status: a.status, source: 'Guru', kelas: cMap[a.student_id] || '?' };
                       }
                   }
               });
@@ -193,7 +193,7 @@ const PublicDashboard: React.FC = () => {
               clsCounts[cls] = (clsCounts[cls] || 0) + 1;
           }
       });
-      setModalContent({ title: `Siswa Kelas ${grade}`, type: 'class', data: Object.entries(clsCounts).sort() });
+      setModalContent({ title: `Murid Kelas ${grade}`, type: 'class', data: Object.entries(clsCounts).sort() });
       setModalOpen(true);
   };
 
@@ -537,7 +537,7 @@ const PublicDashboard: React.FC = () => {
                                                {isFilled ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
                                                {isFilled ? 'Terisi' : 'Kosong'}
                                            </div>
-                                           <span className="text-sm font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-lg">{String(count)} Siswa</span>
+                                           <span className="text-sm font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-lg">{String(count)} Murid</span>
                                        </div>
                                    </div>
                                );
@@ -575,7 +575,7 @@ const PublicDashboard: React.FC = () => {
                                            >
                                                <span className="font-bold text-slate-700">Kelas {cls}</span>
                                                <div className="flex items-center gap-3">
-                                                   <span className="text-sm font-bold text-orange-600 bg-orange-100 px-2.5 py-0.5 rounded-lg">{String(count)} Siswa</span>
+                                                   <span className="text-sm font-bold text-orange-600 bg-orange-100 px-2.5 py-0.5 rounded-lg">{String(count)} Murid</span>
                                                    <ChevronDown size={18} className={`text-slate-400 transition-transform ${expandedClass === cls ? 'rotate-180' : ''}`} />
                                                </div>
                                            </button>

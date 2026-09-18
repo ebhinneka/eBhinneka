@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
-import { Activity, Calendar, Search, Loader2, X } from 'lucide-react';
-import { Profile, Schedule } from '../types';
+import { Activity, Calendar, Search, Loader2, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Profile, Schedule, NonEffectiveDay } from '../types';
 
 interface TeacherPerformanceData extends Profile {
     targetJp: number;
@@ -15,11 +15,12 @@ interface TeacherPerformanceData extends Profile {
 }
 
 const KinerjaGuru: React.FC = () => {
-  const { academicYear, semester , activeScheduleVersion , semesterStart, semesterEnd } = useAuth();
+  const { academicYear, semester, activeScheduleVersion, semesterStart, semesterEnd } = useAuth();
   const [loading, setLoading] = useState(true);
   const [teachersData, setTeachersData] = useState<TeacherPerformanceData[]>([]);
   const [filteredTeachers, setFilteredTeachers] = useState<TeacherPerformanceData[]>([]);
   const [hmSearch, setHmSearch] = useState('');
+  const [nonEffDaysInRange, setNonEffDaysInRange] = useState<NonEffectiveDay[]>([]);
   
   const todayObj = new Date();
   const firstDayOfMonth = new Date(todayObj.getFullYear(), todayObj.getMonth(), 1).toISOString().split('T')[0];
@@ -52,7 +53,7 @@ const KinerjaGuru: React.FC = () => {
           let calcEndDate = new Date(lastDayDate);
           if (calcEndDate > today) calcEndDate = today;
 
-          const [profilesRes, schedulesRes, journalsRes] = await Promise.all([
+          const [profilesRes, schedulesRes, journalsRes, nonEffRes] = await Promise.all([
               supabase.from('profiles').select('*').neq('role', 'operator').order('full_name'),
               supabase.from('schedules').select('*').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').eq('schedule_version', activeScheduleVersion || 'Utama').then(async (res) => {
                   if (res.error && (res.error.code === '42703' || res.error.message?.includes('academic_year'))) {
@@ -64,42 +65,104 @@ const KinerjaGuru: React.FC = () => {
                   }
                   return res;
               }),
-              supabase.from('journals').select('teacher_id, hours').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', firstDayStr).lte('created_at', endDayStr)
+              supabase.from('journals').select('teacher_id, hours').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').gte('created_at', firstDayStr).lte('created_at', endDayStr),
+              supabase.from('app_settings').select('value').eq('key', 'non_effective_days').maybeSingle()
           ]);
+
+          let nonEffectiveDays: NonEffectiveDay[] = [];
+          if (nonEffRes?.data?.value) {
+              try {
+                  nonEffectiveDays = typeof nonEffRes.data.value === 'string' ? JSON.parse(nonEffRes.data.value) : nonEffRes.data.value;
+              } catch (e) {
+                  console.error("Error parsing non_effective_days", e);
+              }
+          }
+
+          // Track non-effective days in the selected range
+          const matchedNonEff = nonEffectiveDays.filter(ned => ned.date >= startDate && ned.date <= endDate);
+          setNonEffDaysInRange(matchedNonEff);
 
           const excludedNames = ['Guru Baru', 'Agung Budiartati, M.Pd.', 'Dra.Laily Asriyah, M.Pd.I.'];
           const allTeachers = (profilesRes.data || []).filter(t => !excludedNames.includes(t.full_name));
           const allSchedules = schedulesRes.data || [];
           const allJournals = journalsRes.data || [];
-          const dayCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 };
-          
+
+          // Pre-calculate active days and exemptions
+          interface DayInfo {
+              dateStr: string;
+              dbDay: number;
+              exemptHours: string[]; // ['Full Day'] or specific hours e.g. ['1', '2']
+          }
+          const activeDays: DayInfo[] = [];
           let d = new Date(firstDayDate);
           while (d <= calcEndDate) {
+              const dateStr = d.toISOString().split('T')[0];
               const jsDay = d.getDay(); 
               const dbDay = jsDay === 0 ? 7 : jsDay; 
-              dayCounts[dbDay]++;
+              
+              const nonEff = nonEffectiveDays.find(ned => ned.date === dateStr);
+              if (!nonEff) {
+                  activeDays.push({ dateStr, dbDay, exemptHours: [] });
+              } else if (nonEff.hours && nonEff.hours !== 'Full Day') {
+                  const exempt = nonEff.hours.split(',').map(h => h.trim()).filter(Boolean);
+                  activeDays.push({ dateStr, dbDay, exemptHours: exempt });
+              } else {
+                  activeDays.push({ dateStr, dbDay, exemptHours: ['Full Day'] });
+              }
               d.setDate(d.getDate() + 1);
           }
 
           const processed: TeacherPerformanceData[] = allTeachers.map(t => {
               const mySchedules = allSchedules.filter(s => s.teacher_id === t.id);
-              let target = 0;
+              
+              // Group teacher's schedules by day_of_week
+              const scheduleByDay: Record<number, string[][]> = {};
               mySchedules.forEach(s => {
-                  const jpCount = s.hour.split(',').filter((h: string) => h.trim()).length;
-                  const occurrences = dayCounts[s.day_of_week] || 0;
-                  target += (jpCount * occurrences);
+                  const day = s.day_of_week;
+                  if (!scheduleByDay[day]) scheduleByDay[day] = [];
+                  const hours = s.hour.split(',').map((h: string) => h.trim()).filter(Boolean);
+                  scheduleByDay[day].push(hours);
               });
+
+              // Calculate target JP accounting for non-effective days
+              let target = 0;
+              activeDays.forEach(dayInfo => {
+                  if (dayInfo.exemptHours.includes('Full Day')) {
+                      // Hari non-efektif seharian penuh: beban JP = 0
+                      return;
+                  }
+                  const schedules = scheduleByDay[dayInfo.dbDay] || [];
+                  schedules.forEach(hours => {
+                      if (dayInfo.exemptHours.length > 0) {
+                          const effectiveHours = hours.filter(h => !dayInfo.exemptHours.includes(h));
+                          target += effectiveHours.length;
+                      } else {
+                          target += hours.length;
+                      }
+                  });
+              });
+
               const myJournals = allJournals.filter(j => j.teacher_id === t.id);
               let actual = 0;
               myJournals.forEach(j => {
                   const parts = j.hours.split(',').filter((h: string) => h.trim().length > 0);
                   actual += parts.length;
               });
+
               const percentage = target > 0 ? (actual / target) * 100 : 0;
-              let status = "Di Bawah Ekspektasi"; let color = "text-blue-600 bg-sky-100 border-blue-300";
-              if (target === 0 && actual === 0) { status = "Tidak Ada Jadwal"; color = "text-slate-500 bg-gray-50 border-slate-100"; } 
-              else if (percentage > 85) { status = "Di Atas Ekspektasi"; color = "text-blue-500 bg-sky-100 border-blue-300"; } 
-              else if (percentage >= 70) { status = "Sesuai Ekspektasi"; color = "text-blue-600 bg-blue-50 border-blue-100"; }
+              let status = "Di Bawah Ekspektasi"; 
+              let color = "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800";
+              if (target === 0 && actual === 0) { 
+                  status = "Tidak Ada Jadwal"; 
+                  color = "text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"; 
+              } else if (percentage > 85) { 
+                  status = "Di Atas Ekspektasi"; 
+                  color = "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800"; 
+              } else if (percentage >= 70) { 
+                  status = "Sesuai Ekspektasi"; 
+                  color = "text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800"; 
+              }
+
               return { ...t, targetJp: target, actualJp: actual, percentage, statusKinerja: status, statusColor: color };
           });
           setTeachersData(processed);
@@ -126,65 +189,139 @@ const KinerjaGuru: React.FC = () => {
   return (
     <Layout>
         <div className="space-y-6 animate-fade-in">
+            {/* Header section matching Dashboard style */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div><h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"><Activity className="text-blue-600" /> Monitoring Kinerja Guru</h2><p className="text-slate-500 text-sm mt-1">Evaluasi pemenuhan jam mengajar (JP) guru.</p></div>
-                <div className="flex flex-wrap gap-2 items-center bg-slate-100 p-2 rounded-xl border border-slate-200 shadow-sm">
-                    <div className="relative"><Search className="absolute left-3 top-2.5 text-slate-400" size={16}/><input type="text" placeholder="Cari Guru..." className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 w-40 dark:border-slate-600" value={hmSearch} onChange={(e) => setHmSearch(e.target.value)}/></div>
-                    <div className="h-6 w-px bg-slate-200 mx-1"></div>
+                <div>
+                    <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                        <Activity className="text-blue-600 dark:text-blue-400" /> Monitoring Kinerja Guru
+                    </h2>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium">
+                        Evaluasi pemenuhan jam mengajar (JP) guru tersinkron dengan kalender hari non-efektif.
+                    </p>
+                </div>
+                <div className="flex flex-wrap gap-2 items-center bg-white dark:bg-slate-800 p-2 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-2.5 text-slate-400" size={16}/>
+                        <input 
+                            type="text" 
+                            placeholder="Cari Guru / Mapel..." 
+                            className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-900 pl-9 pr-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 w-44" 
+                            value={hmSearch} 
+                            onChange={(e) => setHmSearch(e.target.value)}
+                        />
+                    </div>
+                    <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
                     <div className="flex items-center gap-2">
-                        <input type="date" className="bg-white text-slate-800 border-slate-200 py-2 px-3 border rounded-lg text-sm font-bold" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-                        <span className="text-slate-400 text-sm font-bold">s/d</span>
-                        <input type="date" className="bg-white text-slate-800 border-slate-200 py-2 px-3 border rounded-lg text-sm font-bold" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                        <input 
+                            type="date" 
+                            className="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 py-2 px-3 border rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-500" 
+                            value={startDate} 
+                            onChange={(e) => setStartDate(e.target.value)} 
+                        />
+                        <span className="text-slate-400 text-xs font-bold">s/d</span>
+                        <input 
+                            type="date" 
+                            className="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 py-2 px-3 border rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-500" 
+                            value={endDate} 
+                            onChange={(e) => setEndDate(e.target.value)} 
+                        />
                     </div>
                 </div>
             </div>
 
-            {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" size={40}/></div> : filteredTeachers.length === 0 ? <div className="text-center py-20 text-slate-400 italic">Tidak ada data guru ditemukan.</div> : (
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+            {/* Non-effective days sync status banner */}
+            {nonEffDaysInRange.length > 0 && (
+                <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-blue-800 dark:text-blue-300 animate-fade-in shadow-sm">
+                    <div className="flex items-start sm:items-center gap-3">
+                        <CheckCircle2 className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5 sm:mt-0" size={20} />
+                        <div>
+                            <p className="font-bold text-sm">
+                                {nonEffDaysInRange.length} Hari Non-Efektif Dikecualikan
+                            </p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400">
+                                Target JP pada periode ini telah disesuaikan secara akurat sehingga tidak membebani kinerja guru pada tanggal non-efektif.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 self-start sm:self-center">
+                        {nonEffDaysInRange.map(ned => (
+                            <span key={ned.date} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg text-[10px] font-bold" title={ned.reason}>
+                                {new Date(ned.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}: {ned.hours === 'Full Day' ? 'Seharian' : `Jam ${ned.hours}`}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {loading ? (
+                <div className="flex flex-col items-center justify-center py-24 gap-3">
+                    <Loader2 className="animate-spin text-blue-600 dark:text-blue-400" size={36}/>
+                    <p className="text-xs font-bold text-slate-400">Menghitung kinerja tersinkron...</p>
+                </div>
+            ) : filteredTeachers.length === 0 ? (
+                <div className="text-center py-20 text-slate-400 dark:text-slate-500 italic bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700">
+                    Tidak ada data guru ditemukan.
+                </div>
+            ) : (
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-                            <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+                            <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-xs font-extrabold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
                                 <tr>
-                                    <th className="px-6 py-4 font-bold text-slate-800 dark:text-slate-200">Nama Guru</th>
-                                    <th className="px-6 py-4 font-bold text-slate-800 dark:text-slate-200">Mata Pelajaran</th>
-                                    <th className="px-6 py-4 font-bold text-center text-slate-800 dark:text-slate-200">Target JP</th>
-                                    <th className="px-6 py-4 font-bold text-center text-slate-800 dark:text-slate-200">Realisasi JP</th>
-                                    <th className="px-6 py-4 font-bold text-center text-slate-800 dark:text-slate-200">Prosentase</th>
-                                    <th className="px-6 py-4 font-bold text-slate-800 dark:text-slate-200">Kriteria</th>
-                                    <th className="px-6 py-4 font-bold text-center text-slate-800 dark:text-slate-200">Aksi</th>
+                                    <th className="px-6 py-4">Nama Guru</th>
+                                    <th className="px-6 py-4">Mata Pelajaran</th>
+                                    <th className="px-6 py-4 text-center">Target JP</th>
+                                    <th className="px-6 py-4 text-center">Realisasi JP</th>
+                                    <th className="px-6 py-4 text-center">Persentase</th>
+                                    <th className="px-6 py-4 text-center">Kriteria</th>
+                                    <th className="px-6 py-4 text-center">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {filteredTeachers.map((teacher, index) => (
-                                    <tr key={teacher.id} className="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {filteredTeachers.map((teacher) => (
+                                    <tr key={teacher.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300 font-bold text-xs flex-shrink-0">
+                                                <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 flex items-center justify-center font-black text-xs flex-shrink-0 shadow-sm">
                                                     {teacher.full_name?.charAt(0)}
                                                 </div>
-                                                <span className="font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">{teacher.full_name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{teacher.mengajar_mapel || '-'}</td>
-                                        <td className="px-6 py-4 text-center font-bold">{teacher.targetJp}</td>
-                                        <td className="px-6 py-4 text-center font-bold text-blue-600 dark:text-blue-400">{teacher.actualJp}</td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className="flex flex-col items-center gap-1">
-                                                <span className="font-bold">{teacher.percentage.toFixed(1)}%</span>
-                                                <div className="w-20 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(teacher.percentage, 100)}%` }}></div>
+                                                <div>
+                                                    <span className="font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap block">{teacher.full_name}</span>
+                                                    <span className="text-[11px] text-slate-400 font-mono">{teacher.nip || 'NIPY -'}</span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`text-[10px] font-bold px-2 py-1 rounded border whitespace-nowrap ${teacher.statusColor}`}>
+                                        <td className="px-6 py-4 whitespace-nowrap font-medium text-slate-700 dark:text-slate-300">
+                                            {teacher.mengajar_mapel || '-'}
+                                        </td>
+                                        <td className="px-6 py-4 text-center font-bold text-slate-800 dark:text-slate-200">
+                                            {teacher.targetJp}
+                                        </td>
+                                        <td className="px-6 py-4 text-center font-black text-blue-600 dark:text-blue-400 text-base">
+                                            {teacher.actualJp}
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <div className="flex flex-col items-center gap-1.5">
+                                                <span className="font-bold text-xs text-slate-700 dark:text-slate-200">{teacher.percentage.toFixed(1)}%</span>
+                                                <div className="w-24 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700">
+                                                    <div 
+                                                        className={`h-full rounded-full transition-all duration-500 ${
+                                                            teacher.percentage >= 70 ? 'bg-blue-600 dark:bg-blue-500' : 'bg-rose-500'
+                                                        }`} 
+                                                        style={{ width: `${Math.min(teacher.percentage, 100)}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border whitespace-nowrap inline-block tracking-wide uppercase ${teacher.statusColor}`}>
                                                 {teacher.statusKinerja}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <button 
                                                 onClick={() => handleViewSchedule(teacher)} 
-                                                className="text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-lg font-bold transition-colors whitespace-nowrap"
+                                                className="text-xs bg-slate-100 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 px-3.5 py-1.5 rounded-xl font-bold border border-slate-200 dark:border-slate-700 hover:border-blue-300 transition-all whitespace-nowrap shadow-sm"
                                             >
                                                 Jadwal
                                             </button>
@@ -197,20 +334,37 @@ const KinerjaGuru: React.FC = () => {
                 </div>
             )}
 
-            {/* Schedule Modal - TOP ALIGNED */}
+            {/* Schedule Modal - TOP ALIGNED & MATCHING BLUE PALETTE */}
             {showScheduleModal && selectedTeacherSchedule && (
-                <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[calc(env(safe-area-inset-top)+1rem)] sm:p-4 bg-slate-900/50 backdrop-blur-sm transition-all duration-300">
-                    <div className="bg-slate-100 dark:bg-slate-900 w-full md:w-auto md:max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-700 relative animate-fade-in flex flex-col max-h-[85vh]">
-                        <div className="bg-blue-600 p-4 flex justify-between items-center text-slate-100 flex-shrink-0">
-                            <h3 className="font-bold text-lg flex items-center gap-2"><Calendar size={20}/> Jadwal Mengajar: {selectedTeacherSchedule.teacher.full_name}</h3>
-                            <button onClick={() => setShowScheduleModal(false)} className="hover:bg-slate-100/20 p-1.5 rounded-full transition-colors"><X size={20}/></button>
+                <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[calc(env(safe-area-inset-top)+1rem)] sm:p-4 bg-slate-900/60 backdrop-blur-sm transition-all duration-300">
+                    <div className="bg-white dark:bg-slate-900 w-full md:w-auto md:max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 relative animate-fade-in flex flex-col max-h-[85vh]">
+                        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 flex justify-between items-center text-white flex-shrink-0">
+                            <h3 className="font-bold text-base flex items-center gap-2">
+                                <Calendar size={18}/> Jadwal Mengajar: {selectedTeacherSchedule.teacher.full_name}
+                            </h3>
+                            <button 
+                                onClick={() => setShowScheduleModal(false)} 
+                                className="hover:bg-white/20 p-1.5 rounded-full transition-colors"
+                            >
+                                <X size={18}/>
+                            </button>
                         </div>
-                        <div className="p-6 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-900 flex-1">
-                            {selectedTeacherSchedule.schedules.length === 0 ? <div className="text-center py-10 text-slate-400">Belum ada jadwal yang diinput.</div> : (
+                        <div className="p-6 overflow-y-auto custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50 flex-1">
+                            {selectedTeacherSchedule.schedules.length === 0 ? (
+                                <div className="text-center py-10 text-slate-400 text-sm">Belum ada jadwal yang diinput.</div>
+                            ) : (
                                 <div className="space-y-3">
                                     {selectedTeacherSchedule.schedules.map((s) => (
-                                        <div key={s.id} className="bg-slate-100 dark:bg-slate-700 p-4 rounded-xl border border-slate-200 dark:border-slate-600 shadow-sm flex justify-between items-center">
-                                            <div className="flex items-center gap-4"><div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center font-bold">{s.kelas}</div><div><p className="font-bold text-slate-800 dark:text-slate-100">{s.subject}</p><p className="text-xs text-slate-500 dark:text-slate-400 font-bold">{dayName(s.day_of_week)} • Jam {s.hour}</p></div></div>
+                                        <div key={s.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex justify-between items-center">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center font-black text-sm border border-blue-200 dark:border-blue-800">
+                                                    {s.kelas}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{s.subject}</p>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">{dayName(s.day_of_week)} • Jam {s.hour}</p>
+                                                </div>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

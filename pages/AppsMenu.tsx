@@ -72,7 +72,7 @@ const AppsMenu: React.FC = () => {
                     />
                     <AppCard 
                         label="Data Murid" 
-                        subLabel="Siswa & Mutasi"
+                        subLabel="Murid & Mutasi"
                         icon={GraduationCap} 
                         path="/students" 
                         gradientClass="bg-gradient-to-br from-blue-400 to-blue-500" 

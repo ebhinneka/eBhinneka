@@ -8,7 +8,7 @@ import {
   CalendarDays, TrendingUp, Users, Edit2, Plus, X, Loader2, Save, Flag, Check, Minus, Calendar, ChevronUp, ChevronDown, AlertTriangle
 } from 'lucide-react';
 import { getWIBDate, getWIBISOString, formatDateIndo } from '../utils/dateUtils';
-import { Student, Profile } from '../types';
+import { Student, Profile, NonEffectiveDay } from '../types';
 
 interface MonthlyStats {
     totalJp: number;
@@ -64,6 +64,7 @@ const Dashboard: React.FC = () => {
   const isHeadmaster = profile?.mengajar_mapel === 'Kepala Sekolah' || profile?.role === 'admin'; 
 
   const [stats, setStats] = useState<MonthlyStats>({ totalJp: 0, targetJp: 0, totalMeetings: 0, monthJournals: [] });
+  const [todayNonEffective, setTodayNonEffective] = useState<NonEffectiveDay | null>(null);
   const [homeroomAbsences, setHomeroomAbsences] = useState<WaliKelasAbsence[]>([]);
   const [homeroomViolations, setHomeroomViolations] = useState<WaliKelasViolation[]>([]);
   const [kbmStatus, setKbmStatus] = useState<KbmStatus[]>([]);
@@ -291,18 +292,57 @@ const Dashboard: React.FC = () => {
         }
 
         let targetJp = 0;
+        let nonEffectiveDays: NonEffectiveDay[] = [];
+        try {
+            const { data: nonEffRes } = await supabase.from('app_settings').select('value').eq('key', 'non_effective_days').single();
+            if (nonEffRes?.value) {
+                nonEffectiveDays = JSON.parse(nonEffRes.value);
+            }
+        } catch (e) {
+            console.error("Error fetching non_effective_days", e);
+        }
+
+        const todayNonEff = nonEffectiveDays.find(ned => ned.date === todayStr);
+        setTodayNonEffective(todayNonEff || null);
+
         if (mySchedules) {
-            const dayCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 };
+            // Build list of effective dates from day 1 of the month to date.getDate()
+            const dateInfos: Array<{ dbDay: number, exemptHours: string[] }> = [];
             for (let d = 1; d <= date.getDate(); d++) {
                 const tempDate = new Date(currentYear, currentMonth, d);
+                const yyyy = tempDate.getFullYear();
+                const mm = String(tempDate.getMonth() + 1).padStart(2, '0');
+                const dd = String(tempDate.getDate()).padStart(2, '0');
+                const curDateStr = `${yyyy}-${mm}-${dd}`;
+
                 const jsDay = tempDate.getDay(); 
                 const dbDay = jsDay === 0 ? 7 : jsDay;
-                dayCounts[dbDay]++;
+
+                const nonEff = nonEffectiveDays.find(ned => ned.date === curDateStr);
+                if (nonEff) {
+                    const isFull = !nonEff.hours || nonEff.hours.toLowerCase().includes('full');
+                    if (!isFull) {
+                        const exempt = nonEff.hours.split(',').map(h => h.trim()).filter(Boolean);
+                        dateInfos.push({ dbDay, exemptHours: exempt });
+                    }
+                    // If full day non-effective, skip entire date (0 target JP)
+                } else {
+                    dateInfos.push({ dbDay, exemptHours: [] });
+                }
             }
+
             mySchedules.forEach(s => {
-                const jpCount = s.hour.split(',').filter((h: string) => h.trim()).length;
-                const occurrences = dayCounts[s.day_of_week] || 0;
-                targetJp += (jpCount * occurrences);
+                const schedHours = s.hour.split(',').map((h: string) => h.trim()).filter(Boolean);
+                dateInfos.forEach(di => {
+                    if (di.dbDay === s.day_of_week) {
+                        if (di.exemptHours.length === 0) {
+                            targetJp += schedHours.length;
+                        } else {
+                            const effectiveHours = schedHours.filter((h: string) => !di.exemptHours.includes(h));
+                            targetJp += effectiveHours.length;
+                        }
+                    }
+                });
             });
         }
 
@@ -727,8 +767,8 @@ const Dashboard: React.FC = () => {
                 <Icon size={14} strokeWidth={2.5}/>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider">{title}</span>
                 <div className="ml-auto flex items-center gap-1">
-                     <span className="text-[9px] font-bold bg-slate-100 dark:bg-slate-700 dark:text-slate-100 px-1.5 py-0.5 rounded-md border border-current opacity-80">{list.length}</span>
-                     <button onClick={() => onEdit(title, list)} className="p-0.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
+                     <span className="text-[9px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-600">{list.length}</span>
+                     <button onClick={() => onEdit(title, list)} className="p-0.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                         <Edit2 size={12} />
                      </button>
                 </div>
@@ -737,8 +777,8 @@ const Dashboard: React.FC = () => {
                 {list.map((a: any, i: number) => (
                     <div key={i} className="flex justify-between items-center w-full text-[11px] leading-tight text-slate-700 dark:text-slate-300 font-medium group">
                         <span className="truncate pr-2">{a.student_name}</span>
-                        {a.source === 'wali' && <span className="text-[9px] px-1 bg-sky-100 dark:bg-slate-900/50 text-blue-600 dark:text-blue-300 rounded mr-1" title="Input Wali Kelas">W</span>}
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold bg-slate-50 dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-100 dark:border-slate-700 group-hover:border-slate-200 dark:group-hover:border-slate-600 transition-colors whitespace-nowrap">
+                        {a.source === 'wali' && <span className="text-[9px] px-1.5 py-0.2 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded font-bold mr-1" title="Input Wali Kelas">W</span>}
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold bg-slate-50 dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-100 dark:border-slate-700 group-hover:border-blue-300 dark:group-hover:border-blue-700 transition-colors whitespace-nowrap">
                              {a.hours === 'Full Day' ? 'Seharian' : `Jam ${a.hours}`}
                         </span>
                     </div>
@@ -751,9 +791,14 @@ const Dashboard: React.FC = () => {
   const currentMonthName = new Date().toLocaleDateString('id-ID', { month: 'long' });
   const percentage = stats.targetJp > 0 ? (stats.totalJp / stats.targetJp) * 100 : 0;
   let performanceStatus = "Di Bawah Ekspektasi";
-  let performanceColor = "text-[#2563eb] bg-white border-white";
-  if (percentage > 85) { performanceStatus = "Di Atas Ekspektasi"; performanceColor = "text-[#2563eb] bg-white border-white"; } 
-  else if (percentage >= 70) { performanceStatus = "Sesuai Ekspektasi"; performanceColor = "text-[#2563eb] bg-white border-white"; }
+  let performanceColor = "text-rose-600 bg-white/95 border-white shadow-sm font-black";
+  if (percentage > 85) { 
+      performanceStatus = "Di Atas Ekspektasi"; 
+      performanceColor = "text-blue-700 bg-white/95 border-white shadow-sm font-black"; 
+  } else if (percentage >= 70) { 
+      performanceStatus = "Sesuai Ekspektasi"; 
+      performanceColor = "text-blue-600 bg-white/95 border-white shadow-sm font-black"; 
+  }
 
   if (isHeadmaster) {
       // Headmaster view code
@@ -766,19 +811,20 @@ const Dashboard: React.FC = () => {
                 {/* Header Kepsek */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
-                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wide">
+                        <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-wide flex items-center gap-2">
+                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-blue-600 shadow-sm" />
                             KEGIATAN BELAJAR MENGAJAR GURU HARI INI
                         </h2>
-                        <p className="text-slate-500 dark:text-slate-400 text-sm">
+                        <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
                             {formatDateIndo(matrixDate)}
                         </p>
                     </div>
                     
                     <div className="flex items-center gap-2">
-                        <Calendar size={18} className="text-slate-400"/>
+                        <Calendar size={18} className="text-blue-600"/>
                         <input 
                             type="date" 
-                            className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  dark: border border-slate-200 dark:border-slate-700 rounded-lg py-1.5 px-3 text-sm font-bold dark:"
+                            className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg py-1.5 px-3 text-sm font-bold focus:ring-2 focus:ring-blue-500"
                             value={matrixDate}
                             onChange={(e) => setMatrixDate(e.target.value)}
                         />
@@ -790,22 +836,22 @@ const Dashboard: React.FC = () => {
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left border-collapse">
                             <thead>
-                                <tr className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold uppercase text-sm border-b border-slate-200 dark:border-slate-600">
-                                    <th className="px-4 py-3 border-r border-slate-200 dark:border-slate-600 w-12 text-center">No</th>
-                                    <th className="px-4 py-3 border-r border-slate-200 dark:border-slate-600 w-64">Nama Guru</th>
+                                <tr className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-extrabold uppercase text-sm border-b border-slate-200 dark:border-slate-700">
+                                    <th className="px-4 py-3 border-r border-slate-200 dark:border-slate-700 w-12 text-center">No</th>
+                                    <th className="px-4 py-3 border-r border-slate-200 dark:border-slate-700 w-64">Nama Guru</th>
                                     {[1, 2, 3, 4, 5, 6, 7, 8].map(h => (
-                                        <th key={h} className="px-2 py-3 border-r border-slate-200 dark:border-slate-600 text-center w-20">{h}</th>
+                                        <th key={h} className="px-2 py-3 border-r border-slate-200 dark:border-slate-700 text-center w-20">{h}</th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody className="text-slate-700 dark:text-slate-200">
                                 {loading ? (
-                                    <tr><td colSpan={10} className="p-10 text-center"><Loader2 className="animate-spin mx-auto text-blue-500"/></td></tr>
+                                    <tr><td colSpan={10} className="p-10 text-center"><Loader2 className="animate-spin mx-auto text-blue-600"/></td></tr>
                                 ) : matrixData.length === 0 ? (
                                     <tr><td colSpan={10} className="p-10 text-center text-slate-400">Tidak ada data.</td></tr>
                                 ) : (
                                     matrixData.map((item, idx) => (
-                                        <tr key={item.teacher.id} className="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                        <tr key={item.teacher.id} className="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                             <td className="px-4 py-3 border-r border-slate-100 dark:border-slate-700 text-center font-bold text-sm text-slate-500 dark:text-slate-400">{idx + 1}</td>
                                             <td className="px-4 py-3 border-r border-slate-100 dark:border-slate-700 font-bold text-sm truncate max-w-[200px]" title={item.teacher.full_name}>
                                                 {item.teacher.full_name}
@@ -816,9 +862,9 @@ const Dashboard: React.FC = () => {
                                                     <td key={h} className="px-2 py-4 border-r border-slate-100 dark:border-slate-700 text-center align-middle relative group">
                                                         {cell.hasSchedule ? (
                                                             <div className="flex flex-col items-center justify-center gap-1.5 transition-transform hover:scale-105">
-                                                                <span className={`text-xl md:text-2xl font-extrabold ${
+                                                                <span className={`text-xl md:text-2xl font-black ${
                                                                     cell.isFilled 
-                                                                    ? 'text-blue-500 dark:text-blue-500' 
+                                                                    ? 'text-blue-600 dark:text-blue-400' 
                                                                     : 'text-red-500 dark:text-red-500'
                                                                 }`}>
                                                                     {cell.className}
@@ -846,50 +892,73 @@ const Dashboard: React.FC = () => {
     <Layout>
       <div className="space-y-6 animate-fade-in">
         
-        {/* HEADER */}
-        <div className="bg-[#2563eb] rounded-[2rem] p-6 md:p-8 text-white shadow-[0_8px_32px_rgba(37,99,235,0.4)] border border-white/20 relative overflow-hidden">
-             <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                 <Clock size={250} className="-mr-10 -mt-10" />
+        {/* HEADER - EBHINNEKA SIGNATURE BLUE */}
+        <div className="relative overflow-hidden rounded-[2rem] p-6 md:p-8 text-white bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-700 border border-blue-400/30 shadow-[0_8px_32px_rgba(37,99,235,0.35)]">
+            <div className="absolute -top-24 -right-24 w-80 h-80 bg-gradient-to-br from-white/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-24 -left-20 w-72 h-72 bg-gradient-to-tr from-indigo-500/20 to-transparent rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute top-0 right-0 p-4 opacity-10 text-white pointer-events-none">
+                 <Clock size={260} className="-mr-10 -mt-10" />
             </div>
+
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex items-center gap-5">
                     <div>
-                        <p className="text-white text-sm font-bold opacity-90 mb-0.5 tracking-wide">{greeting}</p>
-                        <h1 className="text-xl md:text-3xl font-extrabold leading-tight tracking-tight text-white mb-1 drop-shadow-md">{profile?.full_name}</h1>
-                        <p className="text-white/80 text-sm font-mono font-medium mb-3">
-                            {isAdmin ? 'Administrator' : (
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 mb-2 backdrop-blur-sm shadow-sm">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <p className="text-white text-xs font-bold tracking-wider uppercase">{greeting}</p>
+                        </div>
+                        <h1 className="text-2xl md:text-3xl font-black leading-tight tracking-tight text-white mb-1 drop-shadow-sm">
+                            {profile?.full_name}
+                        </h1>
+                        <p className="text-blue-100 text-sm font-mono font-medium mb-3 flex items-center gap-1.5">
+                            {isAdmin ? (
+                                <span className="text-white font-bold tracking-wide">Administrator</span>
+                            ) : (
                                 <>
-                                    {profile?.nip || 'NIPY -'} 
-                                    {profile?.jabatan_tambahan && profile?.jabatan_tambahan !== '-' && ` (${profile.jabatan_tambahan})`}
+                                    <span className="text-blue-100">{profile?.nip || 'NIPY -'}</span>
+                                    {profile?.jabatan_tambahan && profile?.jabatan_tambahan !== '-' && (
+                                        <span className="text-blue-200 font-sans font-medium text-xs">({profile.jabatan_tambahan})</span>
+                                    )}
                                 </>
                             )}
                         </p>
                         <div className="flex flex-wrap gap-2">
-                            {!isAdmin && profile?.mengajar_mapel && <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/20 backdrop-blur-md border border-blue-400/30 text-[10px] font-bold text-blue-100 uppercase tracking-wider">{profile.mengajar_mapel}</span>}
-                            {!isAdmin && profile?.wali_kelas && <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/20 backdrop-blur-md border border-blue-400/30 text-[10px] font-bold text-blue-100 uppercase tracking-wider shadow-sm">Wali Kelas {profile.wali_kelas}</span>}
+                            {!isAdmin && profile?.mengajar_mapel && (
+                                <span className="inline-flex items-center px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/25 text-[10px] font-bold text-white uppercase tracking-wider">
+                                    {profile.mengajar_mapel}
+                                </span>
+                            )}
+                            {!isAdmin && profile?.wali_kelas && (
+                                <span className="inline-flex items-center px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-[10px] font-black text-white uppercase tracking-wider shadow-sm">
+                                    Wali Kelas {profile.wali_kelas}
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>
                 
                 {!isAdmin && (
                     <div className="w-full md:w-auto mt-4 md:mt-0 flex flex-col items-center md:items-end">
-                        <p className="text-[11px] font-bold text-blue-200 mb-2 uppercase tracking-widest text-center md:text-right">Kinerja {currentMonthName}</p>
-                        <div className="bg-slate-100/5 rounded-2xl border border-slate-100/10 backdrop-blur-md w-full overflow-hidden shadow-inner">
-                            <div className="grid grid-cols-3 divide-x divide-white/20">
+                        <p className="text-[11px] font-extrabold text-blue-100 mb-2 uppercase tracking-widest text-center md:text-right flex items-center gap-1.5">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-300" />
+                            Kinerja {currentMonthName}
+                        </p>
+                        <div className="bg-slate-900/30 rounded-2xl border border-white/20 backdrop-blur-md w-full overflow-hidden shadow-inner">
+                            <div className="grid grid-cols-3 divide-x divide-white/15">
                                 <div className="p-4 py-5 flex flex-col items-center justify-center text-center">
-                                    <span className="text-2xl md:text-4xl font-extrabold leading-none tracking-tighter text-slate-100 drop-shadow-sm">{stats.totalMeetings}</span>
+                                    <span className="text-2xl md:text-4xl font-black leading-none tracking-tighter text-white drop-shadow-sm">{stats.totalMeetings}</span>
                                     <span className="text-[9px] md:text-[10px] font-bold text-blue-200 uppercase tracking-widest mt-1.5">Pertemuan</span>
                                 </div>
                                 <div className="p-4 py-5 flex flex-col items-center justify-center text-center">
                                     <div className="flex items-baseline gap-1">
-                                        <span className="text-2xl md:text-4xl font-extrabold leading-none tracking-tighter text-slate-100 drop-shadow-sm">{stats.totalJp}</span>
-                                        <span className="text-sm md:text-base font-medium opacity-60 text-slate-100">/ {stats.targetJp}</span>
+                                        <span className="text-2xl md:text-4xl font-black leading-none tracking-tighter text-white drop-shadow-sm">{stats.totalJp}</span>
+                                        <span className="text-sm md:text-base font-medium opacity-75 text-blue-100">/ {stats.targetJp}</span>
                                     </div>
                                     <span className="text-[9px] md:text-[10px] font-bold text-blue-200 uppercase tracking-widest mt-1.5">Total JP</span>
                                 </div>
                                 <div className="p-4 py-5 flex flex-col items-center justify-center text-center h-full">
                                     <div className={`inline-flex items-center px-3 py-1.5 rounded-full border backdrop-blur-md ${performanceColor}`}>
-                                        <span className="text-[9px] md:text-[10px] font-extrabold uppercase tracking-widest">{performanceStatus}</span>
+                                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">{performanceStatus}</span>
                                     </div>
                                 </div>
                             </div>
@@ -899,13 +968,29 @@ const Dashboard: React.FC = () => {
             </div>
         </div>
 
+        {/* NON-EFFECTIVE DAY NOTICE */}
+        {todayNonEffective && (
+            <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-2xl p-4 flex items-center justify-between text-blue-800 dark:text-blue-300 animate-fade-in shadow-sm">
+                <div className="flex items-center gap-3">
+                    <Calendar className="text-blue-600 dark:text-blue-400 flex-shrink-0" size={20} />
+                    <div>
+                        <p className="font-bold text-sm">Hari Ini Non-Efektif ({todayNonEffective.hours === 'Full Day' ? 'Libur Seharian' : `Jam ke: ${todayNonEffective.hours}`})</p>
+                        <p className="text-xs text-blue-600 dark:text-blue-400">{todayNonEffective.reason} • Tidak dihitung dalam beban target kinerja guru.</p>
+                    </div>
+                </div>
+                <span className="px-2.5 py-1 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold whitespace-nowrap">
+                    Tersinkron
+                </span>
+            </div>
+        )}
+
         {/* MAIN WIDGETS */}
         {!isAdmin && (
             <div className="flex flex-col gap-6">
                 {/* WALI KELAS ABSENCE WIDGET */}
                 {profile?.wali_kelas && (
-                    <div className="app-card rounded-[24px] p-5 relative overflow-hidden border border-slate-100/40 dark:border-slate-100/10 group hover:border-blue-200 transition-colors">
-                        <div className="absolute -top-6 -right-6 p-4 opacity-5 dark:opacity-10 pointer-events-none group-hover:opacity-10 transition-opacity rotate-12"><ClipboardList size={140} className="text-slate-800 dark:text-slate-100" /></div>
+                    <div className="app-card rounded-[24px] p-5 relative overflow-hidden border border-slate-200/80 dark:border-slate-700/80 group hover:border-blue-300 transition-all duration-300 shadow-sm">
+                        <div className="absolute -top-6 -right-6 p-4 opacity-5 dark:opacity-10 pointer-events-none group-hover:opacity-10 transition-opacity rotate-12"><ClipboardList size={140} className="text-blue-600 dark:text-blue-400" /></div>
 
                         <div className="flex flex-col md:flex-row gap-4 md:gap-8 relative z-10">
                             {/* Header Section (Left) */}
@@ -913,22 +998,22 @@ const Dashboard: React.FC = () => {
                                 <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center shadow-sm border transition-colors ${
                                     (homeroomAbsences.length > 0 || homeroomViolations.length > 0)
                                     ? 'bg-red-100 dark:bg-slate-900/30 border-red-300 dark:border-slate-900 text-red-600 dark:text-red-500' 
-                                    : 'bg-sky-100 dark:bg-blue-500/30 border-blue-300 dark:border-blue-500 text-blue-500 dark:text-blue-500'
+                                    : 'bg-blue-50 dark:bg-blue-900/40 border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400'
                                 }`}>
                                      {(homeroomAbsences.length > 0 || homeroomViolations.length > 0) ? <Bell size={20} className="animate-pulse text-red-500" /> : <CheckCircle2 size={22} />}
                                 </div>
                                 <div className="flex-1">
                                     <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-xs uppercase tracking-wide leading-relaxed">Rekap Absensi <br className="hidden md:block"/>Kelas {profile.wali_kelas}</h3>
-                                    <p className={`text-[10px] font-bold mt-1 leading-tight ${homeroomAbsences.length > 0 ? 'text-blue-600 dark:text-blue-500' : 'text-blue-500 dark:text-blue-500'}`}>
+                                    <p className={`text-[10px] font-bold mt-1 leading-tight ${(homeroomAbsences.length > 0 || homeroomViolations.length > 0) ? 'text-blue-700 dark:text-blue-300' : 'text-blue-600 dark:text-blue-400'}`}>
                                         {homeroomAbsences.length > 0 || homeroomViolations.length > 0 ? `${homeroomAbsences.length} Absen, ${homeroomViolations.length} Pelanggaran` : 'Semua Hadir & Tertib'}
                                     </p>
                                     
                                     <button 
                                         onClick={toggleInputForm}
-                                        className={`mt-3 w-full text-[10px] py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-md shadow-blue-200 dark:shadow-none transition-all active:scale-95 ${
+                                        className={`mt-3 w-full text-[10px] py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95 ${
                                             showInputForm 
-                                            ? 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-200'
-                                            : 'bg-blue-600 hover:bg-blue-700 text-slate-100'
+                                            ? 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-200 shadow-none'
+                                            : 'bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-blue-500/20'
                                         }`}
                                     >
                                         {showInputForm ? <ChevronUp size={12}/> : <Plus size={12}/>} 
@@ -942,10 +1027,10 @@ const Dashboard: React.FC = () => {
                                 
                                 {/* ACCORDION INPUT FORM (Moved Here, above Date Picker) */}
                                 {showInputForm && (
-                                    <div className="mb-2 p-4 border-2 border-blue-200/50 dark:border-slate-600/50 rounded-[20px] bg-slate-100/50 dark:bg-slate-900/50 backdrop-blur-md animate-fade-in shadow-sm">
+                                    <div className="mb-2 p-4 border-2 border-blue-500/30 dark:border-blue-500/30 rounded-[20px] bg-blue-50/50 dark:bg-blue-950/20 backdrop-blur-md animate-fade-in shadow-sm">
                                         <div className="flex justify-between items-center mb-3">
                                             <h4 className="font-bold text-slate-700 dark:text-slate-100 text-xs flex items-center gap-2">
-                                                <Edit2 size={14} className="text-blue-500"/> Input Absensi: {formatDateIndo(filterDate)}
+                                                <Edit2 size={14} className="text-blue-600 dark:text-blue-400"/> Input Absensi: {formatDateIndo(filterDate)}
                                             </h4>
                                             <button 
                                                 onClick={() => setModalAttendance({})}
@@ -955,7 +1040,7 @@ const Dashboard: React.FC = () => {
                                             </button>
                                         </div>
 
-                                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar border border-slate-100 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-700/30">
+                                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800">
                                             <div className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600 px-3 py-2 flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-300 uppercase">
                                                 <div className="flex-1">NAMA MURID</div>
                                                 <div className="flex gap-1.5 w-24 justify-end">
@@ -966,7 +1051,7 @@ const Dashboard: React.FC = () => {
                                             </div>
                                             <div className="divide-y divide-slate-100 dark:divide-slate-700">
                                                 {modalStudents.map(student => (
-                                                    <div key={student.id} className="flex items-center justify-between px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors">
+                                                    <div key={student.id} className="flex items-center justify-between px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                                                         <div className="flex-1 pr-2">
                                                             <p className="text-xs font-bold text-slate-700 dark:text-slate-200 line-clamp-1">{student.name}</p>
                                                         </div>
@@ -977,8 +1062,8 @@ const Dashboard: React.FC = () => {
                                                                     onClick={() => toggleModalStatus(student.id, status as any)}
                                                                     className={`w-7 h-7 rounded-md flex items-center justify-center border transition-all text-[10px] font-bold ${
                                                                         modalAttendance[student.id] === status
-                                                                        ? (status === 'S' ? 'bg-blue-500 border-blue-500 text-slate-100' : status === 'I' ? 'bg-blue-500 border-blue-600 text-slate-100' : 'bg-blue-600 border-blue-600 text-slate-100')
-                                                                        : 'border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-900 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                                                        ? 'bg-blue-600 text-white font-bold border-blue-600 shadow-sm'
+                                                                        : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
                                                                     }`}
                                                                 >
                                                                     {status}
@@ -994,7 +1079,7 @@ const Dashboard: React.FC = () => {
                                             <button 
                                                 onClick={handleSaveHomeroomAttendance}
                                                 disabled={savingAttendance}
-                                                className="bg-blue-600 hover:bg-blue-700 text-slate-100 px-4 py-2 rounded-xl font-bold flex items-center gap-2 shadow-md shadow-blue-200 dark:shadow-none disabled:opacity-50 transition-all text-xs"
+                                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 shadow-md shadow-blue-500/25 disabled:opacity-50 transition-all text-xs"
                                             >
                                                 {savingAttendance ? <Loader2 className="animate-spin" size={14}/> : <Save size={14} />} 
                                                 Simpan
@@ -1005,14 +1090,14 @@ const Dashboard: React.FC = () => {
 
                                 <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700">
                                     <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                                        <CalendarDays size={14} />
+                                        <CalendarDays size={14} className="text-blue-600 dark:text-blue-400" />
                                         <span className="text-[10px] font-bold uppercase tracking-wide">Tanggal Rekap</span>
                                     </div>
                                     <input 
                                         type="date" 
                                         value={filterDate}
                                         onChange={(e) => setFilterDate(e.target.value)}
-                                        className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg py-1 px-2 text-xs font-bold text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg py-1 px-2 text-xs font-bold text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
                                     />
                                 </div>
 
@@ -1039,18 +1124,18 @@ const Dashboard: React.FC = () => {
                                             </div>
                                         </div>
                                     )}
-                                    <div className="flex flex-wrap gap-x-8 gap-y-6">
-                                        <AbsenceSection title="ALPA" list={listAlpa} colorClass="text-blue-600 dark:text-blue-500" icon={XCircle} onEdit={handleEditSpecific} />
-                                        <AbsenceSection title="IZIN" list={listIzin} colorClass="text-blue-600 dark:text-blue-400" icon={FileText} onEdit={handleEditSpecific} />
-                                        <AbsenceSection title="SAKIT" list={listSakit} colorClass="text-blue-500 dark:text-blue-500" icon={Stethoscope} onEdit={handleEditSpecific} />
-                                        <AbsenceSection title="DISPEN" list={listDispen} colorClass="text-blue-600 dark:text-blue-500" icon={Flag} onEdit={handleEditSpecific} />
-                                    </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
+                                     <div className="flex flex-wrap gap-x-8 gap-y-6">
+                                         <AbsenceSection title="ALPA" list={listAlpa} colorClass="text-red-600 dark:text-red-400" icon={XCircle} onEdit={handleEditSpecific} />
+                                         <AbsenceSection title="IZIN" list={listIzin} colorClass="text-amber-600 dark:text-amber-400" icon={FileText} onEdit={handleEditSpecific} />
+                                         <AbsenceSection title="SAKIT" list={listSakit} colorClass="text-sky-600 dark:text-sky-400" icon={Stethoscope} onEdit={handleEditSpecific} />
+                                         <AbsenceSection title="DISPEN" list={listDispen} colorClass="text-purple-600 dark:text-purple-400" icon={Flag} onEdit={handleEditSpecific} />
+                                     </div>
+                                     </div>
+                                 )}
+                             </div>
+                         </div>
+                     </div>
+                 )}
 
                 {/* STAFF ATTENDANCE BUTTON */}
                 {profile?.jabatan_tambahan === 'Staff' && (
@@ -1061,7 +1146,7 @@ const Dashboard: React.FC = () => {
                             className={`w-full p-4 rounded-2xl flex flex-col justify-center items-center gap-2 font-extrabold transition-all duration-300 shadow-md border ${
                                 staffAttendanceDatang || (!staffAttendanceDatang && isDatangMissed)
                                 ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed' 
-                                : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white border-blue-500 hover:shadow-xl hover:-translate-y-1'
+                                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold border-blue-500 shadow-blue-500/20 hover:shadow-xl hover:-translate-y-1'
                             }`}
                         >
                             {savingStaffAttendance && !staffAttendanceDatang ? (
@@ -1098,7 +1183,7 @@ const Dashboard: React.FC = () => {
                 )}
 
                 {/* KBM STATUS TABLE */}
-                <div className="app-card p-5">
+                <div className="app-card p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-sm hover:border-blue-300 transition-colors">
                     <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-sm mb-4 uppercase tracking-wide flex items-center gap-2">
                         <CheckCircle2 size={16} className="text-blue-600 dark:text-blue-400"/>
                         Keterlaksanaan KBM Hari Ini Di Kelas
@@ -1108,7 +1193,7 @@ const Dashboard: React.FC = () => {
                             <thead>
                                 <tr className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
                                     {kbmStatus.map((status) => (
-                                        <th key={status.hour} className="py-2 px-1 border-r border-slate-100 dark:border-slate-700 last:border-0 font-extrabold text-slate-600 dark:text-slate-300 w-[12.5%]">
+                                        <th key={status.hour} className="py-2 px-1 border-r border-slate-100 dark:border-slate-700 last:border-0 font-extrabold text-slate-700 dark:text-slate-200 w-[12.5%]">
                                             {status.hour}
                                         </th>
                                     ))}
@@ -1121,9 +1206,9 @@ const Dashboard: React.FC = () => {
                                             <div className="flex flex-col items-center justify-center min-h-[3rem]">
                                                 {status.isScheduled ? (
                                                     status.className.split(' / ').map((cls, idx) => (
-                                                        <span key={idx} className={`block font-extrabold text-xl md:text-2xl ${
+                                                        <span key={idx} className={`block font-black text-xl md:text-2xl ${
                                                             status.isFilled 
-                                                            ? 'text-blue-500 dark:text-blue-400' 
+                                                            ? 'text-blue-600 dark:text-blue-400' 
                                                             : 'text-red-500 dark:text-red-500'
                                                         }`}>
                                                             {cls}
@@ -1142,21 +1227,21 @@ const Dashboard: React.FC = () => {
                 </div>
                 
                 {/* CLASS PROGRESS WIDGET */}
-                <div className="app-card rounded-[24px] p-6 relative overflow-hidden border border-slate-100/40 dark:border-slate-100/10">
-                    <div className="absolute -bottom-10 -right-6 p-4 opacity-5 pointer-events-none rotate-12"><BookOpen size={180} className="text-slate-900 dark:text-slate-100" /></div>
-                    <h3 className="relative z-10 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-6 flex items-center gap-2 tracking-wide"><TrendingUp size={16} className="text-blue-500"/> Distribusi Pertemuan Kelas ({new Date().toLocaleDateString('id-ID', { month: 'long' })})</h3>
+                <div className="app-card rounded-[24px] p-6 relative overflow-hidden border border-slate-200/80 dark:border-slate-700/80 shadow-sm hover:border-blue-300 transition-colors">
+                    <div className="absolute -bottom-10 -right-6 p-4 opacity-5 pointer-events-none rotate-12"><BookOpen size={180} className="text-blue-600 dark:text-blue-400" /></div>
+                    <h3 className="relative z-10 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-6 flex items-center gap-2 tracking-wide"><TrendingUp size={16} className="text-blue-600 dark:text-blue-400"/> Distribusi Pertemuan Kelas ({new Date().toLocaleDateString('id-ID', { month: 'long' })})</h3>
                     <div className="relative z-10 space-y-3">
                         {stats.monthJournals.length === 0 ? (
                             <div className="py-8 text-center text-sm text-slate-400 dark:text-slate-500 font-medium italic bg-slate-50 dark:bg-slate-700/50 rounded-2xl border border-slate-100 dark:border-slate-700 border-dashed">Belum ada data mengajar bulan ini.</div>
                         ) : (
                             stats.monthJournals.map((j) => (
-                                <div key={j.id} className="flex flex-col p-4 rounded-2xl bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-700 hover:border-blue-200 transition-colors group relative overflow-hidden">
+                                <div key={j.id} className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 hover:border-blue-300 transition-all group relative overflow-hidden">
                                     <div className="flex items-center justify-between relative z-10">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-lg shadow-sm border border-blue-200 dark:border-blue-800 min-w-[3rem]">{j.kelas}</div>
+                                            <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-lg shadow-sm border border-blue-200 dark:border-blue-800 min-w-[3rem]">{j.kelas}</div>
                                             <div>
-                                                <h4 className="font-bold text-slate-700 dark:text-slate-100 text-sm flex items-center gap-2">Kelas {j.kelas}</h4>
-                                                <p className="text-xs text-blue-500 dark:text-blue-400 font-bold flex items-center gap-1">
+                                                <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2">Kelas {j.kelas}</h4>
+                                                <p className="text-xs text-blue-600 dark:text-blue-400 font-bold flex items-center gap-1">
                                                     <Calendar size={10} /> 
                                                     {new Date(j.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}
                                                 </p>
@@ -1164,12 +1249,12 @@ const Dashboard: React.FC = () => {
                                         </div>
                                     </div>
                                     <div className="mt-3 relative z-10">
-                                        <p className="text-xs font-bold text-slate-500 mb-1">Materi yang diajar:</p>
-                                        <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3">
+                                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Materi yang diajar:</p>
+                                        <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-3">
                                             {j.material}
                                         </p>
                                     </div>
-                                    <div className="absolute bottom-0 left-0 h-1 bg-blue-500/10 w-full"><div className="h-full bg-blue-500/30" style={{ width: '100%' }}></div></div>
+                                    <div className="absolute bottom-0 left-0 h-1 bg-blue-100 dark:bg-blue-950 w-full"><div className="h-full bg-blue-600" style={{ width: '100%' }}></div></div>
                                 </div>
                             ))
                         )}
@@ -1180,18 +1265,18 @@ const Dashboard: React.FC = () => {
 
         {/* MODAL EDIT SPECIFIC - TOP ALIGNED & MODERN */}
         {showEditSpecificModal && (
-            <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[calc(env(safe-area-inset-top)+1rem)] sm:p-4 bg-slate-900/50 backdrop-blur-sm transition-all duration-300">
-                <div className="bg-slate-100 dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-700 relative flex flex-col max-h-[80vh] transform transition-all scale-100 animate-fade-in">
+            <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[calc(env(safe-area-inset-top)+1rem)] sm:p-4 bg-slate-900/60 backdrop-blur-sm transition-all duration-300">
+                <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 relative flex flex-col max-h-[80vh] transform transition-all scale-100 animate-fade-in">
                     
                     {/* Header */}
-                    <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-100 dark:bg-slate-900">
+                    <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-900">
                         <div>
                             <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg">Edit Data {editingCategory}</h3>
                             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Ubah status / Tambah catatan</p>
                         </div>
                         <button 
                             onClick={() => setShowEditSpecificModal(false)} 
-                            className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition-colors"
+                            className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-600 transition-colors"
                         >
                             <X size={20} />
                         </button>
@@ -1199,7 +1284,7 @@ const Dashboard: React.FC = () => {
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4 bg-slate-50/50 dark:bg-slate-900/50">
                         {specificAbsenceData.map((item, idx) => (
-                            <div key={idx} className="bg-slate-100 dark:bg-slate-700/50 rounded-xl p-4 border border-slate-200 dark:border-slate-600 shadow-sm">
+                            <div key={idx} className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm">
                                 <p className="font-bold text-slate-800 dark:text-slate-100 mb-3 text-sm">{item.student_name}</p>
                                 
                                 <div className="flex gap-2 mb-3">
@@ -1209,9 +1294,7 @@ const Dashboard: React.FC = () => {
                                             onClick={() => updateSpecificRow(idx, 'newStatus', status)}
                                             className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
                                                 item.newStatus === status 
-                                                ? (status === 'S' ? 'bg-blue-300 border-blue-300 text-blue-500 dark:bg-blue-500 dark:border-blue-500 dark:text-blue-300' : 
-                                                   status === 'I' ? 'bg-blue-100 border-blue-200 text-blue-700 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-100' :
-                                                   status === 'A' ? 'bg-blue-300 border-blue-300 text-blue-600 dark:bg-blue-600 dark:border-blue-600 dark:text-blue-300' : 'bg-sky-100 border-blue-300 text-blue-600 dark:bg-slate-900 dark:border-blue-600 dark:text-sky-100')
+                                                ? 'bg-blue-600 text-white font-bold border-blue-600 shadow-sm'
                                                 : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-600 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
                                             }`}
                                         >
@@ -1223,7 +1306,7 @@ const Dashboard: React.FC = () => {
                                 <div>
                                     <input 
                                         type="text" 
-                                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 w-full border border-slate-200 dark:border-slate-600 dark:/50 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-blue-500 dark: transition-all placeholder:"
+                                        className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-900 w-full border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-400"
                                         placeholder="Catatan (Opsional)..."
                                         value={item.note}
                                         onChange={(e) => updateSpecificRow(idx, 'note', e.target.value)}
@@ -1233,11 +1316,11 @@ const Dashboard: React.FC = () => {
                         ))}
                     </div>
 
-                    <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-100 dark:bg-slate-900">
+                    <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900">
                         <button 
                             onClick={handleSaveSpecific}
                             disabled={savingAttendance}
-                            className="w-full bg-slate-900 dark:bg-blue-600 hover:bg-slate-900 dark:hover:bg-blue-700 text-slate-100 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 transition-all"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 disabled:opacity-50 transition-all"
                         >
                             {savingAttendance ? <Loader2 className="animate-spin" size={18}/> : <Save size={18} />} 
                             Simpan Perubahan

@@ -76,7 +76,7 @@ const RekapDhuha: React.FC = () => {
             if (settings.academic_year === '2025/2026' || !settings.academic_year) students = res.data;
             else students = [];
         }
-        if (!students) throw new Error("Tidak ada siswa");
+        if (!students) throw new Error("Tidak ada murid");
         const start = `${startDate}T00:00:00+07:00`;
         const end = `${endDate}T23:59:59+07:00`;
         const { data: journals } = await supabase.from('journals').select('id').eq('academic_year', academicYear || '2025/2026').eq('semester', semester || 'Ganjil').gte('created_at', semesterStart ? `${semesterStart}T00:00:00+07:00` : '2000-01-01T00:00:00+07:00').lte('created_at', semesterEnd ? `${semesterEnd}T23:59:59+07:00` : '2100-01-01T23:59:59+07:00').eq('kelas', selectedClass).ilike('subject', '%dhuha%').gte('created_at', start).lte('created_at', end);

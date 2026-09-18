@@ -219,7 +219,7 @@ export const Layout: React.FC<{ children: React.ReactNode; showNav?: boolean; co
                             {!collapsed && <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Data Master</div>}
                         </div>
                         <NavItem path="/users" label="Data Akun" icon={Users} />
-                        <NavItem path="/students" label="Data Siswa" icon={GraduationCap} />
+                        <NavItem path="/students" label="Data Murid" icon={GraduationCap} />
                         <NavItem path="/import-data" label="Import Data" icon={Upload} />
                         <NavItem path="/input-manual" label="Input Manual" icon={Edit3} />
 

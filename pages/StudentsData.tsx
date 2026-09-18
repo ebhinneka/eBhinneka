@@ -110,7 +110,7 @@ const StudentsData: React.FC = () => {
           return;
       }
       
-      const confirmMsg = `Apakah Anda yakin memproses kenaikan kelas dari ${academicYear} ke ${targetYear}?\n\nSiswa Kelas 7 akan naik ke Kelas 8.\nSiswa Kelas 8 akan naik ke Kelas 9.\nSiswa Kelas 9 akan diluluskan (Data tidak disalin ke tahun ajaran baru).`;
+      const confirmMsg = `Apakah Anda yakin memproses kenaikan kelas dari ${academicYear} ke ${targetYear}?\n\nMurid Kelas 7 akan naik ke Kelas 8.\nMurid Kelas 8 akan naik ke Kelas 9.\nMurid Kelas 9 akan diluluskan (Data tidak disalin ke tahun ajaran baru).`;
       if (!window.confirm(confirmMsg)) return;
       
       setKenaikanLoading(true);
@@ -163,7 +163,7 @@ const StudentsData: React.FC = () => {
               
           if (insertErr) {
               if (insertErr.code === '23505') {
-                  throw new Error('Beberapa siswa sudah ada di tahun ajaran tujuan. Kenaikan kelas mungkin sudah diproses.');
+                  throw new Error('Beberapa murid sudah ada di tahun ajaran tujuan. Kenaikan kelas mungkin sudah diproses.');
               }
               throw insertErr;
           }

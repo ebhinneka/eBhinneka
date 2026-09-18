@@ -54,7 +54,7 @@ const InputManual: React.FC = () => {
 
   const downloadTemplate = () => {
     // SINGLE UNIVERSAL TEMPLATE
-    const csvContent = "Tanggal;Jam Ke;Kelas;Mapel;Materi;NIPY Guru;Nama Murid;Status Absensi;Kategori Pelanggaran;Tindak Lanjut;Catatan\n2024-01-20;1-2;7A;Matematika;Aljabar Dasar;19800101xxx;;;Tidur di Kelas;Teguran Lisan;Siswa mengantuk\n2024-01-20;1-2;7A;Matematika;Aljabar Dasar;19800101xxx;Budi Santoso;S;;;\n2024-01-20;3-4;8B;IPA;Hukum Newton;19900202xxx;;;;;";
+    const csvContent = "Tanggal;Jam Ke;Kelas;Mapel;Materi;NIPY Guru;Nama Murid;Status Absensi;Kategori Pelanggaran;Tindak Lanjut;Catatan\n2024-01-20;1-2;7A;Matematika;Aljabar Dasar;19800101xxx;;;Tidur di Kelas;Teguran Lisan;Murid mengantuk\n2024-01-20;1-2;7A;Matematika;Aljabar Dasar;19800101xxx;Budi Santoso;S;;;\n2024-01-20;3-4;8B;IPA;Hukum Newton;19900202xxx;;;;;";
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
@@ -274,7 +274,7 @@ const InputManual: React.FC = () => {
           setFailedRows(failedData);
           setStatus({ 
               type: failedData.length > 0 ? 'error' : 'success', 
-              msg: `Proses Selesai. Jurnal: ${journalCreatedCount}, Log Siswa: ${logsInsertedCount}. Gagal: ${failedData.length}.` 
+              msg: `Proses Selesai. Jurnal: ${journalCreatedCount}, Log Murid: ${logsInsertedCount}. Gagal: ${failedData.length}.` 
           });
           
           if(failedData.length === 0) {
@@ -319,7 +319,7 @@ const InputManual: React.FC = () => {
                 <div>
                     <p className="font-bold text-lg mb-2">Panduan Format Universal:</p>
                     <ul className="list-disc ml-4 space-y-1 text-blue-800">
-                        <li><strong>Satu baris = Satu kejadian.</strong> Jika 1 jurnal memiliki 3 siswa yang absen, buat 3 baris dengan data Jurnal (Tanggal, Guru, Mapel) yang sama.</li>
+                        <li><strong>Satu baris = Satu kejadian.</strong> Jika 1 jurnal memiliki 3 murid yang absen, buat 3 baris dengan data Jurnal (Tanggal, Guru, Mapel) yang sama.</li>
                         <li>Sistem otomatis menggabungkan baris dengan Jurnal yang sama menjadi <strong>1 ID Jurnal</strong>.</li>
                         <li>Kolom <strong>Nama Murid</strong> boleh dikosongkan jika baris tersebut hanya untuk mencatat Jurnal Mengajar (tanpa absen/pelanggaran).</li>
                         <li>Format Tanggal: <strong>YYYY-MM-DD</strong>. Pemisah CSV: <strong>Titik Koma (;)</strong>.</li>

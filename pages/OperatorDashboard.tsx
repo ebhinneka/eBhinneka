@@ -180,7 +180,7 @@ const OperatorDashboard: React.FC = () => {
           setStudentClassCounts(classCounts);
 
           const uniqueAbsenceMap: Record<string, {name: string, status: string, kelas: string}> = {};
-          homeroomLogs.forEach((h: any) => { if (['S', 'I', 'A'].includes(h.status)) { uniqueAbsenceMap[h.student_id] = { name: studentNameMap[h.student_id] || 'Siswa', status: h.status, kelas: studentClassMap[h.student_id] || h.kelas || '?' }; } });
+          homeroomLogs.forEach((h: any) => { if (['S', 'I', 'A'].includes(h.status)) { uniqueAbsenceMap[h.student_id] = { name: studentNameMap[h.student_id] || 'Murid', status: h.status, kelas: studentClassMap[h.student_id] || h.kelas || '?' }; } });
           attendanceLogs.forEach((log: any) => { if (!uniqueAbsenceMap[log.student_id]) { if (['S', 'I', 'A'].includes(log.status)) { uniqueAbsenceMap[log.student_id] = { name: log.student_name, status: log.status, kelas: studentClassMap[log.student_id] || '?' }; } } });
 
           const absenceListFinal = Object.values(uniqueAbsenceMap).sort((a,b) => a.kelas.localeCompare(b.kelas) || a.name.localeCompare(b.name));
@@ -316,7 +316,7 @@ const OperatorDashboard: React.FC = () => {
                         <div>
                             <div className="flex items-center gap-2 mb-4"><Bookmark size={16} className="text-blue-600 fill-blue-600"/><h4 className="font-bold text-slate-700 text-sm">Rincian Per Kelas</h4></div>
                             <div className="space-y-3">
-                                {allUniqueClasses.length === 0 ? <div className="text-center text-xs text-slate-400 italic">Belum ada data siswa/kelas.</div> : allUniqueClasses.map(cls => {
+                                {allUniqueClasses.length === 0 ? <div className="text-center text-xs text-slate-400 italic">Belum ada data murid/kelas.</div> : allUniqueClasses.map(cls => {
                                         const studentsInClass = groupedAbsence[cls] || [];
                                         const totalStudents = studentClassCounts[cls] || 0;
                                         const absentCount = studentsInClass.length;

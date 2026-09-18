@@ -129,7 +129,7 @@ const RekapAbsensi: React.FC = () => {
             .eq('kelas', selectedClass)
             .order('name');
         
-        if (!students) throw new Error("Tidak ada siswa");
+        if (!students) throw new Error("Tidak ada murid");
 
         const { data: journals } = await supabase
             .from('journals')
