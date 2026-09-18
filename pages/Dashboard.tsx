@@ -483,6 +483,23 @@ const Dashboard: React.FC = () => {
       }
   };
 
+  useEffect(() => {
+      if (showInputForm && profile?.wali_kelas && modalStudents.length > 0) {
+          const reloadModalAttendance = async () => {
+              const { data: existing } = await supabase
+                 .from('homeroom_attendance')
+                 .select('student_id, status')
+                 .eq('date', filterDate)
+                 .in('student_id', modalStudents.map(s => s.id));
+              
+              const attMap: Record<string, 'S'|'I'|'A'|'D'> = {};
+              existing?.forEach(log => { attMap[log.student_id] = log.status as any; });
+              setModalAttendance(attMap);
+          };
+          reloadModalAttendance();
+      }
+  }, [filterDate]);
+
   const handleSaveHomeroomAttendance = async () => {
       if (!profile?.wali_kelas) return;
       setSavingAttendance(true);

@@ -39,27 +39,28 @@ const StudentsData: React.FC = () => {
 
   useEffect(() => {
     fetchStudents();
-  }, [filterClass]); 
+  }, [filterClass, academicYear]); 
 
   useEffect(() => {
     if (modalType === 'keluar' && mutasiKeluarData.kelas) {
         const fetchClassStudents = async () => {
-             let { data, error } = await supabase.from('students').select('*').eq('academic_year', academicYear || '2025/2026').eq('kelas', mutasiKeluarData.kelas).eq('academic_year', academicYear || '2025/2026').order('name');
-          if (error && (error.code === '42703' || error.message?.includes('academic_year'))) {
-              const res = await supabase.from('students').select('*').eq('academic_year', academicYear || '2025/2026').eq('kelas', mutasiKeluarData.kelas).order('name');
-              if (academicYear === '2025/2026') data = res.data;
-              else data = [];
-          }
+             const activeYear = academicYear || (typeof localStorage !== 'undefined' ? localStorage.getItem('app_academic_year') : null) || '2026/2027';
+             let { data, error } = await supabase.from('students').select('*').eq('academic_year', activeYear).eq('kelas', mutasiKeluarData.kelas).order('name');
+             if (error && (error.code === '42703' || error.message?.includes('academic_year'))) {
+                 const res = await supabase.from('students').select('*').eq('kelas', mutasiKeluarData.kelas).order('name');
+                 data = res.data;
+             }
              setStudentsForDropdown(data || []);
         };
         fetchClassStudents();
     }
-  }, [modalType, mutasiKeluarData.kelas]);
+  }, [modalType, mutasiKeluarData.kelas, academicYear]);
 
   const fetchStudents = async () => {
     setLoading(true);
     try {
-      let all = await fetchAllStudents(academicYear || '2025/2026');
+      const activeYear = academicYear || (typeof localStorage !== 'undefined' ? localStorage.getItem('app_academic_year') : null) || '2026/2027';
+      let all = await fetchAllStudents(activeYear);
       if (filterClass) all = all.filter(s => s.kelas === filterClass);
       
       // Sort
@@ -183,21 +184,53 @@ const StudentsData: React.FC = () => {
       }
       setSaving(true);
       try {
+          // Resolve current active academic year
+          let targetAcademicYear = academicYear;
+          if (!targetAcademicYear) {
+              const localYear = typeof localStorage !== 'undefined' ? localStorage.getItem('app_academic_year') : null;
+              targetAcademicYear = localYear || '2026/2027';
+          }
+          // If still unsure, verify from app_settings
+          if (!targetAcademicYear || targetAcademicYear === '2025/2026') {
+              const { data: settingData } = await supabase.from('app_settings').select('value').eq('key', 'academic_year').maybeSingle();
+              if (settingData?.value) {
+                  targetAcademicYear = settingData.value;
+              }
+          }
+          if (!targetAcademicYear) targetAcademicYear = '2026/2027';
+
+          // Auto-detect jenjang from class (e.g. 7A -> 7, 8B -> 8, 9C -> 9)
+          const detectedJenjang = formData.kelas.startsWith('7') ? '7' : formData.kelas.startsWith('8') ? '8' : formData.kelas.startsWith('9') ? '9' : (formData.jenjang || '7');
+
           const payload = { 
-                nisn: formData.nisn, 
-                nis: formData.nis, 
-                name: formData.name, 
-                kelas: formData.kelas,
-                gender: formData.gender,
-                jenjang: formData.jenjang,
-                academic_year: academicYear || '2025/2026'
-            };
+                nisn: formData.nisn.trim(), 
+                nis: formData.nis ? formData.nis.trim() : formData.nisn.trim(), 
+                name: formData.name.trim().toUpperCase(), 
+                kelas: formData.kelas.trim(),
+                gender: formData.gender || 'L',
+                jenjang: detectedJenjang,
+                academic_year: targetAcademicYear
+          };
 
           if (editingId) {
               const { error } = await supabase.from('students').update(payload).eq('id', editingId);
               if (error) throw error;
-              setStudents(prev => prev.map(s => s.id === editingId ? { ...s, ...payload } as Student : s));
+              alert(`Data murid ${payload.name} berhasil diperbarui!`);
           } else {
+              // Pre-check if NISN already exists in this academic year
+              const { data: existingStudent } = await supabase
+                  .from('students')
+                  .select('id, name, kelas')
+                  .eq('academic_year', targetAcademicYear)
+                  .eq('nisn', payload.nisn)
+                  .maybeSingle();
+
+              if (existingStudent) {
+                  alert(`NISN "${payload.nisn}" sudah terdaftar atas nama ${existingStudent.name} (Kelas ${existingStudent.kelas}) pada Tahun Ajaran ${targetAcademicYear}. Silakan gunakan NISN yang unik.`);
+                  setSaving(false);
+                  return;
+              }
+
               let { data, error } = await supabase.from('students').insert(payload).select().single();
               if (error && (error.code === '42703' || error.message?.includes('academic_year'))) {
                   const { academic_year, ...rest } = payload as any;
@@ -205,12 +238,19 @@ const StudentsData: React.FC = () => {
                   data = res.data;
                   error = res.error;
               }
-              if (error) throw error;
-              if (data) setStudents(prev => [...prev, data].sort((a,b) => a.kelas.localeCompare(b.kelas) || a.name.localeCompare(b.name)));
+              if (error) {
+                  if (error.code === '23505' || error.message?.includes('unique') || error.message?.includes('duplicate')) {
+                      throw new Error(`NISN "${payload.nisn}" sudah digunakan oleh murid lain di Tahun Ajaran ${targetAcademicYear}.`);
+                  }
+                  throw error;
+              }
+              alert(`Berhasil menambahkan murid: ${payload.name} ke kelas ${payload.kelas} (Tahun Ajaran ${targetAcademicYear})!`);
           }
           setIsModalOpen(false);
+          await fetchStudents();
+          if (refreshClasses) await refreshClasses();
       } catch (err: any) {
-          alert("Gagal menyimpan: " + err.message);
+          alert("Gagal menyimpan: " + (err.message || 'Terjadi kesalahan sistem'));
       } finally {
           setSaving(false);
       }
@@ -263,6 +303,7 @@ const StudentsData: React.FC = () => {
           <div>
             <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
               <GraduationCap className="text-blue-600" /> Data Murid
+              <span className="text-xs font-bold px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg border border-blue-200">TA {academicYear || '2026/2027'}</span>
             </h2>
             <p className="text-slate-500 text-sm">Kelola data murid, mutasi masuk dan keluar.</p>
           </div>
@@ -350,6 +391,10 @@ const StudentsData: React.FC = () => {
 
                         {modalType === 'masuk' && (
                              <div className="space-y-4">
+                                <div className="bg-sky-50 dark:bg-sky-950/40 p-3 rounded-xl border border-sky-200 dark:border-sky-800/50 flex items-center justify-between text-xs">
+                                    <span className="text-slate-600 dark:text-slate-300 font-medium">Tahun Ajaran Pendaftaran:</span>
+                                    <span className="font-extrabold text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-sky-200 dark:border-sky-800 shadow-xs">{academicYear || '2026/2027'}</span>
+                                </div>
                                 <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Nama Lengkap</label><input className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 dark:border-slate-600" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Nama Murid" /></div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">NISN</label><input className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800  w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 dark:border-slate-600" value={formData.nisn} onChange={e => setFormData({...formData, nisn: e.target.value})} placeholder="001xxxx" /></div>

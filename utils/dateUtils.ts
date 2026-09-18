@@ -11,12 +11,18 @@ export const getWIBDate = (): Date => {
 
 // Mendapatkan String ISO (YYYY-MM-DD) berdasarkan WIB
 // Berguna untuk query database filter tanggal hari ini
-export const getWIBISOString = (): string => {
-  const date = getWIBDate();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+export const getWIBISOString = (dateInput?: Date | string): string => {
+  const d = dateInput 
+    ? (typeof dateInput === 'string' 
+        ? (dateInput.includes('T') ? new Date(dateInput) : new Date(`${dateInput}T12:00:00+07:00`)) 
+        : dateInput) 
+    : new Date();
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(d);
 };
 
 // Format Tanggal Lengkap Indonesia (Contoh: Senin, 20 Januari 2025)

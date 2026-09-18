@@ -27,14 +27,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [academicYear, setAcademicYear] = useState<string>('2025/2026');
-  const [semester, setSemester] = useState<string>('Genap');
+  const [academicYear, setAcademicYear] = useState<string>(() => {
+    try {
+      return localStorage.getItem('app_academic_year') || '2026/2027';
+    } catch {
+      return '2026/2027';
+    }
+  });
+  const [semester, setSemester] = useState<string>(() => {
+    try {
+      return localStorage.getItem('app_semester') || 'Genap';
+    } catch {
+      return 'Genap';
+    }
+  });
   const [semesterStart, setSemesterStart] = useState<string>('');
   const [semesterEnd, setSemesterEnd] = useState<string>('');
   const [activeScheduleVersion, setActiveScheduleVersion] = useState<string>('Utama');
   const [availableClasses, setAvailableClasses] = useState<string[]>([]);
 
-  
   const refreshClasses = async () => {
     try {
         if (!isSupabaseConfigured) return;
@@ -60,17 +71,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const fetchSettings = async () => {
       try {
         if (!isSupabaseConfigured) return;
-        await refreshClasses();
+        // Fetch app_settings FIRST so academicYear and semester are ready immediately!
         const { data } = await supabase.from('app_settings').select('key, value').in('key', ['academic_year', 'semester', 'active_schedule_version', 'semester_start', 'semester_end']);
         if (data) {
            data.forEach(item => {
-               if (item.key === 'academic_year' && item.value) setAcademicYear(item.value);
-               if (item.key === 'semester' && item.value) setSemester(item.value);
+               if (item.key === 'academic_year' && item.value) {
+                   setAcademicYear(item.value);
+                   try { localStorage.setItem('app_academic_year', item.value); } catch {}
+               }
+               if (item.key === 'semester' && item.value) {
+                   setSemester(item.value);
+                   try { localStorage.setItem('app_semester', item.value); } catch {}
+               }
                if (item.key === 'active_schedule_version' && item.value) setActiveScheduleVersion(item.value);
                if (item.key === 'semester_start' && item.value) setSemesterStart(item.value);
                if (item.key === 'semester_end' && item.value) setSemesterEnd(item.value);
            });
         }
+        await refreshClasses();
       } catch (e) {
           console.error("Error fetching settings for auth context", e);
       }

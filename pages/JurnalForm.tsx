@@ -225,8 +225,8 @@ const JurnalForm: React.FC = () => {
           }
           setNotesData(loadedNotes);
           setFormData({ kelas: existing.kelas, subject: existing.subject, hours: existing.hours.split(',').map(s => s.trim()), material: existing.material, attendance: attendanceMap, cleanliness: existing.cleanliness as any, validation: existing.validation as any, notes: existing.notes || '', isConfirmed: existing.validation === 'hadir_kbm' });
-          const todayStr = getWIBISOString();
-          supabase.from('homeroom_attendance').select('student_id, status').eq('date', todayStr).eq('kelas', existing.kelas).then(({data, error}) => { console.log('Homeroom attendance err:', error); 
+          const journalDate = existing.created_at ? getWIBISOString(existing.created_at) : getWIBISOString();
+          supabase.from('homeroom_attendance').select('student_id, status').eq('date', journalDate).eq('kelas', existing.kelas).then(({data, error}) => { console.log('Homeroom attendance err:', error); 
               if (data && data.length > 0) { 
                   const locked: Record<string, boolean> = {}; 
                   const updatedAtt = {...attendanceMap};
@@ -278,7 +278,9 @@ const JurnalForm: React.FC = () => {
             journalError = fallbackRes.error;
         } if (journalError) throw journalError; finalJournalId = journal.id; }
       if (finalJournalId) {
-          const attendanceInserts = Object.entries(formData.attendance).map(([studentId, status]) => { const studentName = students.find(s => s.id === studentId)?.name || 'Unknown'; return { journal_id: finalJournalId, student_id: studentId, student_name: studentName, status: status, teacher_name: profile.full_name, subject: formData.subject, academic_year: academicYear || '2025/2026', semester: semester || 'Ganjil' }; });
+          const activeYear = academicYear || (typeof localStorage !== 'undefined' ? localStorage.getItem('app_academic_year') : null) || '2026/2027';
+          const activeSem = semester || (typeof localStorage !== 'undefined' ? localStorage.getItem('app_semester') : null) || 'Genap';
+          const attendanceInserts = Object.entries(formData.attendance).map(([studentId, status]) => { const studentName = students.find(s => s.id === studentId)?.name || 'Unknown'; return { journal_id: finalJournalId, student_id: studentId, student_name: studentName, status: status, teacher_name: profile.full_name, subject: formData.subject, academic_year: activeYear, semester: activeSem }; });
           if (attendanceInserts.length > 0) { let { error: attError } = await supabase.from('attendance_logs').insert(attendanceInserts);
           if (attError && (attError.code === '42703' || attError.message?.includes('academic_year') || attError.message?.includes('semester'))) {
               const fallbackAtts = attendanceInserts.map(a => {
@@ -289,8 +291,8 @@ const JurnalForm: React.FC = () => {
               attError = fallbackRes.error;
           } if (attError) throw attError; }
           const notesInserts: any[] = [];
-          notesData.discipline.forEach(row => { if (row.category && row.studentIds.length > 0) { row.studentIds.forEach(sid => { const sName = students.find(s => s.id === sid)?.name || 'Unknown'; notesInserts.push({ journal_id: finalJournalId, student_id: sid, student_name: sName, type: 'kedisiplinan', category: row.category, follow_up: row.followUp || '', note: row.note || '', academic_year: academicYear || '2025/2026', semester: semester || 'Ganjil' }); }); } });
-          notesData.activity.forEach(row => { if (row.category && row.studentIds.length > 0) { row.studentIds.forEach(sid => { const sName = students.find(s => s.id === sid)?.name || 'Unknown'; notesInserts.push({ journal_id: finalJournalId, student_id: sid, student_name: sName, type: 'keaktifan', category: row.category, follow_up: '', note: row.note || '', academic_year: academicYear || '2025/2026', semester: semester || 'Ganjil' }); }); } });
+          notesData.discipline.forEach(row => { if (row.category && row.studentIds.length > 0) { row.studentIds.forEach(sid => { const sName = students.find(s => s.id === sid)?.name || 'Unknown'; notesInserts.push({ journal_id: finalJournalId, student_id: sid, student_name: sName, type: 'kedisiplinan', category: row.category, follow_up: row.followUp || '', note: row.note || '', academic_year: activeYear, semester: activeSem }); }); } });
+          notesData.activity.forEach(row => { if (row.category && row.studentIds.length > 0) { row.studentIds.forEach(sid => { const sName = students.find(s => s.id === sid)?.name || 'Unknown'; notesInserts.push({ journal_id: finalJournalId, student_id: sid, student_name: sName, type: 'keaktifan', category: row.category, follow_up: '', note: row.note || '', academic_year: activeYear, semester: activeSem }); }); } });
           if (notesInserts.length > 0) { let { error: noteError } = await supabase.from('journal_notes').insert(notesInserts);
           if (noteError && (noteError.code === '42703' || noteError.message?.includes('academic_year') || noteError.message?.includes('semester'))) {
               const fallbackNotes = notesInserts.map(n => {
@@ -399,18 +401,18 @@ const JurnalForm: React.FC = () => {
                                            <table className="w-full text-sm table-fixed">
                                                <thead className="bg-slate-100 sticky top-0 z-10 shadow-sm">
                                                    <tr className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">
-                                                       <th className="p-2 sm:p-3 text-left pl-3 sm:pl-4 w-[50%]">Nama / Pekan Lalu</th>
+                                                       <th className="p-2 sm:p-3 text-left pl-3 sm:pl-4 w-[52%] sm:w-[56%]">Nama / Pekan Lalu</th>
                                                        {isDhuha ? (
                                                            <>
-                                                               <th className="p-2 sm:p-3 w-[25%] text-center" title="Tidak Hadir (Alpa)">TH</th>
-                                                               <th className="p-2 sm:p-3 w-[25%] text-center" title="Dispensasi">D</th>
+                                                               <th className="p-2 sm:p-3 w-[24%] sm:w-[22%] text-center" title="Tidak Hadir (Alpa)">TH</th>
+                                                               <th className="p-2 sm:p-3 w-[24%] sm:w-[22%] text-center" title="Dispensasi">D</th>
                                                            </>
                                                        ) : (
                                                            <>
-                                                               <th className="p-2 sm:p-3 w-[12.5%] text-center">S</th>
-                                                               <th className="p-2 sm:p-3 w-[12.5%] text-center">I</th>
-                                                               <th className="p-2 sm:p-3 w-[12.5%] text-center">A</th>
-                                                               <th className="p-2 sm:p-3 w-[12.5%] text-center">D</th>
+                                                               <th className="p-2 sm:p-3 w-[12%] sm:w-[11%] text-center">S</th>
+                                                               <th className="p-2 sm:p-3 w-[12%] sm:w-[11%] text-center">I</th>
+                                                               <th className="p-2 sm:p-3 w-[12%] sm:w-[11%] text-center">A</th>
+                                                               <th className="p-2 sm:p-3 w-[12%] sm:w-[11%] text-center">D</th>
                                                            </>
                                                        )}
                                                    </tr>
@@ -434,9 +436,9 @@ const JurnalForm: React.FC = () => {
                                                        const stats = studentStats[student.id] || { A: 0, D: 0 };
                                                        return (
                                                            <tr key={student.id} className="hover:bg-slate-50 transition-colors">
-                                                               <td className="p-2 sm:p-3 pl-3 sm:pl-4 overflow-hidden">
-                                                                   <div className="font-bold text-slate-700 text-xs sm:text-sm truncate w-full" title={student.name}>{student.name}</div>
-                                                                   <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                                               <td className="p-2 sm:p-3 pl-3 sm:pl-4 align-middle">
+                                                                   <div className="font-bold text-slate-700 text-xs sm:text-sm whitespace-normal break-words leading-tight" title={student.name}>{student.name}</div>
+                                                                   <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                                                                        {stats.A > 0 && <span className="text-blue-600 text-[10px] font-extrabold bg-sky-100 px-1.5 py-0.5 rounded border border-blue-300 whitespace-nowrap">A: {stats.A}</span>}
                                                                        {isDhuha && stats.D > 0 && <span className="text-blue-600 text-[10px] font-extrabold bg-sky-100 px-1.5 py-0.5 rounded border border-sky-100 whitespace-nowrap">D: {stats.D}</span>}
                                                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${prevStatusColor} whitespace-nowrap`}>{prevStatusDisplay}</span>

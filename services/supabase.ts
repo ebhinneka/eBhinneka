@@ -43,7 +43,7 @@ export const fetchAllStudents = async (academicYear: string) => {
         const { data, error } = await supabase
             .from('students')
             .select('*')
-            .eq('academic_year', academicYear || '2025/2026')
+            .eq('academic_year', academicYear || (typeof localStorage !== 'undefined' ? localStorage.getItem('app_academic_year') : null) || '2026/2027')
             .range(page * pageSize, (page + 1) * pageSize - 1);
             
         if (error) {
