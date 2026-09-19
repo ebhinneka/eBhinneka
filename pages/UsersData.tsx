@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { Layout } from '../components/Layout';
-import { supabase } from '../services/supabase';
+import { supabase, SUPABASE_URL } from '../services/supabase';
 import { createClient } from '@supabase/supabase-js'; 
 import { Profile } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -143,7 +143,6 @@ const UsersData: React.FC = () => {
           const mapelsNew = finalMapelNew ? finalMapelNew.split(',').map(m => m.trim()).filter(m => m !== '') : [];
           finalMapelNew = mapelsNew.join(', ');
 
-          const SUPABASE_URL = 'https://nuxpvdmhclxftbgytrsq.supabase.co'; 
           const adminClient = createClient(SUPABASE_URL, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
           const email = `${newUser.nip}@sekolah.id`;
           const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
@@ -173,7 +172,6 @@ const UsersData: React.FC = () => {
       if(!resetData.newPassword || !serviceKey) { alert("Password baru dan Service Key wajib diisi."); return; }
       setSaving(true);
       try {
-          const SUPABASE_URL = 'https://nuxpvdmhclxftbgytrsq.supabase.co'; 
           const adminClient = createClient(SUPABASE_URL, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
           const { error: authError } = await adminClient.auth.admin.updateUserById(resetData.userId, { password: resetData.newPassword });

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase , fetchAllStudents } from '../services/supabase';
+import { supabase , fetchAllStudents, SUPABASE_URL } from '../services/supabase';
 import { createClient } from '@supabase/supabase-js';
 import Papa from 'papaparse';
 import { Upload, FileText, CheckCircle, AlertCircle, Download, Users, Calendar, GraduationCap, X, KeyRound, ShieldAlert, Eye, EyeOff } from 'lucide-react';
@@ -200,7 +200,6 @@ const ImportData: React.FC = () => {
             // 1. Setup Admin Client jika opsi Create Account dipilih
             let adminClient = null;
             if (createAccounts) {
-                const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://nuxpvdmhclxftbgytrsq.supabase.co'; 
                 adminClient = createClient(SUPABASE_URL, serviceRoleKey, {
                     auth: {
                         autoRefreshToken: false,

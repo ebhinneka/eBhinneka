@@ -200,16 +200,36 @@ const OperatorDashboard: React.FC = () => {
           const kbmPct = totalJP > 0 ? Math.round((filledJP / totalJP) * 100) : 0;
 
           const cleanCounts: Record<string, number> = {};
-          journals.forEach(j => { if (j.cleanliness === 'sudah_bersih') cleanCounts[j.kelas] = (cleanCounts[j.kelas] || 0) + 1; });
-          let cleanest = '-'; let maxClean = -1;
-          Object.entries(cleanCounts).forEach(([cls, count]) => { if (count > maxClean) { maxClean = count; cleanest = cls; } });
+          journals.forEach(j => {
+            const rawClass = (j.kelas || '').trim();
+            if (rawClass && rawClass !== 'STAFF' && j.cleanliness === 'sudah_bersih') {
+              cleanCounts[rawClass] = (cleanCounts[rawClass] || 0) + 1;
+            }
+          });
+          let cleanest = '-'; let maxClean = 0;
+          Object.entries(cleanCounts).forEach(([cls, count]) => {
+            if (count > maxClean) {
+              maxClean = count;
+              cleanest = cls;
+            }
+          });
 
           const emptyCounts: Record<string, number> = {};
-          processed.filter(i => !i.isFilled).forEach(i => { emptyCounts[i.kelas] = (emptyCounts[i.kelas] || 0) + 1; });
-          let emptiest = '-'; let maxEmpty = -1;
-          Object.entries(emptyCounts).forEach(([cls, count]) => { if (count > maxEmpty) { maxEmpty = count; emptiest = cls; } });
+          processed.filter(i => !i.isFilled && i.kelas !== 'STAFF').forEach(i => {
+            const rawClass = (i.kelas || '').trim();
+            if (rawClass && rawClass !== 'STAFF') {
+              emptyCounts[rawClass] = (emptyCounts[rawClass] || 0) + 1;
+            }
+          });
+          let emptiest = '-'; let maxEmpty = 0;
+          Object.entries(emptyCounts).forEach(([cls, count]) => {
+            if (count > maxEmpty) {
+              maxEmpty = count;
+              emptiest = cls;
+            }
+          });
 
-                    const currentFilledClasses = [...new Set(journals.map(j => j.kelas))];
+          const currentFilledClasses = [...new Set(journals.map(j => j.kelas).filter(k => k && k !== 'STAFF'))];
           setFilledClasses(currentFilledClasses);
           
           setStats({ alpaCount: aCount + iCount + sCount, kbmPercentage: `${kbmPct}%`, cleanestClass: cleanest, mostEmptyClass: emptiest });
@@ -287,7 +307,7 @@ const OperatorDashboard: React.FC = () => {
              <StatCard label="Ketidakhadiran Murid" value={stats.alpaCount} icon={UserX} colorClass="text-blue-600" bgClass="bg-sky-100" onClick={handleAbsenceClick} />
              <StatCard label="Keterlaksanaan" value={stats.kbmPercentage} icon={Percent} colorClass="text-blue-600" bgClass="bg-blue-50" />
              <StatCard label="Kelas Terbersih" value={stats.cleanestClass} icon={Sparkles} colorClass="text-blue-500" bgClass="bg-sky-100" />
-             <StatCard label="Jam Kosong Max" value={stats.mostEmptyClass} icon={Clock} colorClass="text-blue-600" bgClass="bg-sky-100" />
+             <StatCard label="Jam Kosong Terbanyak" value={stats.mostEmptyClass} icon={Clock} colorClass="text-blue-600" bgClass="bg-sky-100" />
          </div>
 
          {loading && profiles.length === 0 ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" size={40} /></div> : (
